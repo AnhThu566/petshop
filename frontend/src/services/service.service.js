@@ -1,0 +1,45 @@
+import createApiClient from "./api.service";
+
+class ServiceService {
+    constructor(baseUrl = "/api/services") {
+        this.api = createApiClient(baseUrl);
+    }
+
+    async getAll() {
+        return (await this.api.get("/")).data;
+    }
+
+    async getPublic() {
+        return (await this.api.get("/?public=true")).data;
+    }
+
+    async get(id) {
+        return (await this.api.get(`/${id}`)).data;
+    }
+
+    async create(data) {
+        return (
+            await this.api.post("/", data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            })
+        ).data;
+    }
+
+    async update(id, data) {
+        return (
+            await this.api.put(`/${id}`, data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            })
+        ).data;
+    }
+
+    async delete(id) {
+        return (await this.api.delete(`/${id}`)).data;
+    }
+}
+
+export default new ServiceService();
