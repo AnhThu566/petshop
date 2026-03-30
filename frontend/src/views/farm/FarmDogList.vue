@@ -218,7 +218,7 @@
                   </div>
 
                   <div v-if="isLockedDog(dog)" class="small text-danger mt-2">
-                    <i class="fas fa-lock mr-1"></i>Đang giao dịch / đã bán
+                    <i class="fas fa-lock mr-1"></i>{{ getLockReason(dog) }}
                   </div>
                 </td>
               </tr>
@@ -604,6 +604,22 @@ export default {
       return ["Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(dog.status);
     },
 
+    getLockReason(dog) {
+      if (dog.status === "Chờ thanh toán") {
+        return "Bé chó đang chờ admin xác nhận cọc, không thể chỉnh sửa.";
+      }
+      if (dog.status === "Đã đặt cọc") {
+        return "Bé chó đã có khách đặt cọc, không thể chỉnh sửa.";
+      }
+      if (dog.status === "Đang giao") {
+        return "Bé chó đang trong quá trình giao, không thể chỉnh sửa.";
+      }
+      if (dog.status === "Đã bán") {
+        return "Bé chó đã bán, không thể chỉnh sửa.";
+      }
+      return "";
+    },
+
     openDetailModal(dog) {
       this.selectedDog = JSON.parse(JSON.stringify(dog));
     },
@@ -614,7 +630,7 @@ export default {
 
     openHealthEditModal(dog) {
       if (this.isLockedDog(dog)) {
-        alert("Bé chó này đang trong giao dịch hoặc đã bán, không thể cập nhật.");
+        alert(this.getLockReason(dog));
         return;
       }
 
@@ -641,7 +657,7 @@ export default {
 
     openBasicEditModal(dog) {
       if (this.isLockedDog(dog)) {
-        alert("Bé chó này đang trong giao dịch hoặc đã bán, không thể cập nhật.");
+        alert(this.getLockReason(dog));
         return;
       }
 

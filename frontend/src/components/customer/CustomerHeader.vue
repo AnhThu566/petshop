@@ -40,7 +40,7 @@
               </router-link>
 
               <router-link
-                to="/dogs"
+                to="/"
                 class="menu-item text-white font-weight-bold text-decoration-none text-uppercase mr-3"
               >
                 🐶 Chó Cảnh
@@ -63,8 +63,10 @@
           </div>
 
           <div class="col-lg-2 d-none d-lg-flex justify-content-center position-static">
-            <router-link to="/" class="logo-wrapper shadow">
-              <img src="" alt="Pet Logo" class="center-logo" />
+            <router-link to="/" class="logo-wrapper shadow text-decoration-none">
+              <div class="text-center font-weight-bold" style="color:#6a1b9a; line-height:1.1;">
+                PET<br />SHOP
+              </div>
             </router-link>
           </div>
 
@@ -176,6 +178,14 @@
                     <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
                   </router-link>
 
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/accessory-orders"
+                    @click="closeDropdown"
+                  >
+                    <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
+                  </router-link>
+
                   <div class="dropdown-divider"></div>
 
                   <a
@@ -192,7 +202,6 @@
         </div>
       </div>
 
-      <!-- lớp phủ để bấm ra ngoài đóng dropdown -->
       <div
         v-if="isDropdownOpen"
         class="dropdown-backdrop"
@@ -213,6 +222,13 @@ export default {
 
   created() {
     this.checkLoginStatus();
+  },
+
+  watch: {
+    $route() {
+      this.closeDropdown();
+      this.checkLoginStatus();
+    },
   },
 
   methods: {
@@ -281,12 +297,6 @@ export default {
   align-items: center;
   justify-content: center;
   border: 4px solid #6a1b9a;
-}
-
-.center-logo {
-  width: 80%;
-  height: 80%;
-  object-fit: contain;
 }
 
 .cart-icon { transition: all 0.2s; }

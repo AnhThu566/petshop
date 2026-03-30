@@ -1,7 +1,7 @@
 import createApiClient from "./api.service";
 
-class ServiceBookingService {
-    constructor(baseUrl = "/api/service-bookings") {
+class AccessoryOrderService {
+    constructor(baseUrl = "/api/accessory-orders") {
         this.api = createApiClient(baseUrl);
     }
 
@@ -17,13 +17,17 @@ class ServiceBookingService {
         return (await this.api.get(`/user/${userId}`)).data;
     }
 
+    async get(id) {
+        return (await this.api.get(`/${id}`)).data;
+    }
+
     async updateStatus(id, status) {
         return (await this.api.put(`/${id}/status`, { status })).data;
     }
 
-async cancelByCustomer(id) {
-  return (await this.api.put(`/${id}/cancel`)).data;
-}
+    async cancelByCustomer(id) {
+        return (await this.api.put(`/${id}/cancel`)).data;
+    }
 }
 
-export default new ServiceBookingService();
+export default new AccessoryOrderService();

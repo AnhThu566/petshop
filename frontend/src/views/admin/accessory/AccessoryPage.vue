@@ -36,7 +36,20 @@
               </div>
             </div>
 
-            <div class="col-md-8 text-md-right">
+            <div class="col-md-4 mb-2 mb-md-0">
+              <select class="form-control form-control-sm" v-model="categoryFilter">
+                <option value="Tất cả">Tất cả loại phụ kiện</option>
+                <option
+                  v-for="category in categories"
+                  :key="category._id || category.id"
+                  :value="category._id || category.id"
+                >
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-md-4 text-md-right">
               <div class="btn-group flex-wrap">
                 <button
                   class="btn btn-sm"
@@ -73,6 +86,7 @@
                 <th class="py-3">Ảnh</th>
                 <th class="py-3">Mã</th>
                 <th class="py-3">Tên phụ kiện</th>
+                <th class="py-3">Loại</th>
                 <th class="py-3">Giá</th>
                 <th class="py-3">Tồn kho</th>
                 <th class="py-3">Trạng thái</th>
@@ -97,6 +111,12 @@
 
                 <td class="font-weight-bold text-dark text-left">
                   {{ item.name }}
+                </td>
+
+                <td>
+                  <span class="badge badge-light border">
+                    {{ item.categoryId?.name || "---" }}
+                  </span>
                 </td>
 
                 <td class="text-danger font-weight-bold">
@@ -184,6 +204,20 @@
                   <div class="form-group">
                     <label class="font-weight-bold">Tên phụ kiện <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" v-model.trim="form.name" />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="font-weight-bold">Loại phụ kiện</label>
+                    <select class="form-control" v-model="form.categoryId">
+                      <option value="">-- Chọn loại phụ kiện --</option>
+                      <option
+                        v-for="category in activeCategories"
+                        :key="category._id || category.id"
+                        :value="category._id || category.id"
+                      >
+                        {{ category.name }}
+                      </option>
+                    </select>
                   </div>
 
                   <div class="form-row">
@@ -289,6 +323,7 @@
                 <div class="col-md-8">
                   <h5 class="font-weight-bold">{{ selectedAccessory.name }}</h5>
                   <p class="mb-1"><strong>Mã phụ kiện:</strong> {{ selectedAccessory.maPhuKien || "---" }}</p>
+                  <p class="mb-1"><strong>Loại phụ kiện:</strong> {{ selectedAccessory.categoryId?.name || "---" }}</p>
                   <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedAccessory.price) }}</p>
                   <p class="mb-1"><strong>Tồn kho:</strong> {{ selectedAccessory.quantity ?? 0 }}</p>
                   <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedAccessory.status || "---" }}</p>
@@ -310,13 +345,16 @@
 
 <script>
 import AccessoryService from "@/services/accessory.service";
+import AccessoryCategoryService from "@/services/accessoryCategory.service";
 
 export default {
   data() {
     return {
       accessories: [],
+      categories: [],
       searchText: "",
       statusFilter: "Tất cả",
+      categoryFilter: "Tất cả",
 
       showFormModal: false,
       isEditMode: false,
@@ -329,6 +367,7 @@ export default {
 
       form: {
         _id: null,
+        categoryId: "",
         name: "",
         price: "",
         quantity: "",
@@ -339,17 +378,27 @@ export default {
   },
 
   computed: {
+    activeCategories() {
+      return this.categories.filter(
+        (item) => item.status === "Hoạt động" || !item.status
+      );
+    },
+
     filteredAccessories() {
       return this.accessories.filter((item) => {
         const keyword = (this.searchText || "").toLowerCase();
         const name = item.name ? item.name.toLowerCase() : "";
         const code = item.maPhuKien ? item.maPhuKien.toLowerCase() : "";
+        const itemCategoryId = item.categoryId?._id || item.categoryId?.id || item.categoryId || "";
 
         const matchSearch = name.includes(keyword) || code.includes(keyword);
         const matchStatus =
           this.statusFilter === "Tất cả" || item.status === this.statusFilter;
+        const matchCategory =
+          this.categoryFilter === "Tất cả" ||
+          String(itemCategoryId) === String(this.categoryFilter);
 
-        return matchSearch && matchStatus;
+        return matchSearch && matchStatus && matchCategory;
       });
     },
   },
@@ -361,6 +410,14 @@ export default {
       } catch (error) {
         console.error("Lỗi tải danh sách phụ kiện:", error);
         alert("Không thể tải danh sách phụ kiện.");
+      }
+    },
+
+    async fetchCategories() {
+      try {
+        this.categories = await AccessoryCategoryService.getAll();
+      } catch (error) {
+        console.error("Lỗi tải danh sách loại phụ kiện:", error);
       }
     },
 
@@ -397,6 +454,7 @@ export default {
 
       this.form = {
         _id: item._id || item.id,
+        categoryId: item.categoryId?._id || item.categoryId?.id || item.categoryId || "",
         name: item.name || "",
         price: item.price ?? "",
         quantity: item.quantity ?? "",
@@ -417,6 +475,7 @@ export default {
     resetForm() {
       this.form = {
         _id: null,
+        categoryId: "",
         name: "",
         price: "",
         quantity: "",
@@ -475,6 +534,7 @@ export default {
 
       try {
         const formData = new FormData();
+        formData.append("categoryId", this.form.categoryId || "");
         formData.append("name", this.form.name.trim());
         formData.append("price", this.form.price);
         formData.append("quantity", this.form.quantity);
@@ -526,7 +586,10 @@ export default {
   },
 
   async mounted() {
-    await this.fetchAccessories();
+    await Promise.all([
+      this.fetchAccessories(),
+      this.fetchCategories(),
+    ]);
   },
 };
 </script>

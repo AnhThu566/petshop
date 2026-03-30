@@ -19,4 +19,7 @@ router.get("/user/:userId", requireCustomer, serviceBookingController.findByUser
 // Admin cập nhật trạng thái
 router.put("/:id/status", requireAdmin, serviceBookingController.updateStatus);
 
+// Khách hủy lịch
+router.put("/:id/cancel", requireCustomer, serviceBookingController.cancelByCustomer);
+
 module.exports = router;

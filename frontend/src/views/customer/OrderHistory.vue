@@ -97,7 +97,7 @@
         <div
           class="col-lg-6 mb-4"
           v-for="(order, index) in filteredOrders"
-          :key="order._id || index"
+          :key="getOrderId(order) || index"
         >
           <div class="card border-0 shadow-sm h-100 order-card">
             <div class="card-body">
@@ -105,7 +105,7 @@
                 <div>
                   <div class="small text-muted">Mã đơn</div>
                   <div class="font-weight-bold text-primary">
-                    #{{ getShortOrderCode(order._id) }}
+                    #{{ getShortOrderCode(getOrderId(order)) }}
                   </div>
                 </div>
                 <div class="text-right">
@@ -165,6 +165,18 @@
                       {{ formatCurrency(order.depositAmount) }}
                     </div>
                   </div>
+                  <div class="col-6 mb-2">
+                    <div class="small text-muted">Tiền còn lại</div>
+                    <div class="font-weight-bold text-primary">
+                      {{ formatCurrency(getRemainingAmount(order)) }}
+                    </div>
+                  </div>
+                  <div class="col-6 mb-2">
+                    <div class="small text-muted">Thanh toán cọc</div>
+                    <div class="font-weight-bold">
+                      {{ order.paymentMethod || "Chuyển khoản" }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -174,12 +186,30 @@
                   {{ getCustomerMessage(order) }}
                 </div>
 
-                <button
-                  class="btn btn-outline-primary btn-sm"
-                  @click="openDetail(order)"
-                >
-                  <i class="fas fa-eye mr-1"></i> Xem chi tiết
-                </button>
+                <div class="d-flex flex-wrap">
+                  <button
+                    v-if="order.status === 'Chờ xác nhận cọc'"
+                    class="btn btn-outline-danger btn-sm mr-2 mb-2"
+                    @click="cancelOrder(order)"
+                  >
+                    <i class="fas fa-times mr-1"></i> Hủy đơn
+                  </button>
+
+                  <button
+                    v-if="canBuyAgain(order)"
+                    class="btn btn-outline-success btn-sm mr-2 mb-2"
+                    @click="buyAgain(order)"
+                  >
+                    <i class="fas fa-redo-alt mr-1"></i> Mua lại
+                  </button>
+
+                  <button
+                    class="btn btn-outline-primary btn-sm mb-2"
+                    @click="openDetail(order)"
+                  >
+                    <i class="fas fa-eye mr-1"></i> Xem chi tiết
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -208,15 +238,15 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
-                  <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(selectedOrder._id) }}</p>
+                  <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(getOrderId(selectedOrder)) }}</p>
                   <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}</p>
                   <p class="mb-1"><strong>Trạng thái đơn:</strong> {{ selectedOrder.status }}</p>
-                  <p class="mb-1">
-                    <strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}
-                  </p>
+                  <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}</p>
+                  <p class="mb-1"><strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}</p>
+                  <p class="mb-1"><strong>Tiền còn lại:</strong> {{ formatCurrency(getRemainingAmount(selectedOrder)) }}</p>
+                  <p class="mb-1"><strong>Phương thức cọc:</strong> {{ selectedOrder.paymentMethod || "Chuyển khoản" }}</p>
+                  <p class="mb-1"><strong>Trạng thái thanh toán cọc:</strong> {{ selectedOrder.paymentStatus || "---" }}</p>
+                  <p class="mb-1"><strong>Minh chứng cọc:</strong> {{ selectedOrder.paymentProof || "Không có" }}</p>
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -255,6 +285,13 @@
             </div>
 
             <div class="modal-footer">
+              <button
+                v-if="canBuyAgain(selectedOrder)"
+                class="btn btn-success"
+                @click="buyAgain(selectedOrder)"
+              >
+                <i class="fas fa-redo-alt mr-1"></i> Mua lại
+              </button>
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
@@ -267,6 +304,7 @@
 
 <script>
 import OrderService from "@/services/order.service";
+import DogService from "@/services/dog.service";
 
 export default {
   data() {
@@ -286,11 +324,9 @@ export default {
         const keyword = (this.searchText || "").toLowerCase();
 
         const dogName = order.dogId?.name ? order.dogId.name.toLowerCase() : "";
-        const shortCode = this.getShortOrderCode(order._id).toLowerCase();
+        const shortCode = this.getShortOrderCode(this.getOrderId(order)).toLowerCase();
 
-        const matchSearch =
-          dogName.includes(keyword) || shortCode.includes(keyword);
-
+        const matchSearch = dogName.includes(keyword) || shortCode.includes(keyword);
         const matchStatus =
           this.statusFilter === "Tất cả" || order.status === this.statusFilter;
 
@@ -315,6 +351,51 @@ export default {
       }
     },
 
+    getOrderId(order) {
+      return order?._id || order?.id || "";
+    },
+
+    canBuyAgain(order) {
+      if (!order) return false;
+      return order.status === "Đã hủy" || order.status === "Hoàn thành";
+    },
+
+    async buyAgain(order) {
+      try {
+        if (!order?.dogId) {
+          alert("Không tìm thấy dữ liệu bé cún để mua lại.");
+          return;
+        }
+
+        const dogId = order.dogId._id || order.dogId.id;
+        if (!dogId) {
+          alert("Không tìm thấy mã bé cún để mua lại.");
+          return;
+        }
+
+        const latestDog = await DogService.get(dogId);
+
+        if (!latestDog) {
+          alert("Không tìm thấy thông tin bé cún.");
+          return;
+        }
+
+        if (latestDog.status !== "Đã duyệt") {
+          alert("Bé cún này hiện không còn sẵn sàng để đặt cọc lại.");
+          return;
+        }
+
+        localStorage.setItem("checkoutDog", JSON.stringify(latestDog));
+        this.closeDetail();
+        this.$router.push("/deposit");
+      } catch (error) {
+        alert(
+          "Không thể mua lại lúc này: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
+    },
+
     openDetail(order) {
       this.selectedOrder = order;
     },
@@ -325,7 +406,14 @@ export default {
 
     getShortOrderCode(id) {
       if (!id) return "------";
-      return id.substring(id.length - 6).toUpperCase();
+      return String(id).substring(String(id).length - 6).toUpperCase();
+    },
+
+    getRemainingAmount(order) {
+      if (order?.remainingAmount !== undefined && order?.remainingAmount !== null) {
+        return order.remainingAmount;
+      }
+      return Number(order.totalPrice || 0) - Number(order.depositAmount || 0);
     },
 
     formatDate(date) {
@@ -368,27 +456,47 @@ export default {
       if (status === "Đã đặt cọc") return "badge-primary";
       if (status === "Đang giao") return "badge-secondary";
       if (status === "Đã bán") return "badge-dark";
-      if (status === "Ngừng bán") return "badge-light border";
       return "badge-light border";
     },
 
     getCustomerMessage(order) {
       if (order.status === "Chờ xác nhận cọc") {
-        return "Đơn của bạn đang chờ hệ thống xác nhận tiền cọc.";
+        return "Đơn của bạn đang chờ admin xác nhận khoản cọc.";
       }
       if (order.status === "Đã nhận cọc") {
-        return "Hệ thống đã xác nhận cọc. Bé cún đang được chuẩn bị bàn giao.";
+        return `Đã xác nhận cọc. Bạn còn lại ${this.formatCurrency(this.getRemainingAmount(order))} khi nhận chó.`;
       }
       if (order.status === "Đang giao") {
-        return "Bé cún đang trong quá trình bàn giao đến bạn.";
+        return `Bé cún đang được bàn giao. Số tiền còn lại cần thanh toán là ${this.formatCurrency(this.getRemainingAmount(order))}.`;
       }
       if (order.status === "Hoàn thành") {
-        return "Đơn hàng đã hoàn tất. Chúc bạn và bé cún luôn vui vẻ.";
+        return "Đơn hàng đã hoàn tất. Bạn có thể mua lại nếu bé cún đã được mở bán lại.";
       }
       if (order.status === "Đã hủy") {
-        return "Đơn này đã bị hủy. Nếu cần, bạn có thể đặt lại bé khác.";
+        return "Đơn này đã bị hủy. Bạn có thể mua lại nếu bé cún đã sẵn sàng mở bán.";
       }
       return "Đơn hàng đang được xử lý.";
+    },
+
+    async cancelOrder(order) {
+      if (!confirm(`Bạn có chắc muốn hủy đơn #${this.getShortOrderCode(this.getOrderId(order))} không?`)) {
+        return;
+      }
+
+      try {
+        await OrderService.cancelByCustomer(this.getOrderId(order));
+        alert("✅ Hủy đơn đặt cọc thành công!");
+        await this.fetchOrders();
+
+        if (this.selectedOrder && this.getOrderId(this.selectedOrder) === this.getOrderId(order)) {
+          this.selectedOrder = null;
+        }
+      } catch (error) {
+        alert(
+          "❌ Không thể hủy đơn: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     },
   },
 

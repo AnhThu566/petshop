@@ -15,6 +15,10 @@ const orderRouter = require("./app/routes/order.route");
 const accessoryRouter = require("./app/routes/accessory.route");
 const serviceRouter = require("./app/routes/service.route");
 const ServiceBookingRouter = require("./app/routes/serviceBooking.route");
+const accessoryOrderRouter = require("./app/routes/accessoryOrder.route");
+const accessoryCategoryRouter = require("./app/routes/accessoryCategory.route");
+const serviceCategoryRouter = require("./app/routes/serviceCategory.route");
+const notificationRouter = require("./app/routes/notification.route");
 
 
 const app = express();
@@ -41,6 +45,10 @@ app.use("/api/orders", orderRouter); // Đăng ký route cho đơn đặt cọc
 app.use("/api/accessories", accessoryRouter); // Đăng ký route cho phụ kiện
 app.use("/api/services", serviceRouter); // Đăng ký route cho dịch vụ
 app.use("/api/service-bookings", ServiceBookingRouter); // Đăng ký route cho đặt lịch dịch vụ
+app.use("/api/accessory-orders", accessoryOrderRouter); // Đăng ký route cho đặt hàng phụ kiện
+app.use("/api/accessory-categories", accessoryCategoryRouter); // Đăng ký route cho loại phụ kiện
+app.use("/api/service-categories", serviceCategoryRouter); // Đăng ký route cho loại dịch vụ
+app.use("/api/notifications", require("./app/routes/notification.route")); // Đăng ký route cho thông báo
 
 
 // --- XỬ LÝ LỖI ---

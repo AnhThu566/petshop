@@ -1,4 +1,5 @@
 const Accessory = require("../models/accessory.model");
+const AccessoryCategory = require("../models/accessoryCategory.model");
 const ApiError = require("../api-error");
 
 // Tạo mã phụ kiện tự động
@@ -18,10 +19,21 @@ const generateNextCode = async () => {
 // 1. Thêm phụ kiện
 exports.create = async (req, res, next) => {
   try {
-    const { name, price, quantity, description, status } = req.body;
+    const { categoryId, name, price, quantity, description, status } = req.body;
 
     if (!name || price === undefined || quantity === undefined) {
       return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin phụ kiện"));
+    }
+
+    if (categoryId) {
+      const category = await AccessoryCategory.findById(categoryId);
+      if (!category) {
+        return next(new ApiError(404, "Không tìm thấy loại phụ kiện"));
+      }
+
+      if (category.status !== "Hoạt động") {
+        return next(new ApiError(400, "Loại phụ kiện này hiện không hoạt động"));
+      }
     }
 
     let imagePath = "";
@@ -33,6 +45,7 @@ exports.create = async (req, res, next) => {
 
     const accessory = new Accessory({
       maPhuKien,
+      categoryId: categoryId || null,
       name,
       price,
       quantity,
@@ -43,9 +56,12 @@ exports.create = async (req, res, next) => {
 
     await accessory.save();
 
+    const populatedAccessory = await Accessory.findById(accessory._id)
+      .populate("categoryId", "maLoaiPhuKien name status");
+
     return res.send({
       message: "Thêm phụ kiện thành công!",
-      accessory,
+      accessory: populatedAccessory,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi thêm phụ kiện: " + error.message));
@@ -61,7 +77,13 @@ exports.findAll = async (req, res, next) => {
       filter.status = "Đang bán";
     }
 
-    const accessories = await Accessory.find(filter).sort({ createdAt: -1 });
+    if (req.query.categoryId) {
+      filter.categoryId = req.query.categoryId;
+    }
+
+    const accessories = await Accessory.find(filter)
+      .populate("categoryId", "maLoaiPhuKien name status")
+      .sort({ createdAt: -1 });
 
     return res.send(accessories);
   } catch (error) {
@@ -72,7 +94,8 @@ exports.findAll = async (req, res, next) => {
 // 3. Lấy 1 phụ kiện
 exports.findOne = async (req, res, next) => {
   try {
-    const accessory = await Accessory.findById(req.params.id);
+    const accessory = await Accessory.findById(req.params.id)
+      .populate("categoryId", "maLoaiPhuKien name status");
 
     if (!accessory) {
       return next(new ApiError(404, "Không tìm thấy phụ kiện"));
@@ -87,9 +110,21 @@ exports.findOne = async (req, res, next) => {
 // 4. Cập nhật phụ kiện
 exports.update = async (req, res, next) => {
   try {
-    const { name, price, quantity, description, status } = req.body;
+    const { categoryId, name, price, quantity, description, status } = req.body;
+
+    if (categoryId) {
+      const category = await AccessoryCategory.findById(categoryId);
+      if (!category) {
+        return next(new ApiError(404, "Không tìm thấy loại phụ kiện"));
+      }
+
+      if (category.status !== "Hoạt động") {
+        return next(new ApiError(400, "Loại phụ kiện này hiện không hoạt động"));
+      }
+    }
 
     const updateData = {
+      categoryId: categoryId || null,
       name,
       price,
       quantity,
@@ -105,7 +140,7 @@ exports.update = async (req, res, next) => {
       req.params.id,
       { $set: updateData },
       { new: true }
-    );
+    ).populate("categoryId", "maLoaiPhuKien name status");
 
     if (!accessory) {
       return next(new ApiError(404, "Không tìm thấy phụ kiện để cập nhật"));

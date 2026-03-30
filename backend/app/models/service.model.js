@@ -7,6 +7,11 @@ const serviceSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceCategory",
+      default: null,
+    },
     name: {
       type: String,
       required: true,

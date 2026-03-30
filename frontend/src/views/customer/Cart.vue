@@ -26,7 +26,7 @@
 
       <div v-else class="row">
         <div class="col-lg-8">
-          <div class="card border-0 shadow-sm">
+          <div class="card border-0 shadow-sm mb-4">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
@@ -90,10 +90,32 @@
           </div>
         </div>
 
-        <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="col-lg-4">
           <div class="card border-0 shadow-sm">
             <div class="card-body">
-              <h5 class="font-weight-bold mb-4">Tóm tắt đơn hàng</h5>
+              <h5 class="font-weight-bold mb-4">Thông tin đặt hàng</h5>
+
+              <div class="form-group">
+                <label>Họ tên người nhận <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" v-model.trim="form.customerName" />
+              </div>
+
+              <div class="form-group">
+                <label>Số điện thoại <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" v-model.trim="form.customerPhone" />
+              </div>
+
+              <div class="form-group">
+                <label>Địa chỉ nhận hàng <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="3" v-model.trim="form.shippingAddress"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Ghi chú</label>
+                <textarea class="form-control" rows="2" v-model.trim="form.note"></textarea>
+              </div>
+
+              <hr />
 
               <div class="d-flex justify-content-between mb-2">
                 <span>Tổng số lượng:</span>
@@ -105,36 +127,41 @@
                 <strong class="text-danger">{{ formatCurrency(totalPrice) }}</strong>
               </div>
 
-              <hr />
-
-              <button class="btn btn-primary btn-block mb-2" disabled>
-                <i class="fas fa-credit-card mr-1"></i> Thanh toán
+              <button class="btn btn-primary btn-block mb-2" @click="submitOrder" :disabled="isSubmitting">
+                <i class="fas fa-check-circle mr-1"></i>
+                {{ isSubmitting ? "Đang xử lý..." : "Đặt hàng phụ kiện" }}
               </button>
 
               <router-link to="/accessories" class="btn btn-outline-secondary btn-block">
                 Tiếp tục mua sắm
               </router-link>
 
-              <div class="small text-muted mt-3">
-                Bước thanh toán phụ kiện có thể làm tiếp sau khi bạn chốt phần dịch vụ.
-              </div>
+              <router-link to="/accessory-orders" class="btn btn-outline-primary btn-block mt-2">
+                Lịch sử đơn phụ kiện
+              </router-link>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Có thể thêm modal xác nhận sau nếu cần -->
   </div>
 </template>
 
 <script>
 import CartService from "@/services/cart.service";
+import AccessoryOrderService from "@/services/accessoryOrder.service";
 
 export default {
   data() {
     return {
       cart: [],
+      isSubmitting: false,
+      form: {
+        customerName: "",
+        customerPhone: "",
+        shippingAddress: "",
+        note: "",
+      },
     };
   },
 
@@ -154,6 +181,12 @@ export default {
   methods: {
     loadCart() {
       this.cart = CartService.getCart();
+
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (user) {
+        this.form.customerName = user.fullName || "";
+        this.form.customerPhone = user.phone || "";
+      }
     },
 
     changeQuantity(item, event) {
@@ -178,6 +211,60 @@ export default {
       if (!confirm("Bạn có chắc muốn xóa toàn bộ giỏ hàng?")) return;
       CartService.clearCart();
       this.loadCart();
+    },
+
+    async submitOrder() {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        alert("Vui lòng đăng nhập để đặt hàng phụ kiện.");
+        this.$router.push("/login");
+        return;
+      }
+
+      if (!this.form.customerName) {
+        alert("Vui lòng nhập họ tên người nhận.");
+        return;
+      }
+
+      if (!this.form.customerPhone) {
+        alert("Vui lòng nhập số điện thoại.");
+        return;
+      }
+
+      if (!this.form.shippingAddress) {
+        alert("Vui lòng nhập địa chỉ nhận hàng.");
+        return;
+      }
+
+      if (this.cart.length === 0) {
+        alert("Giỏ hàng đang trống.");
+        return;
+      }
+
+      this.isSubmitting = true;
+
+      try {
+        await AccessoryOrderService.create({
+          customerName: this.form.customerName,
+          customerPhone: this.form.customerPhone,
+          shippingAddress: this.form.shippingAddress,
+          note: this.form.note,
+          items: this.cart.map((item) => ({
+            accessoryId: item.id,
+            quantity: item.quantity,
+          })),
+        });
+
+        alert("✅ Đặt đơn phụ kiện thành công!");
+        CartService.clearCart();
+        this.loadCart();
+        this.$router.push("/accessory-orders");
+      } catch (error) {
+        console.error("Lỗi đặt đơn phụ kiện:", error);
+        alert("❌ Lỗi đặt đơn: " + (error.response?.data?.message || error.message));
+      } finally {
+        this.isSubmitting = false;
+      }
     },
 
     getAccessoryImage(item) {

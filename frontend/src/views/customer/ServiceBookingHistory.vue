@@ -90,7 +90,7 @@
         <div
           class="col-lg-6 mb-4"
           v-for="item in filteredBookings"
-          :key="item._id || item.id"
+          :key="getBookingId(item)"
         >
           <div class="card border-0 shadow-sm h-100 booking-card">
             <div class="card-body">
@@ -98,7 +98,7 @@
                 <div>
                   <div class="small text-muted">Mã lịch</div>
                   <div class="font-weight-bold text-primary">
-                    {{ item.maLichDat || "---" }}
+                    {{ item.maLichDat || getShortBookingCode(getBookingId(item)) }}
                   </div>
                 </div>
 
@@ -154,12 +154,30 @@
                   {{ getBookingMessage(item.status) }}
                 </div>
 
-                <button
-                  class="btn btn-outline-primary btn-sm"
-                  @click="openDetail(item)"
-                >
-                  <i class="fas fa-eye mr-1"></i> Xem chi tiết
-                </button>
+                <div class="d-flex flex-wrap">
+                  <button
+                    v-if="item.status === 'Chờ xác nhận'"
+                    class="btn btn-outline-danger btn-sm mr-2 mb-2"
+                    @click="cancelBooking(item)"
+                  >
+                    <i class="fas fa-times mr-1"></i> Hủy lịch
+                  </button>
+
+                  <button
+                    v-if="canBookAgain(item)"
+                    class="btn btn-outline-success btn-sm mr-2 mb-2"
+                    @click="bookAgain(item)"
+                  >
+                    <i class="fas fa-redo-alt mr-1"></i> Đặt lại
+                  </button>
+
+                  <button
+                    class="btn btn-outline-primary btn-sm mb-2"
+                    @click="openDetail(item)"
+                  >
+                    <i class="fas fa-eye mr-1"></i> Xem chi tiết
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -188,7 +206,7 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-primary">Thông tin lịch đặt</h6>
-                  <p class="mb-1"><strong>Mã lịch:</strong> {{ selectedBooking.maLichDat || "---" }}</p>
+                  <p class="mb-1"><strong>Mã lịch:</strong> {{ selectedBooking.maLichDat || getShortBookingCode(getBookingId(selectedBooking)) }}</p>
                   <p class="mb-1"><strong>Ngày hẹn:</strong> {{ formatDateOnly(selectedBooking.bookingDate) }}</p>
                   <p class="mb-1"><strong>Giờ hẹn:</strong> {{ selectedBooking.bookingTime || "---" }}</p>
                   <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedBooking.status || "---" }}</p>
@@ -224,6 +242,13 @@
             </div>
 
             <div class="modal-footer">
+              <button
+                v-if="canBookAgain(selectedBooking)"
+                class="btn btn-success"
+                @click="bookAgain(selectedBooking)"
+              >
+                <i class="fas fa-redo-alt mr-1"></i> Đặt lại
+              </button>
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
@@ -253,7 +278,7 @@ export default {
     filteredBookings() {
       return this.bookings.filter((item) => {
         const keyword = (this.searchText || "").toLowerCase();
-        const code = item.maLichDat ? item.maLichDat.toLowerCase() : "";
+        const code = (item.maLichDat || this.getShortBookingCode(this.getBookingId(item)) || "").toLowerCase();
         const serviceName = item.serviceId?.name ? item.serviceId.name.toLowerCase() : "";
 
         const matchSearch = code.includes(keyword) || serviceName.includes(keyword);
@@ -266,6 +291,15 @@ export default {
   },
 
   methods: {
+    getBookingId(item) {
+      return item?._id || item?.id || "";
+    },
+
+    getShortBookingCode(id) {
+      if (!id) return "------";
+      return String(id).substring(String(id).length - 6).toUpperCase();
+    },
+
     async fetchBookings() {
       try {
         if (!this.currentUser) return;
@@ -287,6 +321,49 @@ export default {
 
     closeDetail() {
       this.selectedBooking = null;
+    },
+
+    canBookAgain(item) {
+      if (!item) return false;
+      return item.status === "Đã hủy" || item.status === "Hoàn thành";
+    },
+
+    bookAgain(item) {
+      const serviceId = item.serviceId?._id || item.serviceId?.id || item.serviceId;
+      if (!serviceId) {
+        alert("Không tìm thấy dịch vụ để đặt lại.");
+        return;
+      }
+
+      this.closeDetail();
+      this.$router.push(`/services/${serviceId}`);
+    },
+
+    async cancelBooking(item) {
+      const bookingId = this.getBookingId(item);
+      if (!bookingId) {
+        alert("Không tìm thấy mã lịch hợp lệ.");
+        return;
+      }
+
+      if (!confirm(`Bạn có chắc muốn hủy lịch [${item.maLichDat || this.getShortBookingCode(bookingId)}] không?`)) {
+        return;
+      }
+
+      try {
+        await ServiceBookingService.cancelByCustomer(bookingId);
+        alert("✅ Hủy lịch dịch vụ thành công!");
+        await this.fetchBookings();
+
+        if (this.selectedBooking && this.getBookingId(this.selectedBooking) === bookingId) {
+          this.selectedBooking = null;
+        }
+      } catch (error) {
+        alert(
+          "❌ Không thể hủy lịch: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     },
 
     getServiceImage(service) {
@@ -325,10 +402,10 @@ export default {
         return "Lịch hẹn đã được xác nhận. Vui lòng đến đúng giờ hẹn.";
       }
       if (status === "Hoàn thành") {
-        return "Dịch vụ đã hoàn thành. Cảm ơn bạn đã sử dụng.";
+        return "Dịch vụ đã hoàn thành. Bạn có thể đặt lại nếu cần.";
       }
       if (status === "Đã hủy") {
-        return "Lịch hẹn này đã bị hủy.";
+        return "Lịch hẹn này đã bị hủy. Bạn có thể đặt lại dịch vụ.";
       }
       return "Lịch hẹn đang được xử lý.";
     },

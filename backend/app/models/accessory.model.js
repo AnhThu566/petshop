@@ -5,6 +5,12 @@ const accessorySchema = new mongoose.Schema(
     maPhuKien: {
       type: String,
       unique: true,
+      trim: true,
+    },
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AccessoryCategory",
+      default: null,
     },
     name: {
       type: String,
@@ -25,6 +31,7 @@ const accessorySchema = new mongoose.Schema(
     description: {
       type: String,
       default: "",
+      trim: true,
     },
     image: {
       type: String,

@@ -1,7 +1,6 @@
 <template>
   <div class="admin-orders bg-light py-4" style="min-height: 100vh;">
     <div class="container-fluid px-2">
-
       <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
         <h4 class="font-weight-bold text-dark mb-0">
           <i class="fas fa-file-invoice-dollar mr-2 text-warning"></i>
@@ -89,6 +88,8 @@
                 <th class="py-3 border-bottom">Trại</th>
                 <th class="py-3 border-bottom">Tổng tiền</th>
                 <th class="py-3 border-bottom">Tiền cọc</th>
+                <th class="py-3 border-bottom">Còn lại</th>
+                <th class="py-3 border-bottom">TT cọc</th>
                 <th class="py-3 border-bottom">Trạng thái đơn</th>
                 <th class="py-3 border-bottom">Trạng thái chó</th>
                 <th class="py-3 border-bottom">Thao tác</th>
@@ -98,12 +99,12 @@
             <tbody>
               <tr
                 v-for="(order, index) in filteredOrders"
-                :key="order._id || index"
+                :key="getOrderId(order) || index"
                 style="font-size: 0.9rem;"
               >
                 <td>
                   <small class="font-weight-bold text-primary">
-                    #{{ getShortOrderCode(order._id) }}
+                    #{{ getShortOrderCode(getOrderId(order)) }}
                   </small>
                 </td>
 
@@ -158,6 +159,16 @@
                   {{ formatCurrency(order.depositAmount) }}
                 </td>
 
+                <td class="font-weight-bold text-primary">
+                  {{ formatCurrency(getRemainingAmount(order)) }}
+                </td>
+
+                <td>
+                  <span class="badge px-2 py-1" :class="getPaymentStatusClass(order.paymentStatus)">
+                    {{ order.paymentStatus || "---" }}
+                  </span>
+                </td>
+
                 <td>
                   <span class="badge px-2 py-1 shadow-sm" :class="getStatusClass(order.status)">
                     {{ order.status }}
@@ -185,14 +196,14 @@
                     <div v-if="order.status === 'Chờ xác nhận cọc'" class="btn-group">
                       <button
                         class="btn btn-sm btn-info px-2 font-weight-bold text-white shadow-sm"
-                        @click="updateStatus(order._id, 'Đã nhận cọc')"
-                        title="Xác nhận đã nhận tiền"
+                        @click="updateStatus(getOrderId(order), 'Đã nhận cọc')"
+                        title="Xác nhận đã nhận tiền cọc"
                       >
                         <i class="fas fa-check mr-1"></i> Nhận cọc
                       </button>
                       <button
                         class="btn btn-sm btn-outline-danger px-2 ml-1"
-                        @click="updateStatus(order._id, 'Đã hủy')"
+                        @click="updateStatus(getOrderId(order), 'Đã hủy')"
                         title="Hủy đơn"
                       >
                         <i class="fas fa-times"></i>
@@ -202,20 +213,34 @@
                     <div v-else-if="order.status === 'Đã nhận cọc'" class="btn-group">
                       <button
                         class="btn btn-sm btn-primary px-3 font-weight-bold shadow-sm"
-                        @click="updateStatus(order._id, 'Đang giao')"
+                        @click="updateStatus(getOrderId(order), 'Đang giao')"
                         title="Bắt đầu giao chó"
                       >
                         <i class="fas fa-truck mr-1"></i> Giao hàng
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-danger px-2 ml-1"
+                        @click="updateStatus(getOrderId(order), 'Đã hủy')"
+                        title="Hủy đơn"
+                      >
+                        <i class="fas fa-times"></i>
                       </button>
                     </div>
 
                     <div v-else-if="order.status === 'Đang giao'" class="btn-group">
                       <button
                         class="btn btn-sm btn-success px-3 font-weight-bold shadow-sm"
-                        @click="updateStatus(order._id, 'Hoàn thành')"
-                        title="Giao thành công"
+                        @click="updateStatus(getOrderId(order), 'Hoàn thành')"
+                        title="Giao thành công và khách đã thanh toán đủ"
                       >
                         <i class="fas fa-flag-checkered mr-1"></i> Hoàn thành
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-danger px-2 ml-1"
+                        @click="updateStatus(getOrderId(order), 'Đã hủy')"
+                        title="Hủy đơn"
+                      >
+                        <i class="fas fa-times"></i>
                       </button>
                     </div>
 
@@ -235,7 +260,7 @@
               </tr>
 
               <tr v-if="filteredOrders.length === 0">
-                <td colspan="10" class="py-5 text-center text-muted">
+                <td colspan="12" class="py-5 text-center text-muted">
                   <i class="fas fa-search fa-2x mb-3 opacity-50 d-block"></i>
                   Không tìm thấy đơn hàng nào phù hợp.
                 </td>
@@ -245,7 +270,6 @@
         </div>
       </div>
 
-      <!-- Modal chi tiết -->
       <div
         v-if="selectedOrder"
         class="modal fade show d-block"
@@ -275,11 +299,15 @@
 
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-success">Thông tin đơn hàng</h6>
-                  <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(selectedOrder._id) }}</p>
+                  <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(getOrderId(selectedOrder)) }}</p>
                   <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}</p>
                   <p class="mb-1"><strong>Trạng thái đơn:</strong> {{ selectedOrder.status }}</p>
                   <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}</p>
                   <p class="mb-1"><strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}</p>
+                  <p class="mb-1"><strong>Tiền còn lại:</strong> {{ formatCurrency(getRemainingAmount(selectedOrder)) }}</p>
+                  <p class="mb-1"><strong>Phương thức cọc:</strong> {{ selectedOrder.paymentMethod || "Chuyển khoản" }}</p>
+                  <p class="mb-1"><strong>Trạng thái thanh toán cọc:</strong> {{ selectedOrder.paymentStatus || "---" }}</p>
+                  <p class="mb-1"><strong>Minh chứng cọc:</strong> {{ selectedOrder.paymentProof || "Không có" }}</p>
                 </div>
 
                 <div class="col-12" v-if="selectedOrder.dogId">
@@ -300,6 +328,12 @@
                     </div>
                   </div>
                 </div>
+
+                <div class="col-12 mt-3" v-if="selectedOrder.farmId">
+                  <hr>
+                  <h6 class="font-weight-bold text-dark">Thông tin trang trại</h6>
+                  <p class="mb-1"><strong>Tên trại:</strong> {{ selectedOrder.farmId.name }}</p>
+                </div>
               </div>
             </div>
 
@@ -309,7 +343,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -331,13 +364,10 @@ export default {
     filteredOrders() {
       return this.orders.filter((order) => {
         const text = (this.searchText || "").toLowerCase();
-
         const custName = order.customerName ? order.customerName.toLowerCase() : "";
         const custPhone = order.customerPhone || "";
 
-        const matchSearch =
-          custName.includes(text) || custPhone.includes(text);
-
+        const matchSearch = custName.includes(text) || custPhone.includes(text);
         const matchStatus =
           this.statusFilter === "Tất cả" || order.status === this.statusFilter;
 
@@ -347,6 +377,10 @@ export default {
   },
 
   methods: {
+    getOrderId(order) {
+      return order?._id || order?.id || "";
+    },
+
     async fetchOrders() {
       try {
         this.orders = await OrderService.getAll();
@@ -357,10 +391,19 @@ export default {
     },
 
     async updateStatus(id, status) {
+      if (!id) {
+        alert("Không tìm thấy mã đơn hợp lệ để cập nhật.");
+        return;
+      }
+
       let message = `Bạn xác nhận chuyển đơn hàng này sang trạng thái: [ ${status.toUpperCase()} ] ?`;
 
       if (status === "Đã hủy") {
-        message += "\n\nLưu ý: Bé chó sẽ được mở bán lại nếu chưa giao xong.";
+        message += "\n\nLưu ý: Bé chó sẽ được mở bán lại nếu giao dịch chưa hoàn tất.";
+      }
+
+      if (status === "Hoàn thành") {
+        message += "\n\nLưu ý: Điều này có nghĩa là khách đã nhận chó và thanh toán đủ số tiền còn lại.";
       }
 
       if (!confirm(message)) return;
@@ -370,8 +413,8 @@ export default {
         alert("✅ Cập nhật trạng thái đơn hàng thành công!");
         await this.fetchOrders();
 
-        if (this.selectedOrder && this.selectedOrder._id === id) {
-          const updated = this.orders.find((item) => item._id === id);
+        if (this.selectedOrder && this.getOrderId(this.selectedOrder) === id) {
+          const updated = this.orders.find((item) => this.getOrderId(item) === id);
           this.selectedOrder = updated || null;
         }
       } catch (error) {
@@ -406,9 +449,16 @@ export default {
       return Number(value).toLocaleString("vi-VN") + " ₫";
     },
 
+    getRemainingAmount(order) {
+      if (order?.remainingAmount !== undefined && order?.remainingAmount !== null) {
+        return order.remainingAmount;
+      }
+      return Number(order.totalPrice || 0) - Number(order.depositAmount || 0);
+    },
+
     getShortOrderCode(id) {
       if (!id) return "------";
-      return id.substring(id.length - 6).toUpperCase();
+      return String(id).substring(String(id).length - 6).toUpperCase();
     },
 
     getDogImage(order) {
@@ -435,7 +485,13 @@ export default {
       if (status === "Đã đặt cọc") return "badge-primary";
       if (status === "Đang giao") return "badge-secondary";
       if (status === "Đã bán") return "badge-dark";
-      if (status === "Ngừng bán") return "badge-light border";
+      return "badge-light border";
+    },
+
+    getPaymentStatusClass(status) {
+      if (status === "Chưa thanh toán") return "badge-secondary";
+      if (status === "Đã gửi minh chứng") return "badge-warning text-dark";
+      if (status === "Đã xác nhận") return "badge-success";
       return "badge-light border";
     },
   },

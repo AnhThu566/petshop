@@ -1,4 +1,5 @@
 const Service = require("../models/service.model");
+const ServiceCategory = require("../models/serviceCategory.model");
 const ApiError = require("../api-error");
 
 const generateNextCode = async () => {
@@ -17,10 +18,21 @@ const generateNextCode = async () => {
 // 1. Thêm dịch vụ
 exports.create = async (req, res, next) => {
   try {
-    const { name, price, description, status } = req.body;
+    const { categoryId, name, price, description, status } = req.body;
 
     if (!name || price === undefined || price === null || price === "") {
       return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin dịch vụ"));
+    }
+
+    if (categoryId) {
+      const category = await ServiceCategory.findById(categoryId);
+      if (!category) {
+        return next(new ApiError(404, "Không tìm thấy loại dịch vụ"));
+      }
+
+      if (category.status !== "Hoạt động") {
+        return next(new ApiError(400, "Loại dịch vụ này hiện không hoạt động"));
+      }
     }
 
     let imagePath = "";
@@ -32,6 +44,7 @@ exports.create = async (req, res, next) => {
 
     const service = new Service({
       maDichVu,
+      categoryId: categoryId || null,
       name,
       price,
       description,
@@ -41,9 +54,12 @@ exports.create = async (req, res, next) => {
 
     await service.save();
 
+    const populatedService = await Service.findById(service._id)
+      .populate("categoryId", "maLoaiDichVu name status");
+
     return res.send({
       message: "Thêm dịch vụ thành công!",
-      service,
+      service: populatedService,
     });
   } catch (error) {
     console.error("Lỗi create service:", error);
@@ -60,7 +76,13 @@ exports.findAll = async (req, res, next) => {
       filter.status = "Đang hoạt động";
     }
 
-    const services = await Service.find(filter).sort({ createdAt: -1 });
+    if (req.query.categoryId) {
+      filter.categoryId = req.query.categoryId;
+    }
+
+    const services = await Service.find(filter)
+      .populate("categoryId", "maLoaiDichVu name status")
+      .sort({ createdAt: -1 });
 
     return res.send(services);
   } catch (error) {
@@ -72,7 +94,8 @@ exports.findAll = async (req, res, next) => {
 // 3. Lấy chi tiết 1 dịch vụ
 exports.findOne = async (req, res, next) => {
   try {
-    const service = await Service.findById(req.params.id);
+    const service = await Service.findById(req.params.id)
+      .populate("categoryId", "maLoaiDichVu name status");
 
     if (!service) {
       return next(new ApiError(404, "Không tìm thấy dịch vụ"));
@@ -88,9 +111,21 @@ exports.findOne = async (req, res, next) => {
 // 4. Cập nhật dịch vụ
 exports.update = async (req, res, next) => {
   try {
-    const { name, price, description, status } = req.body;
+    const { categoryId, name, price, description, status } = req.body;
+
+    if (categoryId) {
+      const category = await ServiceCategory.findById(categoryId);
+      if (!category) {
+        return next(new ApiError(404, "Không tìm thấy loại dịch vụ"));
+      }
+
+      if (category.status !== "Hoạt động") {
+        return next(new ApiError(400, "Loại dịch vụ này hiện không hoạt động"));
+      }
+    }
 
     const updateData = {
+      categoryId: categoryId || null,
       name,
       price,
       description,
@@ -105,7 +140,7 @@ exports.update = async (req, res, next) => {
       req.params.id,
       { $set: updateData },
       { new: true, runValidators: true }
-    );
+    ).populate("categoryId", "maLoaiDichVu name status");
 
     if (!service) {
       return next(new ApiError(404, "Không tìm thấy dịch vụ để cập nhật"));

@@ -24,6 +24,10 @@ class OrderService {
   async findByUserId(userId) {
     return (await this.api.get(`/user/${userId}`)).data;
   }
+
+  async cancelByCustomer(id) {
+  return (await this.api.put(`/${id}/cancel`)).data;
+}
 }
 
 export default new OrderService();

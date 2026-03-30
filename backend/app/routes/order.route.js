@@ -22,4 +22,7 @@ router.get("/phone/:phone", requireCustomer, orderController.findByPhone);
 // Khách xem lịch sử theo user
 router.get("/user/:userId", requireCustomer, orderController.findByUserId);
 
+// Khách hủy đơn
+router.put("/:id/cancel", requireCustomer, orderController.cancelByCustomer);
+
 module.exports = router;

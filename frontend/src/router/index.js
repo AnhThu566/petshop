@@ -13,6 +13,10 @@ import BreedPage from "@/views/admin/breed/BreedPage.vue";
 import OrderAdmin from "@/views/admin/order/OrderAdmin.vue";
 import AccessoryPage from "@/views/admin/accessory/AccessoryPage.vue";
 import ServicePage from "@/views/admin/service/ServicePage.vue";
+import ServiceBookingPage from "@/views/admin/service/ServiceBookingPage.vue";
+import AccessoryOrderPage from "@/views/admin/accessory/AccessoryOrderPage.vue";
+import AccessoryCategoryPage from "@/views/admin/accessory/AccessoryCategoryPage.vue";
+import ServiceCategoryPage from "@/views/admin/service/ServiceCategoryPage.vue";
 
 // ==========================================
 // IMPORT CÁC TRANG CỦA CHỦ TRẠI (FARM)
@@ -20,6 +24,8 @@ import ServicePage from "@/views/admin/service/ServicePage.vue";
 import FarmDashboard from "@/views/farm/FarmDashboard.vue";
 import FarmDogList from "@/views/farm/FarmDogList.vue";
 import FarmDogForm from "@/views/farm/FarmDogForm.vue";
+import FarmTransactionPage from "@/views/farm/FarmTransactionPage.vue";
+import FarmProfilePage from "@/views/farm/FarmProfilePage.vue";
 
 // ==========================================
 // IMPORT CÁC TRANG CỦA KHÁCH HÀNG (CUSTOMER)
@@ -34,8 +40,8 @@ import AccessoryList from "@/views/customer/AccessoryList.vue";
 import AccessoryDetail from "@/views/customer/AccessoryDetail.vue";
 import ServiceList from "@/views/customer/ServiceList.vue";
 import ServiceDetail from "@/views/customer/ServiceDetail.vue";
-import ServiceBookingPage from "@/views/admin/service/ServiceBookingPage.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
+import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
 
 const routes = [
     {
@@ -127,33 +133,52 @@ const routes = [
         component: ServiceBookingHistory,
         meta: { requiresCustomer: true }
     },
+    {
+        path: "/accessory-orders",
+        name: "accessory-order-history",
+        component: AccessoryOrderHistory,
+        meta: { requiresCustomer: true }
+    },
 
     // ============================================================
     // ROUTER CHO CHỦ TRẠI (FARM)
     // ============================================================
-    {
-        path: "/farm",
-        component: FarmDashboard,
-        meta: { requiresFarm: true },
-        children: [
-            {
-                path: "",
-                redirect: "/farm/dashboard"
-            },
-            {
-                path: "dashboard",
-                name: "farm-dog-list",
-                component: FarmDogList,
-                meta: { requiresFarm: true }
-            },
-            {
-                path: "add-dog",
-                name: "farm-dog-add",
-                component: FarmDogForm,
-                meta: { requiresFarm: true }
-            }
-        ]
-    },
+{
+    path: "/farm",
+    component: FarmDashboard,
+    meta: { requiresFarm: true },
+    children: [
+        {
+            path: "",
+            redirect: "/farm/dashboard"
+        },
+        {
+            path: "dashboard",
+            name: "farm-dog-list",
+            component: FarmDogList,
+            meta: { requiresFarm: true }
+        },
+        {
+            path: "add-dog",
+            name: "farm-dog-add",
+            component: FarmDogForm,
+            meta: { requiresFarm: true }
+        },
+        {
+            path: "transactions",
+            name: "farm-transactions",
+            component: FarmTransactionPage,
+            meta: { requiresFarm: true }
+        },
+        {
+    path: "profile",
+    name: "farm-profile",
+    component: FarmProfilePage,
+    meta: { requiresFarm: true }
+}
+
+    ]
+},
 
     // ============================================================
     // ROUTER CHO ADMIN
@@ -226,7 +251,27 @@ const routes = [
                 name: "admin-service-booking",
                 component: ServiceBookingPage,
                 meta: { requiresAdmin: true }
-            }
+            },
+            {
+    path: "accessory-orders",
+    name: "admin-accessory-orders",
+    component: AccessoryOrderPage,
+    meta: { requiresAdmin: true }
+},
+
+{
+  path: "accessory-category",
+  name: "admin-accessory-category",
+  component: AccessoryCategoryPage,
+  meta: { requiresAdmin: true }
+},
+
+{
+  path: "service-category",
+  name: "admin-service-category",
+  component: ServiceCategoryPage,
+  meta: { requiresAdmin: true }
+},
         ]
     }
 ];
@@ -239,68 +284,57 @@ const router = createRouter({
 // ============================================================
 // ROUTER GUARD PHÂN QUYỀN
 // ============================================================
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const farm = JSON.parse(localStorage.getItem("farm") || "null");
 
     const role = user?.role || user?.vaiTro || "";
 
-    // =========================
-    // ADMIN ROUTE
-    // =========================
     if (to.matched.some((record) => record.meta.requiresAdmin)) {
         if (!user) {
             alert("Vui lòng đăng nhập tài khoản quản trị.");
-            return next("/login");
+            return "/login";
         }
 
         if (role !== "admin" && role !== "Admin") {
             alert("Bạn không có quyền truy cập khu vực quản trị.");
-            return next("/");
+            return "/";
         }
 
-        return next();
+        return true;
     }
 
-    // =========================
-    // FARM ROUTE
-    // =========================
     if (to.matched.some((record) => record.meta.requiresFarm)) {
-        if (farm) {
-            return next();
-        }
+        if (farm) return true;
 
         if (user && (role === "farm" || role === "Farm")) {
-            return next();
+            return true;
         }
 
         alert("Vui lòng đăng nhập tài khoản trang trại.");
-        return next("/login");
+        return "/login";
     }
 
-    // =========================
-    // CUSTOMER ROUTE
-    // =========================
     if (to.matched.some((record) => record.meta.requiresCustomer)) {
         if (!user) {
             alert("Vui lòng đăng nhập để tiếp tục.");
-            return next("/login");
+            return "/login";
         }
 
         if (role === "admin" || role === "Admin") {
             alert("Tài khoản admin không dùng cho chức năng khách hàng.");
-            return next("/admin/dashboard");
+            return "/admin/dashboard";
         }
 
         if (role === "farm" || role === "Farm") {
             alert("Tài khoản trang trại không dùng cho chức năng khách hàng.");
-            return next("/farm/dashboard");
+            return "/farm/dashboard";
         }
 
-        return next();
+        return true;
     }
 
-    next();
+    return true;
 });
 
 export default router;

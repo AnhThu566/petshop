@@ -138,3 +138,46 @@ exports.updateStatus = async (req, res, next) => {
     return next(new ApiError(500, "Lỗi khi cập nhật trạng thái lịch đặt: " + error.message));
   }
 };
+
+// Khách hủy lịch
+exports.cancelByCustomer = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
+    const { id } = req.params;
+
+    const booking = await ServiceBooking.findById(id);
+    if (!booking) {
+      return next(new ApiError(404, "Không tìm thấy lịch đặt dịch vụ"));
+    }
+
+    const currentUserId = req.user._id || req.user.id;
+    const bookingUserId = booking.customerId?._id || booking.customerId;
+
+    if (String(bookingUserId) !== String(currentUserId)) {
+      return next(new ApiError(403, "Bạn không có quyền hủy lịch này"));
+    }
+
+    if (booking.status !== "Chờ xác nhận") {
+      return next(
+        new ApiError(400, "Bạn chỉ có thể hủy lịch khi đang chờ xác nhận")
+      );
+    }
+
+    booking.status = "Đã hủy";
+    await booking.save();
+
+    const populatedBooking = await ServiceBooking.findById(booking._id)
+      .populate("serviceId", "maDichVu name price image status")
+      .populate("customerId", "username fullName phone");
+
+    return res.send({
+      message: "Hủy lịch dịch vụ thành công!",
+      booking: populatedBooking,
+    });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi hủy lịch dịch vụ: " + error.message));
+  }
+};
