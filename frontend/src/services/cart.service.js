@@ -1,71 +1,38 @@
+import createApiClient from "./api.service";
+
 class CartService {
-    constructor() {
-        this.storageKey = "accessory_cart";
-    }
+  constructor(baseUrl = "/api/cart") {
+    this.api = createApiClient(baseUrl);
+  }
 
-    getCart() {
-        try {
-            return JSON.parse(localStorage.getItem(this.storageKey)) || [];
-        } catch (error) {
-            return [];
-        }
-    }
+  async getCart() {
+    return (await this.api.get("/")).data;
+  }
 
-    saveCart(cart) {
-        localStorage.setItem(this.storageKey, JSON.stringify(cart));
-    }
+  async addToCart(accessoryId, quantity = 1) {
+    return (
+      await this.api.post("/items", {
+        accessoryId,
+        quantity,
+      })
+    ).data;
+  }
 
-    addToCart(accessory, quantity = 1) {
-        const cart = this.getCart();
+  async updateQuantity(itemId, quantity) {
+    return (
+      await this.api.put(`/items/${itemId}`, {
+        quantity,
+      })
+    ).data;
+  }
 
-        const existingIndex = cart.findIndex(
-            (item) => String(item.id) === String(accessory._id || accessory.id)
-        );
+  async removeItem(itemId) {
+    return (await this.api.delete(`/items/${itemId}`)).data;
+  }
 
-        if (existingIndex !== -1) {
-            cart[existingIndex].quantity += quantity;
-        } else {
-            cart.push({
-                id: accessory._id || accessory.id,
-                maPhuKien: accessory.maPhuKien,
-                name: accessory.name,
-                price: accessory.price,
-                image: accessory.image || "",
-                stock: accessory.quantity ?? 0,
-                quantity,
-            });
-        }
-
-        this.saveCart(cart);
-        return cart;
-    }
-
-    updateQuantity(id, quantity) {
-        const cart = this.getCart().map((item) => {
-            if (String(item.id) === String(id)) {
-                return {
-                    ...item,
-                    quantity: quantity < 1 ? 1 : quantity,
-                };
-            }
-            return item;
-        });
-
-        this.saveCart(cart);
-        return cart;
-    }
-
-    removeItem(id) {
-        const cart = this.getCart().filter(
-            (item) => String(item.id) !== String(id)
-        );
-        this.saveCart(cart);
-        return cart;
-    }
-
-    clearCart() {
-        localStorage.removeItem(this.storageKey);
-    }
+  async clearCart() {
+    return (await this.api.delete("/clear")).data;
+  }
 }
 
 export default new CartService();

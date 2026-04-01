@@ -1,5 +1,39 @@
 const Dog = require("../models/dog.model");
 const ApiError = require("../api-error");
+const DogHistory = require("../models/dogHistory.model");
+
+const getActorInfo = (req) => {
+  const actorId = req.user?._id || req.user?.id || null;
+  const actorName =
+    req.user?.fullName ||
+    req.user?.username ||
+    req.user?.name ||
+    req.user?.email ||
+    "Hệ thống";
+
+  return { actorId, actorName };
+};
+
+const createDogHistory = async ({
+  dogId,
+  oldStatus = "",
+  newStatus,
+  req,
+  reason = "",
+  note = "",
+}) => {
+  const { actorId, actorName } = getActorInfo(req);
+
+  await DogHistory.create({
+    dogId,
+    oldStatus,
+    newStatus,
+    changedBy: actorId,
+    changedByName: actorName,
+    reason,
+    note,
+  });
+};
 
 // 1. Chủ trại đăng chó mới
 exports.create = async (req, res, next) => {
@@ -77,6 +111,13 @@ exports.create = async (req, res, next) => {
     });
 
     await newDog.save();
+    await createDogHistory({
+  dogId: newDog._id,
+  oldStatus: "",
+  newStatus: "Chờ duyệt",
+  req,
+  note: "Chủ trại tạo hồ sơ chó mới",
+});
 
     res.send({
       message: "Đăng hồ sơ chó thành công! Hồ sơ đang chờ Admin duyệt.",
@@ -138,8 +179,17 @@ exports.updateStatus = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy hồ sơ chó"));
     }
 
+    const oldStatus = dog.status;
+
     if (status === "Từ chối" && !rejectionReason?.trim()) {
       return next(new ApiError(400, "Vui lòng nhập lý do từ chối"));
+    }
+
+    if (oldStatus === status) {
+      return res.send({
+        message: "Trạng thái chó không thay đổi.",
+        dog,
+      });
     }
 
     dog.status = status;
@@ -151,6 +201,15 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     await dog.save();
+
+    await createDogHistory({
+      dogId: dog._id,
+      oldStatus,
+      newStatus: status,
+      req,
+      reason: status === "Từ chối" ? rejectionReason.trim() : "",
+      note: "Admin cập nhật trạng thái chó",
+    });
 
     res.send({
       message: "Cập nhật trạng thái chó thành công!",

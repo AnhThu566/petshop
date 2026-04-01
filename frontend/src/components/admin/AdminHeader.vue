@@ -18,10 +18,12 @@
     <script>
     export default {
     methods: {
-        logout() {
-        localStorage.removeItem("user");
-        this.$router.push("/");
-        }
+logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("farm");
+  this.$router.push("/login");
+}
     }
     };
     </script>

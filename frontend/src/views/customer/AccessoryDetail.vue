@@ -143,7 +143,7 @@ export default {
       }
     },
 
-    addToCart() {
+    async addToCart() {
       if (!this.accessory) return;
 
       if (this.accessory.status !== "Đang bán") {
@@ -161,9 +161,17 @@ export default {
         return;
       }
 
-      CartService.addToCart(this.accessory, Number(this.quantity));
-      alert("✅ Đã thêm phụ kiện vào giỏ hàng!");
-      this.$router.push("/cart");
+      try {
+        await CartService.addToCart(
+          this.accessory.id || this.accessory._id,
+          Number(this.quantity)
+        );
+
+        alert("✅ Đã thêm phụ kiện vào giỏ hàng!");
+        this.$router.push("/cart");
+      } catch (error) {
+        alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
+      }
     },
 
     getAccessoryImage(item) {

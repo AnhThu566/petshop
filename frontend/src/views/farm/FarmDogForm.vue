@@ -56,8 +56,10 @@
                   <option value="Cái">Cái</option>
                 </select>
               </div>
+            </div>
 
-              <div class="col-md-4 form-group">
+            <div class="row mb-3">
+              <div class="col-md-6 form-group">
                 <label class="font-weight-bold">
                   Ngày sinh <span class="text-danger">*</span>
                 </label>
@@ -69,9 +71,7 @@
                   required
                 />
               </div>
-            </div>
 
-            <div class="row mb-3">
               <div class="col-md-6 form-group">
                 <label class="font-weight-bold">
                   Cân nặng (kg) <span class="text-danger">*</span>
@@ -91,7 +91,9 @@
                   </div>
                 </div>
               </div>
+            </div>
 
+            <div class="row mb-3">
               <div class="col-md-6 form-group">
                 <label class="font-weight-bold">
                   Tình trạng sức khỏe <span class="text-danger">*</span>
@@ -101,6 +103,16 @@
                   <option value="Tốt">Tốt (Bình thường)</option>
                   <option value="Đang theo dõi">Đang theo dõi</option>
                 </select>
+              </div>
+
+              <div class="col-md-6 form-group">
+                <label class="font-weight-bold">Ngày sổ giun gần nhất</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  v-model="dogLocal.lastDeworming"
+                  :max="today"
+                />
               </div>
             </div>
 
@@ -116,16 +128,6 @@
                   placeholder="VD: 5000000"
                   min="0"
                   required
-                />
-              </div>
-
-              <div class="col-md-6 form-group">
-                <label class="font-weight-bold">Ngày sổ giun gần nhất</label>
-                <input
-                  type="date"
-                  class="form-control"
-                  v-model="dogLocal.lastDeworming"
-                  :max="today"
                 />
               </div>
             </div>
@@ -246,7 +248,7 @@
 
             <div
               v-if="dogLocal.healthRecord.length === 0"
-              class="text-center py-3 text-muted small italic"
+              class="text-center py-3 text-muted small font-italic"
             >
               Chưa cập nhật dữ liệu tiêm chủng cho bé chó này.
             </div>
@@ -254,7 +256,10 @@
         </div>
 
         <div class="text-center mt-4 border-top pt-4">
-          <router-link to="/farm/dashboard" class="btn btn-outline-secondary px-5 mr-3 font-weight-bold">
+          <router-link
+            to="/farm/dashboard"
+            class="btn btn-outline-secondary px-5 mr-3 font-weight-bold"
+          >
             HỦY BỎ
           </router-link>
 
@@ -308,7 +313,9 @@ export default {
 
   computed: {
     activeVaccines() {
-      return this.vaccineList.filter((item) => item.status === "Hoạt động" || !item.status);
+      return this.vaccineList.filter(
+        (item) => item.status === "Hoạt động" || !item.status
+      );
     },
   },
 
@@ -332,7 +339,6 @@ export default {
       if (farmData) {
         this.currentFarm = JSON.parse(farmData);
 
-        // Ưu tiên farmId vì localStorage("farm") hiện có thể là tài khoản farm
         this.dogLocal.farmId =
           this.currentFarm.farmId ||
           this.currentFarm._id ||
@@ -373,7 +379,7 @@ export default {
 
         const myFarm = farms.find((f) => {
           const ownerId = f.ownerId?._id || f.ownerId?.id || f.ownerId;
-          return ownerId === currentUserId;
+          return String(ownerId) === String(currentUserId);
         });
 
         if (myFarm) {
@@ -387,7 +393,6 @@ export default {
 
     handleFileUpload(event) {
       const file = event.target.files[0];
-
       if (!file) return;
 
       if (!file.type.startsWith("image/")) {
@@ -539,7 +544,10 @@ export default {
         formData.append("weight", this.dogLocal.weight);
         formData.append("healthStatus", this.dogLocal.healthStatus);
         formData.append("lastDeworming", this.dogLocal.lastDeworming || "");
-        formData.append("healthRecord", JSON.stringify(this.buildCleanHealthRecord()));
+        formData.append(
+          "healthRecord",
+          JSON.stringify(this.buildCleanHealthRecord())
+        );
 
         await DogService.create(formData);
 

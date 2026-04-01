@@ -122,6 +122,40 @@ exports.updateStatus = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy lịch đặt"));
     }
 
+    const oldStatus = booking.status;
+
+    if (oldStatus === status) {
+      return res.send({
+        message: "Trạng thái lịch không thay đổi.",
+        booking,
+      });
+    }
+
+    // Không cho đổi nếu đã hoàn thành
+    if (oldStatus === "Hoàn thành") {
+      return next(new ApiError(400, "Lịch đã hoàn thành không thể thay đổi trạng thái"));
+    }
+
+    // Không cho hồi sinh lịch đã hủy
+    if (oldStatus === "Đã hủy") {
+      return next(new ApiError(400, "Lịch đã hủy không thể chuyển sang trạng thái khác"));
+    }
+
+    // Luồng chuyển trạng thái hợp lệ
+    const allowedTransitions = {
+      "Chờ xác nhận": ["Đã xác nhận", "Đã hủy"],
+      "Đã xác nhận": ["Hoàn thành", "Đã hủy"],
+    };
+
+    if (!allowedTransitions[oldStatus]?.includes(status)) {
+      return next(
+        new ApiError(
+          400,
+          `Không thể chuyển lịch từ trạng thái [${oldStatus}] sang [${status}]`
+        )
+      );
+    }
+
     booking.status = status;
     await booking.save();
 

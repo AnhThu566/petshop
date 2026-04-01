@@ -40,7 +40,7 @@
               </router-link>
 
               <router-link
-                to="/"
+                to="/dogs"
                 class="menu-item text-white font-weight-bold text-decoration-none text-uppercase mr-3"
               >
                 🐶 Chó Cảnh
@@ -112,7 +112,7 @@
               style="border-color: rgba(255,255,255,0.2) !important;"
             >
               <div
-                v-if="!currentUser"
+                v-if="!isLoggedIn || !currentUser"
                 class="small font-weight-bold d-flex align-items-center"
                 style="height: 38px;"
               >
@@ -152,39 +152,61 @@
                 <div
                   class="dropdown-menu dropdown-menu-right shadow border-0 mt-2"
                   :class="{ 'show d-block': isDropdownOpen }"
-                  style="border-radius: 12px; min-width: 220px; position: absolute; top: 100%; right: 0;"
+                  style="border-radius: 12px; min-width: 230px; position: absolute; top: 100%; right: 0;"
                 >
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/profile"
-                    @click="closeDropdown"
-                  >
-                    <i class="fas fa-id-card-alt text-primary mr-2"></i> Hồ sơ của tôi
-                  </router-link>
+                  <template v-if="currentUser.role === 'customer'">
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/profile"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-id-card-alt text-primary mr-2"></i> Hồ sơ của tôi
+                    </router-link>
 
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/tra-cuu-don"
-                    @click="closeDropdown"
-                  >
-                    <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
-                  </router-link>
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/tra-cuu-don"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
+                    </router-link>
 
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/service-bookings"
-                    @click="closeDropdown"
-                  >
-                    <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
-                  </router-link>
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/service-bookings"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
+                    </router-link>
 
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/accessory-orders"
-                    @click="closeDropdown"
-                  >
-                    <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
-                  </router-link>
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/accessory-orders"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
+                    </router-link>
+                  </template>
+
+                  <template v-else-if="currentUser.role === 'farm'">
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/farm/dashboard"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-warehouse text-success mr-2"></i> Trang trại của tôi
+                    </router-link>
+                  </template>
+
+                  <template v-else-if="currentUser.role === 'admin'">
+                    <router-link
+                      class="dropdown-item py-2 small font-weight-bold text-dark"
+                      to="/admin/dashboard"
+                      @click="closeDropdown"
+                    >
+                      <i class="fas fa-user-shield text-danger mr-2"></i> Trang quản trị
+                    </router-link>
+                  </template>
 
                   <div class="dropdown-divider"></div>
 
@@ -213,34 +235,30 @@
 
 <script>
 export default {
-  data() {
-    return {
-      currentUser: null,
-      isDropdownOpen: false,
-    };
+  props: {
+    currentUser: {
+      type: Object,
+      default: null,
+    },
+    isLoggedIn: {
+      type: Boolean,
+      default: false,
+    },
   },
 
-  created() {
-    this.checkLoginStatus();
+  data() {
+    return {
+      isDropdownOpen: false,
+    };
   },
 
   watch: {
     $route() {
       this.closeDropdown();
-      this.checkLoginStatus();
     },
   },
 
   methods: {
-    checkLoginStatus() {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        this.currentUser = JSON.parse(userData);
-      } else {
-        this.currentUser = null;
-      }
-    },
-
     closeDropdown() {
       this.isDropdownOpen = false;
     },
@@ -250,10 +268,8 @@ export default {
         localStorage.removeItem("user");
         localStorage.removeItem("farm");
         localStorage.removeItem("token");
-        this.currentUser = null;
         this.isDropdownOpen = false;
         this.$router.push("/login");
-        setTimeout(() => window.location.reload(), 100);
       }
     },
   },
@@ -278,11 +294,6 @@ export default {
 
 .placeholder-white::placeholder {
   color: rgba(255, 255, 255, 0.7);
-}
-
-.search-box .form-control:focus {
-  box-shadow: none;
-  background: rgba(255,255,255,0.25) !important;
 }
 
 .logo-wrapper {

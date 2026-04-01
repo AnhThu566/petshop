@@ -1,5 +1,6 @@
 const express = require("express");
 const orderController = require("../controllers/order.controller");
+const OrderHistory = require("../models/orderHistory.model");
 const {
   requireAdmin,
   requireCustomer,
@@ -24,5 +25,18 @@ router.get("/user/:userId", requireCustomer, orderController.findByUserId);
 
 // Khách hủy đơn
 router.put("/:id/cancel", requireCustomer, orderController.cancelByCustomer);
+
+// Xem lịch sử thay đổi trạng thái đơn
+router.get("/:id/history", requireCustomer, async (req, res, next) => {
+  try {
+    const histories = await OrderHistory.find({ orderId: req.params.id }).sort({
+      createdAt: -1,
+    });
+
+    res.send(histories);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;

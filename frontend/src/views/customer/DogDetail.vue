@@ -33,18 +33,21 @@
               <img
                 :src="dog.image ? 'http://localhost:3000' + dog.image : 'https://via.placeholder.com/150'"
                 class="img-fluid rounded cursor-pointer img-thumbnail-custom active-thumb"
+                alt="Ảnh chính"
               />
             </div>
             <div class="col-4 px-2">
               <img
                 src="https://via.placeholder.com/150/f4ebf8/6a1b9a?text=+"
                 class="img-fluid rounded img-thumbnail-custom"
+                alt="Ảnh phụ"
               />
             </div>
             <div class="col-4 px-2">
               <img
                 src="https://via.placeholder.com/150/f4ebf8/6a1b9a?text=+"
                 class="img-fluid rounded img-thumbnail-custom"
+                alt="Ảnh phụ"
               />
             </div>
           </div>
@@ -52,6 +55,7 @@
 
         <div class="col-lg-8 pl-lg-5">
           <h1 class="pet-title font-weight-bold mb-1">{{ dog.name }}</h1>
+
           <div class="price-box mb-2">
             <span class="font-weight-bold" style="font-size: 2.2rem; color: #4a148c;">
               {{ formatCurrency(dog.price) }}
@@ -84,37 +88,52 @@
             <div class="d-flex flex-wrap stripe-white">
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md">
                 <span class="info-label text-muted">Giới tính:</span>
-                <strong class="text-dark">{{ dog.gender }}</strong>
+                <strong class="text-dark">{{ dog.gender || "---" }}</strong>
               </div>
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3">
                 <span class="info-label text-muted">Giống:</span>
-                <strong class="text-dark">{{ dog.breedId?.name || 'Đang cập nhật' }}</strong>
+                <strong class="text-dark">{{ dog.breedId?.name || "Đang cập nhật" }}</strong>
               </div>
             </div>
 
             <div class="d-flex flex-wrap stripe-purple">
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md">
                 <span class="info-label text-muted">Cân nặng:</span>
-                <strong class="text-dark">{{ dog.weight || '--' }} kg</strong>
+                <strong class="text-dark">{{ dog.weight || "--" }} kg</strong>
               </div>
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3">
                 <span class="info-label text-muted">Nguồn gốc:</span>
-                <strong class="text-dark">{{ dog.farmId?.name || 'Đang cập nhật' }}</strong>
+                <strong class="text-dark">{{ dog.farmId?.name || "Đang cập nhật" }}</strong>
               </div>
             </div>
 
             <div class="d-flex flex-wrap stripe-white">
+              <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md">
+                <span class="info-label text-muted">Sức khỏe:</span>
+                <strong class="text-success">{{ dog.healthStatus || "Đang cập nhật" }}</strong>
+              </div>
+              <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3">
+                <span class="info-label text-muted">Tẩy giun gần nhất:</span>
+                <strong class="text-dark">{{ formatDate(dog.lastDeworming) }}</strong>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap stripe-purple">
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md flex-nowrap">
                 <span class="info-label text-muted">Tẩy giun:</span>
-                <strong class="text-dark mr-2">Đã tẩy</strong>
+                <strong class="text-dark mr-2">
+                  {{ dog.lastDeworming ? "Đã tẩy" : "Chưa cập nhật" }}
+                </strong>
                 <a
                   href="#"
                   class="text-primary small font-weight-bold text-decoration-underline text-nowrap"
                   @click.prevent="showDewormModal = true"
+                  v-if="dog.lastDeworming"
                 >
                   (Xem chi tiết)
                 </a>
               </div>
+
               <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 flex-nowrap">
                 <span class="info-label text-muted">Tiêm phòng:</span>
                 <strong class="text-dark mr-2">{{ dog.healthRecord?.length || 0 }} mũi</strong>
@@ -129,7 +148,7 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap stripe-purple" v-if="dog.description">
+            <div class="d-flex flex-wrap stripe-white" v-if="dog.description">
               <div class="col-12 d-flex align-items-center py-2 px-3">
                 <span class="info-label text-muted">Đặc điểm:</span>
                 <span class="text-dark">{{ dog.description }}</span>
@@ -189,6 +208,7 @@
       <p class="mt-3 text-muted">Đang tải thông tin...</p>
     </div>
 
+    <!-- Modal lịch sử tiêm chủng -->
     <div v-if="showVaccineModal" class="custom-modal-backdrop" @click.self="showVaccineModal = false">
       <div class="custom-modal-box shadow-lg bg-white rounded-lg overflow-hidden">
         <div class="bg-light p-3 d-flex justify-content-between align-items-center border-bottom">
@@ -203,26 +223,40 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
+
         <div class="p-4" style="max-height: 60vh; overflow-y: auto;">
-          <div
-            v-for="(v, i) in dog.healthRecord"
-            :key="i"
-            class="vaccine-badge shadow-sm bg-white mb-3"
-          >
-            <i class="fas fa-shield-alt text-success mr-3 fa-2x"></i>
-            <div class="d-flex flex-column">
-              <strong class="text-dark" style="font-size: 1.1rem;">
-                {{ v.vaccineId?.name || 'Đang cập nhật' }}
-              </strong>
-              <span class="vaccine-date mt-1">
-                <i class="far fa-clock mr-1"></i> Ngày tiêm: {{ formatDate(v.dateInjected) }}
-              </span>
+          <div v-if="dog.healthRecord && dog.healthRecord.length > 0">
+            <div
+              v-for="(v, i) in dog.healthRecord"
+              :key="i"
+              class="vaccine-badge shadow-sm bg-white mb-3"
+            >
+              <i class="fas fa-shield-alt text-success mr-3 fa-2x"></i>
+              <div class="d-flex flex-column">
+                <strong class="text-dark" style="font-size: 1.1rem;">
+                  {{ v.vaccineId?.name || "Đang cập nhật" }}
+                </strong>
+
+                <span class="vaccine-date mt-1">
+                  <i class="far fa-clock mr-1"></i>
+                  Ngày tiêm: {{ formatDate(v.dateInjected) }}
+                </span>
+
+                <span class="small text-muted mt-1">
+                  Ghi chú: {{ v.note || "Không có" }}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <div v-else class="text-center text-muted py-4">
+            Chưa có dữ liệu lịch sử tiêm chủng cho bé chó này.
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Modal tẩy giun -->
     <div v-if="showDewormModal" class="custom-modal-backdrop" @click.self="showDewormModal = false">
       <div class="custom-modal-box shadow-lg bg-white rounded-lg overflow-hidden" style="max-width: 400px;">
         <div class="bg-light p-3 d-flex justify-content-between align-items-center border-bottom">
@@ -237,9 +271,12 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
+
         <div class="p-4 text-center">
           <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
-          <h6 class="font-weight-bold mb-2">Đã hoàn thành tẩy giun</h6>
+          <h6 class="font-weight-bold mb-2">
+            {{ dog.lastDeworming ? "Đã hoàn thành tẩy giun" : "Chưa có dữ liệu tẩy giun" }}
+          </h6>
           <p class="mb-0 text-dark">
             Ngày tẩy giun gần nhất:<br />
             <strong class="text-danger" style="font-size: 1.2rem;">
@@ -251,8 +288,12 @@
     </div>
 
     <div class="floating-contact">
-      <a href="#" class="float-btn zalo-btn shadow" title="Chat Zalo"><i class="fas fa-comment-dots"></i></a>
-      <a href="tel:0379889868" class="float-btn phone-btn shadow" title="Gọi Hotline"><i class="fas fa-phone-alt"></i></a>
+      <a href="#" class="float-btn zalo-btn shadow" title="Chat Zalo">
+        <i class="fas fa-comment-dots"></i>
+      </a>
+      <a href="tel:0379889868" class="float-btn phone-btn shadow" title="Gọi Hotline">
+        <i class="fas fa-phone-alt"></i>
+      </a>
     </div>
   </div>
 </template>
@@ -297,7 +338,7 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return "---";
+      if (!date) return "Chưa cập nhật";
       return new Date(date).toLocaleDateString("vi-VN");
     },
 
@@ -362,44 +403,96 @@ export default {
 
 <style scoped>
 @media (min-width: 1200px) {
-  .custom-container { max-width: 1350px !important; }
+  .custom-container {
+    max-width: 1350px !important;
+  }
 }
 
-.pet-title { color: #6a1b9a; }
-.section-title { color: #6a1b9a; font-weight: 700; border-bottom: 2px dashed #d1c4e9; text-transform: uppercase; }
+.pet-title {
+  color: #6a1b9a;
+}
 
-.img-thumbnail-custom { opacity: 0.6; transition: opacity 0.2s; }
-.img-thumbnail-custom:hover, .active-thumb { opacity: 1; border: 2px solid #6a1b9a !important; }
+.section-title {
+  color: #6a1b9a;
+  font-weight: 700;
+  border-bottom: 2px dashed #d1c4e9;
+  text-transform: uppercase;
+}
 
-.info-table-wrapper { font-size: 0.95rem; }
-.stripe-purple { background-color: #f4ebf8; border-bottom: 1px solid #e1d5ed; }
-.stripe-white { background-color: #ffffff; border-bottom: 1px solid #e1d5ed; }
-.info-table-wrapper > div:last-child { border-bottom: none; }
+.img-thumbnail-custom {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
 
-.info-label { width: 95px; flex-shrink: 0; font-weight: 600; }
-.flex-nowrap { flex-wrap: nowrap !important; white-space: nowrap; }
+.img-thumbnail-custom:hover,
+.active-thumb {
+  opacity: 1;
+  border: 2px solid #6a1b9a !important;
+}
+
+.info-table-wrapper {
+  font-size: 0.95rem;
+}
+
+.stripe-purple {
+  background-color: #f4ebf8;
+  border-bottom: 1px solid #e1d5ed;
+}
+
+.stripe-white {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e1d5ed;
+}
+
+.info-table-wrapper > div:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  width: 130px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+}
 
 @media (min-width: 768px) {
-  .border-right-md { border-right: 1px dashed #e1d5ed; }
+  .border-right-md {
+    border-right: 1px dashed #e1d5ed;
+  }
 }
 
 .custom-modal-backdrop {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  background-color: rgba(0,0,0,0.6);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
   z-index: 1050;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .custom-modal-box {
   width: 90%;
   max-width: 500px;
   animation: modalFadeIn 0.3s ease;
 }
+
 @keyframes modalFadeIn {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .vaccine-badge {
@@ -410,17 +503,53 @@ export default {
   display: flex;
   align-items: center;
 }
-.vaccine-date { color: #6b7280; font-size: 0.85rem; }
 
-.btn-main { background-color: #6a1b9a; color: white; transition: all 0.2s; }
-.btn-main:hover { background-color: #4a148c; color: white; transform: translateY(-2px); }
-.btn-main:disabled { background-color: #9c27b0; opacity: 0.7; transform: none; }
+.vaccine-date {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
 
-.btn-chat { background-color: #e09f3e; color: white; transition: all 0.2s; }
-.btn-chat:hover { background-color: #c98c34; color: white; transform: translateY(-2px); }
+.btn-main {
+  background-color: #6a1b9a;
+  color: white;
+  transition: all 0.2s;
+}
 
-.btn-hotline { background-color: #a8b868; color: white; transition: all 0.2s; }
-.btn-hotline:hover { background-color: #92a356; color: white; transform: translateY(-2px); }
+.btn-main:hover {
+  background-color: #4a148c;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-main:disabled {
+  background-color: #9c27b0;
+  opacity: 0.7;
+  transform: none;
+}
+
+.btn-chat {
+  background-color: #e09f3e;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-chat:hover {
+  background-color: #c98c34;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-hotline {
+  background-color: #a8b868;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-hotline:hover {
+  background-color: #92a356;
+  color: white;
+  transform: translateY(-2px);
+}
 
 .floating-contact {
   position: fixed;
@@ -431,6 +560,7 @@ export default {
   gap: 15px;
   z-index: 999;
 }
+
 .float-btn {
   width: 50px;
   height: 50px;
@@ -443,7 +573,17 @@ export default {
   text-decoration: none;
   transition: transform 0.2s;
 }
-.float-btn:hover { transform: scale(1.1); color: white; }
-.zalo-btn { background-color: #0068ff; }
-.phone-btn { background-color: #dc3545; }
+
+.float-btn:hover {
+  transform: scale(1.1);
+  color: white;
+}
+
+.zalo-btn {
+  background-color: #0068ff;
+}
+
+.phone-btn {
+  background-color: #dc3545;
+}
 </style>

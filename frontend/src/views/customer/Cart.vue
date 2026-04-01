@@ -179,39 +179,57 @@ export default {
   },
 
   methods: {
-    loadCart() {
-      this.cart = CartService.getCart();
+async loadCart() {
+  try {
+    const response = await CartService.getCart();
 
-      const user = JSON.parse(localStorage.getItem("user") || "null");
-      if (user) {
-        this.form.customerName = user.fullName || "";
-        this.form.customerPhone = user.phone || "";
-      }
-    },
+    this.cart = (response.items || []).map((item) => ({
+      id: item.id,
+      accessoryId: item.accessoryId?.id || item.accessoryId?._id,
+      maPhuKien: item.accessoryId?.maPhuKien || "",
+      name: item.accessoryId?.name || "",
+      price: item.priceAtTime || item.accessoryId?.price || 0,
+      image: item.accessoryId?.image || "",
+      stock: item.accessoryId?.quantity ?? 0,
+      quantity: item.quantity || 1,
+    }));
 
-    changeQuantity(item, event) {
-      const value = Number(event.target.value);
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (user) {
+      this.form.customerName = user.fullName || "";
+      this.form.customerPhone = user.phone || "";
+    }
+  } catch (error) {
+    console.error(error);
+    this.cart = [];
+  }
+},
 
-      if (!value || value < 1) {
-        event.target.value = item.quantity;
-        return;
-      }
+    async changeQuantity(item, event) {
+  const value = Number(event.target.value);
 
-      CartService.updateQuantity(item.id, value);
-      this.loadCart();
-    },
+  if (!value || value < 1) {
+    event.target.value = item.quantity;
+    return;
+  }
 
-    removeItem(item) {
-      if (!confirm(`Xóa [${item.name}] khỏi giỏ hàng?`)) return;
-      CartService.removeItem(item.id);
-      this.loadCart();
-    },
+  await CartService.updateQuantity(item.id, value);
+  await this.loadCart();
+},
 
-    clearCart() {
-      if (!confirm("Bạn có chắc muốn xóa toàn bộ giỏ hàng?")) return;
-      CartService.clearCart();
-      this.loadCart();
-    },
+    async removeItem(item) {
+  if (!confirm(`Xóa [${item.name}] khỏi giỏ hàng?`)) return;
+
+  await CartService.removeItem(item.id);
+  await this.loadCart();
+},
+
+    async clearCart() {
+  if (!confirm("Bạn có chắc muốn xóa toàn bộ giỏ hàng?")) return;
+
+  await CartService.clearCart();
+  await this.loadCart();
+},
 
     async submitOrder() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -250,14 +268,14 @@ export default {
           shippingAddress: this.form.shippingAddress,
           note: this.form.note,
           items: this.cart.map((item) => ({
-            accessoryId: item.id,
+            accessoryId: item.accessoryId,
             quantity: item.quantity,
           })),
         });
 
         alert("✅ Đặt đơn phụ kiện thành công!");
-        CartService.clearCart();
-        this.loadCart();
+        await CartService.clearCart();
+        await this.loadCart();
         this.$router.push("/accessory-orders");
       } catch (error) {
         console.error("Lỗi đặt đơn phụ kiện:", error);
@@ -278,8 +296,8 @@ export default {
     },
   },
 
-  mounted() {
-    this.loadCart();
-  },
+  async mounted() {
+  await this.loadCart();
+}
 };
 </script>

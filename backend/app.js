@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const ApiError = require("./app/api-error");
-const mockAuth = require("./app/middlewares/mock-auth.middleware");
+//const mockAuth = require("./app/middlewares/mock-auth.middleware");
 
 
 // --- IMPORT CÁC ROUTE ---
@@ -19,6 +19,7 @@ const accessoryOrderRouter = require("./app/routes/accessoryOrder.route");
 const accessoryCategoryRouter = require("./app/routes/accessoryCategory.route");
 const serviceCategoryRouter = require("./app/routes/serviceCategory.route");
 const notificationRouter = require("./app/routes/notification.route");
+const cartRouter = require("./app/routes/cart.route");
 
 
 const app = express();
@@ -28,7 +29,7 @@ app.use(express.json());
 // Cấp quyền truy cập công khai cho thư mục uploads
 app.use('/uploads', express.static('uploads'));
 // Middleware giả lập xác thực người dùng
-app.use(mockAuth);
+//app.use(mockAuth);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to PetShop application." });
@@ -48,7 +49,9 @@ app.use("/api/service-bookings", ServiceBookingRouter); // Đăng ký route cho 
 app.use("/api/accessory-orders", accessoryOrderRouter); // Đăng ký route cho đặt hàng phụ kiện
 app.use("/api/accessory-categories", accessoryCategoryRouter); // Đăng ký route cho loại phụ kiện
 app.use("/api/service-categories", serviceCategoryRouter); // Đăng ký route cho loại dịch vụ
-app.use("/api/notifications", require("./app/routes/notification.route")); // Đăng ký route cho thông báo
+app.use("/api/notifications", notificationRouter); // Đăng ký route cho thông báo
+app.use("/api/cart", cartRouter); // Đăng ký route cho giỏ hàng
+
 
 
 // --- XỬ LÝ LỖI ---

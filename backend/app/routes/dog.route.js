@@ -1,5 +1,6 @@
 const express = require("express");
 const dogController = require("../controllers/dog.controller");
+const DogHistory = require("../models/dogHistory.model");
 const upload = require("../middlewares/upload.middleware");
 const {
   requireAdmin,
@@ -22,5 +23,17 @@ router.get("/:id", dogController.findOne);
 
 // Farm cập nhật hồ sơ chó
 router.put("/:id", requireFarm, dogController.update);
+
+router.get("/:id/history", async (req, res, next) => {
+  try {
+    const histories = await DogHistory.find({ dogId: req.params.id }).sort({
+      createdAt: -1,
+    });
+
+    res.send(histories);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;

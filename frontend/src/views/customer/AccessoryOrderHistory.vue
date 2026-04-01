@@ -366,18 +366,23 @@ export default {
       }
 
       try {
-        for (const item of order.items) {
-          const accessoryId = item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
-          if (!accessoryId) continue;
+          for (const item of order.items) {
+            const accessoryId =
+              item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
 
-          const latestAccessory = await AccessoryService.get(accessoryId);
+            if (!accessoryId) continue;
 
-          if (!latestAccessory) continue;
-          if (latestAccessory.status !== "Đang bán") continue;
-          if (Number(latestAccessory.quantity) <= 0) continue;
+            const latestAccessory = await AccessoryService.get(accessoryId);
 
-          CartService.addToCart(latestAccessory, Number(item.quantity || 1));
-        }
+            if (!latestAccessory) continue;
+            if (latestAccessory.status !== "Đang bán") continue;
+            if (Number(latestAccessory.quantity) <= 0) continue;
+
+            await CartService.addToCart(
+              latestAccessory._id || latestAccessory.id,
+              Number(item.quantity || 1)
+            );
+          }
 
         alert("✅ Đã thêm lại các sản phẩm còn bán vào giỏ hàng!");
         this.closeDetail();

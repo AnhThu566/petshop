@@ -1,6 +1,66 @@
 const Order = require("../models/order.model");
 const Dog = require("../models/dog.model");
 const ApiError = require("../api-error");
+const OrderHistory = require("../models/orderHistory.model");
+const DogHistory = require("../models/dogHistory.model");
+
+const getActorInfo = (req) => {
+  const actorId = req.user?._id || req.user?.id || null;
+  const actorName =
+    req.user?.fullName ||
+    req.user?.username ||
+    req.user?.name ||
+    req.user?.email ||
+    "Hệ thống";
+
+  return { actorId, actorName };
+};
+
+const createOrderHistory = async ({
+  orderId,
+  oldStatus = "",
+  newStatus,
+  oldPaymentStatus = "",
+  newPaymentStatus = "",
+  req,
+  reason = "",
+  note = "",
+}) => {
+  const { actorId, actorName } = getActorInfo(req);
+
+  await OrderHistory.create({
+    orderId,
+    oldStatus,
+    newStatus,
+    oldPaymentStatus,
+    newPaymentStatus,
+    changedBy: actorId,
+    changedByName: actorName,
+    reason,
+    note,
+  });
+};
+
+const createDogHistory = async ({
+  dogId,
+  oldStatus = "",
+  newStatus,
+  req,
+  reason = "",
+  note = "",
+}) => {
+  const { actorId, actorName } = getActorInfo(req);
+
+  await DogHistory.create({
+    dogId,
+    oldStatus,
+    newStatus,
+    changedBy: actorId,
+    changedByName: actorName,
+    reason,
+    note,
+  });
+};
 
 // 1. Khách tạo đơn đặt cọc
 exports.createDeposit = async (req, res, next) => {
@@ -113,9 +173,29 @@ exports.createDeposit = async (req, res, next) => {
 
     await newOrder.save();
 
+    const oldDogStatus = dog.status;
+
     // Khi tạo đơn cọc thì chó chuyển sang chờ thanh toán
     dog.status = "Chờ thanh toán";
     await dog.save();
+
+    await createOrderHistory({
+      orderId: newOrder._id,
+      oldStatus: "",
+      newStatus: "Chờ xác nhận cọc",
+      oldPaymentStatus: "",
+      newPaymentStatus: paymentStatus,
+      req,
+      note: "Khách hàng tạo đơn đặt cọc mới",
+    });
+
+    await createDogHistory({
+      dogId: dog._id,
+      oldStatus: oldDogStatus,
+      newStatus: "Chờ thanh toán",
+      req,
+      note: "Khách hàng tạo yêu cầu đặt cọc",
+    });
 
     return res.send({
       message:
@@ -173,6 +253,8 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     const oldStatus = order.status;
+    const oldPaymentStatus = order.paymentStatus;
+    const oldDogStatus = dog.status;
 
     // Không đổi nếu trạng thái giống nhau
     if (oldStatus === status) {
@@ -214,7 +296,6 @@ exports.updateStatus = async (req, res, next) => {
 
     // Xác nhận đã nhận cọc
     if (status === "Đã nhận cọc") {
-      // Nếu chuyển khoản thì phải có minh chứng
       if (
         order.paymentMethod === "Chuyển khoản" &&
         (!order.paymentProof || !String(order.paymentProof).trim())
@@ -239,7 +320,6 @@ exports.updateStatus = async (req, res, next) => {
         );
       }
 
-      // Có thể yêu cầu paymentStatus phải là Đã xác nhận trước khi giao
       if (order.paymentStatus !== "Đã xác nhận") {
         return next(
           new ApiError(
@@ -265,7 +345,6 @@ exports.updateStatus = async (req, res, next) => {
 
     // Hủy đơn
     if (status === "Đã hủy") {
-      // Chỉ hủy khi chưa hoàn thành
       if (!["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"].includes(oldStatus)) {
         return next(
           new ApiError(400, "Không thể hủy đơn ở trạng thái hiện tại")
@@ -279,6 +358,26 @@ exports.updateStatus = async (req, res, next) => {
 
     await order.save();
     await dog.save();
+
+    await createOrderHistory({
+      orderId: order._id,
+      oldStatus,
+      newStatus: order.status,
+      oldPaymentStatus,
+      newPaymentStatus: order.paymentStatus,
+      req,
+      note: "Admin cập nhật trạng thái đơn đặt cọc",
+    });
+
+    if (oldDogStatus !== dog.status) {
+      await createDogHistory({
+        dogId: dog._id,
+        oldStatus: oldDogStatus,
+        newStatus: dog.status,
+        req,
+        note: `Đồng bộ theo trạng thái đơn: ${order.status}`,
+      });
+    }
 
     return res.send({
       message: "Cập nhật trạng thái đơn hàng thành công!",
@@ -317,14 +416,41 @@ exports.cancelByCustomer = async (req, res, next) => {
       );
     }
 
+    const oldOrderStatus = order.status;
+    const oldPaymentStatus = order.paymentStatus;
+
     const dog = await Dog.findById(order.dogId);
+    let oldDogStatus = "";
+
     if (dog) {
+      oldDogStatus = dog.status;
       dog.status = "Đã duyệt";
       await dog.save();
     }
 
     order.status = "Đã hủy";
     await order.save();
+
+    await createOrderHistory({
+      orderId: order._id,
+      oldStatus: oldOrderStatus,
+      newStatus: "Đã hủy",
+      oldPaymentStatus,
+      newPaymentStatus: order.paymentStatus,
+      req,
+      reason: "Khách hàng tự hủy đơn",
+      note: "Hủy đơn khi đang chờ xác nhận cọc",
+    });
+
+    if (dog) {
+      await createDogHistory({
+        dogId: dog._id,
+        oldStatus: oldDogStatus,
+        newStatus: "Đã duyệt",
+        req,
+        note: "Khách hủy đơn, chó quay lại trạng thái mở bán",
+      });
+    }
 
     return res.send({
       message: "Hủy đơn đặt cọc thành công!",

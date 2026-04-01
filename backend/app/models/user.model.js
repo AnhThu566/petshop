@@ -1,33 +1,46 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
+const userSchema = new mongoose.Schema(
+  {
+    username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
-    fullName: String,
+    fullName: { type: String, default: "" },
     gender: { type: String, enum: ["Nam", "Nữ", "Khác"] },
     birthday: Date,
-    phone: { type: String },
-    avatar: String,
-    email: { type: String, required: true, unique: true },
-    customerCode: { type: String },
-    
-    // Đóng vai trò gì trong hệ thống?
-    role: { 
-        type: String,
-        enum: ["admin", "farm", "customer"],
-        default: "customer"
+    phone: { type: String, default: "" },
+    avatar: { type: String, default: "" },
+    email: { type: String, required: true, unique: true, trim: true },
+    customerCode: { type: String, default: "" },
+    role: {
+      type: String,
+      enum: ["admin", "farm", "customer"],
+      default: "customer",
     },
     status: {
-        type: String,
-        enum: ["active", "locked"],
-        default: "active"
-    }
-}, { timestamps: true });
+      type: String,
+      enum: ["active", "locked"],
+      default: "active",
+    },
+  },
+  { timestamps: true }
+);
 
-userSchema.method("toJSON", function() {
-    const { __v, _id, ...object } = this.toObject();
-    object.id = _id;
-    return object;
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+userSchema.methods.comparePassword = async function (plainPassword) {
+  return bcrypt.compare(plainPassword, this.password);
+};
+
+userSchema.method("toJSON", function () {
+  const { __v, _id, password, ...object } = this.toObject();
+  object.id = _id;
+  return object;
 });
 
 module.exports = mongoose.model("User", userSchema);

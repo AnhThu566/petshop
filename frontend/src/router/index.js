@@ -285,56 +285,68 @@ const router = createRouter({
 // ROUTER GUARD PHÂN QUYỀN
 // ============================================================
 router.beforeEach((to) => {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    const farm = JSON.parse(localStorage.getItem("farm") || "null");
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const farm = JSON.parse(localStorage.getItem("farm") || "null");
 
-    const role = user?.role || user?.vaiTro || "";
+  const role = user?.role || "";
 
-    if (to.matched.some((record) => record.meta.requiresAdmin)) {
-        if (!user) {
-            alert("Vui lòng đăng nhập tài khoản quản trị.");
-            return "/login";
-        }
+  // Nếu đã đăng nhập rồi thì không cần vào login/register nữa
+  if ((to.path === "/login" || to.path === "/register") && token && user) {
+    if (role === "admin") return "/admin/dashboard";
+    if (role === "farm") return "/farm/dashboard";
+    return "/";
+  }
 
-        if (role !== "admin" && role !== "Admin") {
-            alert("Bạn không có quyền truy cập khu vực quản trị.");
-            return "/";
-        }
-
-        return true;
+  if (to.matched.some((record) => record.meta.requiresAdmin)) {
+    if (!token || !user) {
+      alert("Vui lòng đăng nhập tài khoản quản trị.");
+      return "/login";
     }
 
-    if (to.matched.some((record) => record.meta.requiresFarm)) {
-        if (farm) return true;
-
-        if (user && (role === "farm" || role === "Farm")) {
-            return true;
-        }
-
-        alert("Vui lòng đăng nhập tài khoản trang trại.");
-        return "/login";
-    }
-
-    if (to.matched.some((record) => record.meta.requiresCustomer)) {
-        if (!user) {
-            alert("Vui lòng đăng nhập để tiếp tục.");
-            return "/login";
-        }
-
-        if (role === "admin" || role === "Admin") {
-            alert("Tài khoản admin không dùng cho chức năng khách hàng.");
-            return "/admin/dashboard";
-        }
-
-        if (role === "farm" || role === "Farm") {
-            alert("Tài khoản trang trại không dùng cho chức năng khách hàng.");
-            return "/farm/dashboard";
-        }
-
-        return true;
+    if (role !== "admin") {
+      alert("Bạn không có quyền truy cập khu vực quản trị.");
+      return "/";
     }
 
     return true;
+  }
+
+  if (to.matched.some((record) => record.meta.requiresFarm)) {
+    if (!token || !user) {
+      alert("Vui lòng đăng nhập tài khoản trang trại.");
+      return "/login";
+    }
+
+    if (role !== "farm") {
+      if (role === "admin") return "/admin/dashboard";
+      return "/";
+    }
+
+    if (farm) return true;
+    return true;
+  }
+
+  if (to.matched.some((record) => record.meta.requiresCustomer)) {
+    if (!token || !user) {
+      alert("Vui lòng đăng nhập để tiếp tục.");
+      return "/login";
+    }
+
+    if (role === "admin") {
+      alert("Tài khoản admin không dùng cho chức năng khách hàng.");
+      return "/admin/dashboard";
+    }
+
+    if (role === "farm") {
+      alert("Tài khoản trang trại không dùng cho chức năng khách hàng.");
+      return "/farm/dashboard";
+    }
+
+    return true;
+  }
+
+  return true;
 });
 
 export default router;
