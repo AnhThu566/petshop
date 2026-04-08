@@ -1,233 +1,221 @@
 <template>
   <header class="customer-header">
-    <div
-      class="top-bar text-white d-none d-lg-block border-bottom"
-      style="border-color: rgba(255,255,255,0.1) !important;"
-    >
-      <div
-        class="container custom-container d-flex justify-content-between align-items-center py-2"
-        style="font-size: 0.85rem;"
-      >
-        <div class="d-flex align-items-center text-light">
-          <span class="mr-4">
-            <i class="fas fa-map-marker-alt text-warning mr-1"></i>
-            <strong>CS1:</strong> 428 Minh Khai, Hà Nội
-          </span>
-          <span>
-            <i class="fas fa-map-marker-alt text-warning mr-1"></i>
-            <strong>CS2:</strong> 961 Phạm Văn Đồng, HCM
-          </span>
-        </div>
-
-        <div class="social-icons">
-          <a href="#"><i class="fab fa-facebook-f text-white mx-2 hover-text-warning"></i></a>
-          <a href="#"><i class="fab fa-tiktok text-white mx-2 hover-text-warning"></i></a>
-          <a href="#"><i class="fab fa-youtube text-white mx-2 hover-text-warning"></i></a>
-        </div>
-      </div>
-    </div>
-
-    <div class="main-bar shadow-sm">
-      <div class="container custom-container position-relative">
-        <div class="row align-items-center py-3">
-          <div class="col-lg-5 d-flex align-items-center">
-            <nav class="d-flex align-items-center nav-menu">
-              <router-link
-                to="/"
-                class="menu-item text-white font-weight-bold text-decoration-none text-uppercase mr-3"
-              >
-                🏠 Trang Chủ
-              </router-link>
-
-              <router-link
-                to="/dogs"
-                class="menu-item text-white font-weight-bold text-decoration-none text-uppercase mr-3"
-              >
-                🐶 Chó Cảnh
-              </router-link>
-
-              <router-link
-                to="/accessories"
-                class="menu-item text-white font-weight-bold text-decoration-none text-uppercase mr-3"
-              >
-                🦴 Phụ Kiện
-              </router-link>
-
-              <router-link
-                to="/services"
-                class="menu-item text-white font-weight-bold text-decoration-none text-uppercase"
-              >
-                ✂️ Dịch Vụ
-              </router-link>
-            </nav>
-          </div>
-
-          <div class="col-lg-2 d-none d-lg-flex justify-content-center position-static">
-            <router-link to="/" class="logo-wrapper shadow text-decoration-none">
-              <div class="text-center font-weight-bold" style="color:#6a1b9a; line-height:1.1;">
-                PET<br />SHOP
+    <!-- HÀNG TRÊN -->
+    <div class="header-top">
+      <div class="container-fluid custom-container px-3">
+        <div class="top-inner">
+          <!-- LOGO -->
+          <router-link to="/" class="brand-logo text-decoration-none">
+            <div class="brand-logo-box">
+              <div class="brand-logo-icon">
+                <i class="fas fa-paw"></i>
               </div>
-            </router-link>
-          </div>
-
-          <div class="col-lg-5 d-flex align-items-center justify-content-end">
-            <div class="search-wrapper mr-2">
-              <div class="input-group shadow-sm" style="height: 38px;">
-                <input
-                  type="text"
-                  class="form-control text-white placeholder-white border-0 px-3 h-100"
-                  placeholder="Tìm kiếm..."
-                  style="background: rgba(255,255,255,0.15); border-radius: 20px 0 0 20px; font-size: 0.85rem; width: 130px;"
-                />
-                <div class="input-group-append h-100">
-                  <button
-                    class="btn text-white px-3 h-100 d-flex align-items-center"
-                    type="button"
-                    style="background: rgba(255,255,255,0.15); border-radius: 0 20px 20px 0;"
-                  >
-                    <i class="fas fa-search fa-sm"></i>
-                  </button>
-                </div>
+              <div class="brand-logo-content">
+                <div class="brand-logo-text">PETSHOP</div>
+                <div class="brand-logo-sub">Chó cảnh • Phụ kiện • Dịch vụ</div>
               </div>
             </div>
+          </router-link>
 
-            <a
-              href="tel:0379889868"
-              class="btn btn-warning text-dark font-weight-bold rounded-pill px-3 mr-2 d-flex align-items-center shadow-sm"
-              style="height: 38px; font-size: 0.85rem;"
-            >
-              <i class="fas fa-phone-alt mr-1 text-danger small"></i> 0379.889.868
-            </a>
+          <!-- SEARCH -->
+          <div class="top-search">
+            <div class="top-search-box">
+              <input
+                type="text"
+                class="top-search-input"
+                placeholder="Tìm chó cảnh, phụ kiện, dịch vụ..."
+              />
+              <button class="top-search-btn" type="button">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
 
+          <!-- ACTIONS -->
+          <div class="top-actions">
             <router-link
               to="/cart"
-              class="cart-icon rounded-circle d-flex justify-content-center align-items-center bg-warning text-dark text-decoration-none mr-3 shadow-sm flex-shrink-0"
-              style="width: 38px; height: 38px; font-size: 1rem;"
+              class="top-cart text-decoration-none"
+              title="Giỏ hàng"
             >
               <i class="fas fa-shopping-cart"></i>
             </router-link>
 
-            <div
-              class="auth-area border-left pl-3"
-              style="border-color: rgba(255,255,255,0.2) !important;"
-            >
-              <div
-                v-if="!isLoggedIn || !currentUser"
-                class="small font-weight-bold d-flex align-items-center"
-                style="height: 38px;"
+            <template v-if="!isLoggedIn || !currentUser">
+              <router-link
+                to="/login"
+                class="top-auth-btn login-btn text-decoration-none"
               >
-                <router-link
-                  to="/login"
-                  class="text-white text-decoration-none hover-text-warning mr-2"
-                >
-                  Đăng nhập
-                </router-link>
-                <router-link
-                  to="/register"
-                  class="btn btn-sm btn-outline-warning rounded-pill px-3 d-flex align-items-center"
-                  style="height: 28px; font-size: 0.75rem;"
-                >
-                  Đăng ký
-                </router-link>
-              </div>
+                <i class="fas fa-sign-in-alt mr-2"></i>
+                Đăng nhập
+              </router-link>
 
-              <div class="dropdown" v-else>
+              <router-link
+                to="/register"
+                class="top-auth-btn register-btn text-decoration-none"
+              >
+                <i class="fas fa-user-plus mr-2"></i>
+                Đăng ký
+              </router-link>
+            </template>
+
+            <div class="dropdown user-dropdown" v-else>
+              <a
+                href="#"
+                class="user-toggle text-decoration-none"
+                @click.prevent="toggleUserDropdown"
+              >
+                <span class="user-avatar-mini">
+                  <i class="fas fa-user"></i>
+                </span>
+                <span class="user-name">
+                  {{ currentUser.fullName || currentUser.username }}
+                </span>
+                <i class="fas fa-chevron-down user-caret ml-2"></i>
+              </a>
+
+              <div
+                class="dropdown-menu dropdown-menu-right shadow border-0 mt-2"
+                :class="{ 'show d-block': isUserDropdownOpen }"
+              >
+                <template v-if="currentUser.role === 'customer'">
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/profile"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-id-card-alt text-primary mr-2"></i> Hồ sơ của tôi
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/tra-cuu-don"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/service-bookings"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/accessory-orders"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
+                  </router-link>
+                </template>
+
+                <template v-else-if="currentUser.role === 'farm'">
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/farm/dashboard"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-warehouse text-success mr-2"></i> Trang trại của tôi
+                  </router-link>
+                </template>
+
+                <template v-else-if="currentUser.role === 'admin'">
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/admin/dashboard"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-user-shield text-danger mr-2"></i> Trang quản trị
+                  </router-link>
+                </template>
+
+                <div class="dropdown-divider"></div>
+
                 <a
-                  class="text-white text-decoration-none dropdown-toggle d-flex align-items-center"
+                  class="dropdown-item py-2 small font-weight-bold text-danger"
                   href="#"
-                  @click.prevent="isDropdownOpen = !isDropdownOpen"
-                  style="height: 38px; cursor: pointer;"
+                  @click.prevent="logout"
                 >
-                  <div
-                    class="avatar-min shadow-sm mr-2 d-flex align-items-center justify-content-center bg-white rounded-circle flex-shrink-0"
-                    style="width: 34px; height: 34px; color: #6a1b9a;"
-                  >
-                    <i class="fas fa-user-check"></i>
-                  </div>
-                  <span class="small font-weight-bold d-none d-xl-inline">
-                    {{ currentUser.fullName || currentUser.username }}
-                  </span>
+                  <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
                 </a>
-
-                <div
-                  class="dropdown-menu dropdown-menu-right shadow border-0 mt-2"
-                  :class="{ 'show d-block': isDropdownOpen }"
-                  style="border-radius: 12px; min-width: 230px; position: absolute; top: 100%; right: 0;"
-                >
-                  <template v-if="currentUser.role === 'customer'">
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/profile"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-id-card-alt text-primary mr-2"></i> Hồ sơ của tôi
-                    </router-link>
-
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/tra-cuu-don"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
-                    </router-link>
-
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/service-bookings"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
-                    </router-link>
-
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/accessory-orders"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
-                    </router-link>
-                  </template>
-
-                  <template v-else-if="currentUser.role === 'farm'">
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/farm/dashboard"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-warehouse text-success mr-2"></i> Trang trại của tôi
-                    </router-link>
-                  </template>
-
-                  <template v-else-if="currentUser.role === 'admin'">
-                    <router-link
-                      class="dropdown-item py-2 small font-weight-bold text-dark"
-                      to="/admin/dashboard"
-                      @click="closeDropdown"
-                    >
-                      <i class="fas fa-user-shield text-danger mr-2"></i> Trang quản trị
-                    </router-link>
-                  </template>
-
-                  <div class="dropdown-divider"></div>
-
-                  <a
-                    class="dropdown-item py-2 small font-weight-bold text-danger"
-                    href="#"
-                    @click.prevent="logout"
-                  >
-                    <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
-                  </a>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- HÀNG DƯỚI -->
+    <div class="header-bottom">
+      <div class="container-fluid custom-container px-3">
+        <div class="bottom-inner">
+          <nav class="bottom-menu">
+            <router-link to="/" class="bottom-menu-item text-decoration-none">
+              Trang chủ
+            </router-link>
+
+            <!-- DROPDOWN CHÓ CẢNH -->
+            <div
+              class="menu-dropdown"
+              @mouseenter="openDogMenu"
+              @mouseleave="closeDogMenu"
+            >
+              <a
+                href="#"
+                class="bottom-menu-item text-decoration-none dropdown-toggle-link"
+                :class="{ active: isDogMenuActive }"
+                @click.prevent="toggleDogMenu"
+              >
+                Chó cảnh
+                <i class="fas fa-chevron-down menu-caret ml-2"></i>
+              </a>
+
+              <div
+                class="menu-dropdown-panel shadow"
+                :class="{ 'show-dropdown': isDogMenuOpen }"
+              >
+                <router-link
+                  to="/dogs?view=breed"
+                  class="menu-dropdown-item text-decoration-none"
+                  @click="closeAllDropdowns"
+                >
+                  <i class="fas fa-dna mr-2"></i>
+                  Theo giống chó
+                </router-link>
+
+                <router-link
+                  to="/dogs?view=farm"
+                  class="menu-dropdown-item text-decoration-none"
+                  @click="closeAllDropdowns"
+                >
+                  <i class="fas fa-warehouse mr-2"></i>
+                  Theo trang trại
+                </router-link>
+              </div>
+            </div>
+
+            <router-link to="/accessories" class="bottom-menu-item text-decoration-none">
+              Phụ kiện
+            </router-link>
+
+            <router-link to="/services" class="bottom-menu-item text-decoration-none">
+              Dịch vụ
+            </router-link>
+
+            <router-link to="/tra-cuu-don" class="bottom-menu-item text-decoration-none">
+              Đơn hàng của tôi
+            </router-link>
+          </nav>
+        </div>
+      </div>
 
       <div
-        v-if="isDropdownOpen"
+        v-if="isUserDropdownOpen"
         class="dropdown-backdrop"
-        @click="closeDropdown"
+        @click="closeAllDropdowns"
       ></div>
     </div>
   </header>
@@ -248,19 +236,46 @@ export default {
 
   data() {
     return {
-      isDropdownOpen: false,
+      isUserDropdownOpen: false,
+      isDogMenuOpen: false,
     };
+  },
+
+  computed: {
+    isDogMenuActive() {
+      const path = this.$route.path || "";
+      return path.startsWith("/dogs") || path.startsWith("/dog/");
+    },
   },
 
   watch: {
     $route() {
-      this.closeDropdown();
+      this.closeAllDropdowns();
     },
   },
 
   methods: {
-    closeDropdown() {
-      this.isDropdownOpen = false;
+    closeAllDropdowns() {
+      this.isUserDropdownOpen = false;
+      this.isDogMenuOpen = false;
+    },
+
+    toggleUserDropdown() {
+      this.isDogMenuOpen = false;
+      this.isUserDropdownOpen = !this.isUserDropdownOpen;
+    },
+
+    toggleDogMenu() {
+      this.isUserDropdownOpen = false;
+      this.isDogMenuOpen = !this.isDogMenuOpen;
+    },
+
+    openDogMenu() {
+      this.isDogMenuOpen = true;
+    },
+
+    closeDogMenu() {
+      this.isDogMenuOpen = false;
     },
 
     logout() {
@@ -268,8 +283,12 @@ export default {
         localStorage.removeItem("user");
         localStorage.removeItem("farm");
         localStorage.removeItem("token");
-        this.isDropdownOpen = false;
-        this.$router.push("/login");
+
+        this.closeAllDropdowns();
+
+        window.dispatchEvent(new Event("auth-changed"));
+
+        this.$router.push("/");
       }
     },
   },
@@ -277,61 +296,347 @@ export default {
 </script>
 
 <style scoped>
-.top-bar { background-color: #38006b; }
-.main-bar { background-color: #6a1b9a; }
-
-.hover-text-warning:hover { color: #ffc107 !important; }
-
-.menu-item {
-  transition: all 0.2s;
-  font-size: 0.85rem;
-  letter-spacing: 0.3px;
-}
-.menu-item:hover {
-  color: #ffc107 !important;
-  transform: translateY(-1px);
-}
-
-.placeholder-white::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.logo-wrapper {
-  position: absolute;
-  top: 5px;
-  z-index: 100;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background-color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 4px solid #6a1b9a;
-}
-
-.cart-icon { transition: all 0.2s; }
-.cart-icon:hover {
-  transform: scale(1.1);
-  background-color: white !important;
-  color: #6a1b9a !important;
-}
-
-.input-group, .btn, .auth-area {
-  margin-bottom: 0 !important;
+.customer-header {
+  position: relative;
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(58, 24, 90, 0.08);
 }
 
 @media (min-width: 1200px) {
-  .custom-container { max-width: 1350px !important; }
+  .custom-container {
+    max-width: 1360px !important;
+  }
+}
+
+/* HÀNG TRÊN */
+.header-top {
+  background: linear-gradient(135deg, #6f42a4 0%, #5d2f93 55%, #4b1f73 100%);
+  padding: 14px 0;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.top-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand-logo {
+  flex: 0 0 270px;
+}
+
+.brand-logo-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #5d2b86;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.brand-logo-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand-logo-text {
+  color: #ffffff;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  line-height: 1.1;
+}
+
+.brand-logo-sub {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+  margin-top: 4px;
+  letter-spacing: 0.2px;
+}
+
+.top-search {
+  flex: 1 1 auto;
+  max-width: 760px;
+}
+
+.top-search-box {
+  position: relative;
+  height: 54px;
+}
+
+.top-search-input {
+  width: 100%;
+  height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  outline: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #4f3b67;
+  padding: 0 58px 0 22px;
+  font-size: 0.98rem;
+  transition: all 0.25s ease;
+}
+
+.top-search-input::placeholder {
+  color: #9a8aac;
+}
+
+.top-search-input:focus {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+}
+
+.top-search-btn {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #f4c842;
+  color: #4b1f73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.top-cart {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f4c842;
+  color: #4b1f73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.08rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.top-cart:hover {
+  color: #4b1f73;
+  background: #fff;
+}
+
+.top-auth-btn {
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.94rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.login-btn {
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.login-btn:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.register-btn {
+  color: #4b1f73;
+  background: #f4c842;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.register-btn:hover {
+  color: #4a148c;
+  background: #f7d35d;
+}
+
+.user-dropdown {
+  position: relative;
+}
+
+.user-toggle {
+  color: white;
+  font-size: 0.98rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  min-height: 46px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.user-toggle:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.user-avatar-mini {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #5b2a86;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+.user-name {
+  display: inline-block;
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-caret {
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+/* HÀNG DƯỚI */
+.header-bottom {
+  position: relative;
+  background: #4b1f73;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bottom-inner {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 42px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.bottom-menu-item {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  padding: 6px 0;
+  position: relative;
+}
+
+.bottom-menu-item:hover,
+.bottom-menu-item.router-link-active,
+.bottom-menu-item.active {
+  color: #f4c842;
+}
+
+.bottom-menu-item.router-link-active::after,
+.bottom-menu-item:hover::after,
+.bottom-menu-item.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: #f4c842;
+}
+
+/* DROPDOWN CHÓ CẢNH */
+.menu-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-toggle-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.menu-caret {
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.menu-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 230px;
+  background: white;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 18px 40px rgba(58, 24, 90, 0.16);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.22s ease;
+  z-index: 2000;
+}
+
+.show-dropdown {
+  opacity: 1;
+  visibility: visible;
+  top: calc(100% + 10px);
+}
+
+.menu-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: #4f3b67;
+  font-weight: 700;
+  font-size: 0.92rem;
+  transition: all 0.2s ease;
+}
+
+.menu-dropdown-item:hover {
+  background: #f5eefc;
+  color: #6f42a4;
 }
 
 .dropdown-menu {
   z-index: 9999 !important;
-}
-
-.auth-area {
-  position: relative;
-  z-index: 1020;
+  border-radius: 14px;
+  min-width: 240px;
+  position: absolute;
+  top: 100%;
+  right: 0;
 }
 
 .dropdown-backdrop {
@@ -339,5 +644,116 @@ export default {
   inset: 0;
   z-index: 1000;
   background: transparent;
+}
+
+@media (max-width: 1199.98px) {
+  .custom-container {
+    max-width: 100% !important;
+  }
+
+  .top-inner {
+    gap: 14px;
+  }
+
+  .brand-logo {
+    flex: 0 0 220px;
+  }
+
+  .brand-logo-text {
+    font-size: 1.2rem;
+  }
+
+  .brand-logo-sub {
+    font-size: 0.72rem;
+  }
+
+  .top-search {
+    max-width: 500px;
+  }
+
+  .top-search-box {
+    height: 48px;
+  }
+
+  .top-search-input {
+    height: 48px;
+    font-size: 0.92rem;
+  }
+
+  .top-auth-btn {
+    height: 42px;
+    padding: 0 16px;
+    font-size: 0.88rem;
+  }
+
+  .user-toggle {
+    font-size: 0.92rem;
+  }
+
+  .bottom-menu {
+    gap: 24px;
+  }
+
+  .bottom-menu-item {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .header-top {
+    padding: 12px 0;
+  }
+
+  .top-inner {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .brand-logo {
+    flex: 0 0 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .brand-logo-box {
+    justify-content: center;
+  }
+
+  .top-search {
+    flex: 0 0 100%;
+    max-width: 100%;
+    order: 3;
+  }
+
+  .top-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .header-bottom {
+    overflow-x: auto;
+  }
+
+  .bottom-inner {
+    justify-content: flex-start;
+  }
+
+  .bottom-menu {
+    justify-content: flex-start;
+    gap: 24px;
+    min-width: max-content;
+    padding: 0 8px;
+  }
+
+  .menu-dropdown-panel {
+    left: 0;
+    transform: none;
+  }
+
+  .bottom-menu-item.router-link-active::after,
+  .bottom-menu-item:hover::after,
+  .bottom-menu-item.active::after {
+    bottom: -6px;
+  }
 }
 </style>

@@ -248,20 +248,33 @@
 
                 <div class="col-md-5">
                   <label class="font-weight-bold">Hình ảnh</label>
-                  <div
-                    class="border rounded mb-3 d-flex align-items-center justify-content-center bg-light shadow-sm"
-                    style="height: 250px; overflow: hidden;"
-                  >
-                    <img
-                      v-if="previewImage"
-                      :src="previewImage"
-                      alt="preview"
-                      style="object-fit: cover; width: 100%; height: 100%;"
-                    />
-                    <div v-else class="text-muted text-center">
-                      <i class="fas fa-image fa-4x mb-2 opacity-25"></i>
-                      <p class="small mb-0">Chưa có ảnh phụ kiện</p>
+
+                  <div class="image-preview-container mb-3">
+                    <div
+                      class="border rounded d-flex align-items-center justify-content-center bg-light shadow-sm"
+                      style="height: 250px; overflow: hidden;"
+                    >
+                      <img
+                        v-if="previewImage"
+                        :src="previewImage"
+                        alt="preview"
+                        style="object-fit: cover; width: 100%; height: 100%;"
+                      />
+                      <div v-else class="text-muted text-center">
+                        <i class="fas fa-image fa-4x mb-2 opacity-25"></i>
+                        <p class="small mb-0">Chưa có ảnh phụ kiện</p>
+                      </div>
                     </div>
+
+                    <button
+                      v-if="previewImage"
+                      type="button"
+                      class="btn-remove-image"
+                      @click="removeImage"
+                      title="Xóa ảnh này"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
                   </div>
 
                   <div class="custom-file text-left">
@@ -271,6 +284,7 @@
                       id="accessoryImage"
                       accept="image/*"
                       @change="handleFileUpload"
+                      ref="fileInput"
                     />
                     <label class="custom-file-label text-truncate" for="accessoryImage">
                       {{ selectedFileName || "Chọn ảnh phụ kiện..." }}
@@ -364,6 +378,7 @@ export default {
       selectedFile: null,
       selectedFileName: "",
       previewImage: null,
+      removeOldImage: false,
 
       form: {
         _id: null,
@@ -373,6 +388,7 @@ export default {
         quantity: "",
         description: "",
         status: "Đang bán",
+        image: "",
       },
     };
   },
@@ -460,11 +476,17 @@ export default {
         quantity: item.quantity ?? "",
         description: item.description || "",
         status: item.status || "Đang bán",
+        image: item.image || "",
       };
 
       this.selectedFile = null;
       this.selectedFileName = "";
       this.previewImage = item.image ? "http://localhost:3000" + item.image : null;
+      this.removeOldImage = false;
+
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = "";
+      }
     },
 
     closeFormModal() {
@@ -481,11 +503,17 @@ export default {
         quantity: "",
         description: "",
         status: "Đang bán",
+        image: "",
       };
 
       this.selectedFile = null;
       this.selectedFileName = "";
       this.previewImage = null;
+      this.removeOldImage = false;
+
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = "";
+      }
     },
 
     handleFileUpload(event) {
@@ -501,6 +529,19 @@ export default {
       this.selectedFile = file;
       this.selectedFileName = file.name;
       this.previewImage = URL.createObjectURL(file);
+      this.removeOldImage = false;
+    },
+
+    removeImage() {
+      this.selectedFile = null;
+      this.selectedFileName = "";
+      this.previewImage = null;
+      this.form.image = "";
+      this.removeOldImage = true;
+
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = "";
+      }
     },
 
     validateForm() {
@@ -543,6 +584,10 @@ export default {
 
         if (this.selectedFile) {
           formData.append("image", this.selectedFile);
+        }
+
+        if (this.removeOldImage) {
+          formData.append("removeImage", "true");
         }
 
         if (this.isEditMode) {
@@ -608,5 +653,33 @@ export default {
   content: "Chọn ảnh" !important;
   background-color: #007bff;
   color: white;
+}
+
+.image-preview-container {
+  position: relative;
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+  z-index: 2;
+}
+
+.btn-remove-image:hover {
+  transform: scale(1.12);
+  background-color: #c82333;
 }
 </style>

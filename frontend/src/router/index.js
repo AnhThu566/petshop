@@ -42,6 +42,8 @@ import ServiceList from "@/views/customer/ServiceList.vue";
 import ServiceDetail from "@/views/customer/ServiceDetail.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
+import DogList from "@/views/customer/DogList.vue";
+
 
 const routes = [
     {
@@ -53,7 +55,7 @@ const routes = [
         {
     path: "/dogs",
     name: "dog-list",
-    component: Home
+    component:DogList
 },
 
     {

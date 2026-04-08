@@ -131,6 +131,8 @@ export default {
         if (response.user.role === "farm") {
           localStorage.setItem("farm", JSON.stringify(response.user));
         }
+        
+        window.dispatchEvent(new Event("auth-changed"));
 
         alert("✅ " + (response.message || "Đăng nhập thành công"));
 

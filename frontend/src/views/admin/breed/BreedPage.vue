@@ -54,16 +54,17 @@
 
         try {
             const response = await BreedService.getNextCode();
-            this.editingBreed = { 
-            maGiong: response.nextCode, 
-            name: "", 
-            origin: "", 
-            description: "",
-            status: "active" 
-            };
+                this.editingBreed = { 
+                maGiong: response.nextCode, 
+                name: "", 
+                origin: "", 
+                description: "",
+                status: "active",
+                image: ""
+                };
         } catch (error) {
             console.log("Lỗi không lấy được mã tự động:", error);
-            this.editingBreed = { maGiong: "", name: "", origin: "", description: "", status: "active" };
+            this.editingBreed = { maGiong: "", name: "", origin: "", description: "", status: "active", image: "" };
         }
         },
 

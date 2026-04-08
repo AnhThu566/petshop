@@ -3,7 +3,7 @@ const User = require("../models/user.model");
 const Farm = require("../models/farm.model");
 const ApiError = require("../api-error");
 
-const signToken = (user) => {
+const signToken = (user, farmId = null) => {
   return jwt.sign(
     {
       id: user._id,
@@ -11,6 +11,7 @@ const signToken = (user) => {
       role: user.role,
       fullName: user.fullName || "",
       email: user.email || "",
+      farmId: farmId || null,
     },
     process.env.JWT_SECRET || "petshop_jwt_secret_2026",
     { expiresIn: "7d" }
@@ -70,7 +71,7 @@ exports.registerFarm = async (req, res, next) => {
       phone: phone || "",
       farmDescription: farmDescription || "",
       ownerId: savedUser._id,
-      image: req.file ? `/public/uploads/${req.file.filename}` : null,
+      image: req.file ? `/uploads/${req.file.filename}` : null,
     });
 
     await newFarm.save();
@@ -111,10 +112,10 @@ exports.login = async (req, res, next) => {
     let farmId = null;
     if (user.role === "farm") {
       const farm = await Farm.findOne({ ownerId: user._id });
-      farmId = farm ? farm._id : null;
+      farmId = farm ? String(farm._id) : null;
     }
 
-    const token = signToken(user);
+    const token = signToken(user, farmId);
 
     return res.send({
       message: "Đăng nhập thành công",

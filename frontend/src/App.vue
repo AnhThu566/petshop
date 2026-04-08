@@ -5,8 +5,7 @@
       :current-user="currentUser"
       :is-logged-in="isLoggedIn"
     />
-
-    <div :class="{ 'mt-4': showPublicNavbar }" style="min-height: 80vh;">
+<div style="min-height: 80vh;">
       <router-view />
     </div>
 
@@ -25,15 +24,14 @@ export default {
     CustomerFooter,
   },
 
+  data() {
+    return {
+      currentUser: null,
+      isLoggedIn: false,
+    };
+  },
+
   computed: {
-    currentUser() {
-      return JSON.parse(localStorage.getItem("user") || "null");
-    },
-
-    isLoggedIn() {
-      return !!localStorage.getItem("token");
-    },
-
     showPublicNavbar() {
       const isolatedPages = ["login", "register"];
       const isIsolated = isolatedPages.includes(this.$route.name);
@@ -43,6 +41,31 @@ export default {
         this.$route.path.startsWith("/farm");
 
       return !isIsolated && !isAdminOrFarm;
+    },
+  },
+
+  created() {
+    this.syncAuthState();
+    window.addEventListener("auth-changed", this.syncAuthState);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("auth-changed", this.syncAuthState);
+  },
+
+  watch: {
+    $route() {
+      this.syncAuthState();
+    },
+  },
+
+  methods: {
+    syncAuthState() {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const token = localStorage.getItem("token");
+
+      this.currentUser = user;
+      this.isLoggedIn = !!token && !!user;
     },
   },
 };

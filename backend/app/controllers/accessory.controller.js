@@ -1,6 +1,28 @@
+const fs = require("fs");
+const path = require("path");
+
 const Accessory = require("../models/accessory.model");
 const AccessoryCategory = require("../models/accessoryCategory.model");
 const ApiError = require("../api-error");
+
+// Xóa file ảnh cũ nếu tồn tại
+const removeImageFile = (imagePath) => {
+  try {
+    if (!imagePath) return;
+
+    const cleanPath = imagePath.startsWith("/")
+      ? imagePath.substring(1)
+      : imagePath;
+
+    const filePath = path.join(process.cwd(), cleanPath);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error("Lỗi khi xóa ảnh phụ kiện:", error.message);
+  }
+};
 
 // Tạo mã phụ kiện tự động
 const generateNextCode = async () => {
@@ -49,7 +71,7 @@ exports.create = async (req, res, next) => {
       name,
       price,
       quantity,
-      description,
+      description: description || "",
       image: imagePath,
       status: status || "Đang bán",
     });
@@ -110,7 +132,12 @@ exports.findOne = async (req, res, next) => {
 // 4. Cập nhật phụ kiện
 exports.update = async (req, res, next) => {
   try {
-    const { categoryId, name, price, quantity, description, status } = req.body;
+    const { categoryId, name, price, quantity, description, status, removeImage } = req.body;
+
+    const accessory = await Accessory.findById(req.params.id);
+    if (!accessory) {
+      return next(new ApiError(404, "Không tìm thấy phụ kiện để cập nhật"));
+    }
 
     if (categoryId) {
       const category = await AccessoryCategory.findById(categoryId);
@@ -128,27 +155,31 @@ exports.update = async (req, res, next) => {
       name,
       price,
       quantity,
-      description,
+      description: description || "",
       status,
     };
 
+    // Nếu upload ảnh mới => xóa ảnh cũ rồi lưu ảnh mới
     if (req.file) {
+      removeImageFile(accessory.image);
       updateData.image = `/uploads/${req.file.filename}`;
     }
 
-    const accessory = await Accessory.findByIdAndUpdate(
+    // Nếu bấm xóa ảnh cũ mà không upload ảnh mới
+    if (removeImage === "true" && !req.file) {
+      removeImageFile(accessory.image);
+      updateData.image = "";
+    }
+
+    const updatedAccessory = await Accessory.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true }
+      { new: true, runValidators: true }
     ).populate("categoryId", "maLoaiPhuKien name status");
-
-    if (!accessory) {
-      return next(new ApiError(404, "Không tìm thấy phụ kiện để cập nhật"));
-    }
 
     return res.send({
       message: "Cập nhật phụ kiện thành công!",
-      accessory,
+      accessory: updatedAccessory,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi cập nhật phụ kiện: " + error.message));
@@ -158,11 +189,14 @@ exports.update = async (req, res, next) => {
 // 5. Xóa phụ kiện
 exports.delete = async (req, res, next) => {
   try {
-    const accessory = await Accessory.findByIdAndDelete(req.params.id);
+    const accessory = await Accessory.findById(req.params.id);
 
     if (!accessory) {
       return next(new ApiError(404, "Không tìm thấy phụ kiện để xóa"));
     }
+
+    removeImageFile(accessory.image);
+    await Accessory.findByIdAndDelete(req.params.id);
 
     return res.send({
       message: "Xóa phụ kiện thành công!",
