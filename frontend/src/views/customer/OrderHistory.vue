@@ -1,219 +1,232 @@
 <template>
-  <div class="order-history-page bg-light py-5" style="min-height: 100vh;">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <h3 class="font-weight-bold text-dark mb-2">
-          <i class="fas fa-history text-primary mr-2"></i>
-          LỊCH SỬ ĐƠN ĐẶT CỌC
-        </h3>
-
-        <button class="btn btn-outline-primary btn-sm" @click="fetchOrders">
-          <i class="fas fa-sync-alt mr-1"></i> Làm mới
-        </button>
-      </div>
-
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-3">
-          <div class="row align-items-center">
-            <div class="col-md-6 mb-2 mb-md-0">
-              <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                  <span class="input-group-text bg-white">
-                    <i class="fas fa-search text-primary"></i>
-                  </span>
+  <div class="order-history-page">
+    <div class="container-fluid order-page-container py-4">
+      <div class="order-layout">
+        <!-- Sidebar trái -->
+        <aside class="account-sidebar">
+          <div class="account-card">
+            <div class="account-top">
+              <div class="account-info">
+                <h5 class="account-name mb-1">
+                  {{ currentUser?.fullName || currentUser?.username || "Khách hàng" }}
+                </h5>
+                <div class="account-email">
+                  {{ currentUser?.email || "Chưa cập nhật email" }}
                 </div>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Tìm theo tên bé cún hoặc mã đơn..."
-                  v-model="searchText"
-                />
+              </div>
+
+              <div class="account-avatar">
+                {{ getAvatarText() }}
               </div>
             </div>
 
-            <div class="col-md-6 text-md-right">
-              <div class="btn-group flex-wrap">
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Tất cả' ? 'btn-dark' : 'btn-light'"
-                  @click="statusFilter = 'Tất cả'"
-                >
-                  Tất cả
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Chờ xác nhận cọc' ? 'btn-warning text-dark' : 'btn-light'"
-                  @click="statusFilter = 'Chờ xác nhận cọc'"
-                >
-                  Chờ xác nhận
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đã nhận cọc' ? 'btn-info text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đã nhận cọc'"
-                >
-                  Đã nhận cọc
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đang giao' ? 'btn-primary text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đang giao'"
-                >
-                  Đang giao
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Hoàn thành' ? 'btn-success text-white' : 'btn-light'"
-                  @click="statusFilter = 'Hoàn thành'"
-                >
-                  Hoàn thành
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đã hủy' ? 'btn-danger text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đã hủy'"
-                >
-                  Đã hủy
-                </button>
-              </div>
+            <div class="account-note">
+              Quản lý hồ sơ, lịch sử đặt cọc, đơn phụ kiện và lịch dịch vụ tại đây.
             </div>
           </div>
-        </div>
-      </div>
 
-      <div v-if="loading" class="text-center py-5 text-muted">
-        <i class="fas fa-spinner fa-spin fa-2x mb-3 d-block"></i>
-        Đang tải lịch sử đơn hàng...
-      </div>
+          <div class="sidebar-menu">
+            <div class="menu-item">
+              <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
+              <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
 
-      <div v-else-if="filteredOrders.length === 0" class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
-          <i class="fas fa-box-open fa-3x mb-3 d-block"></i>
-          Bạn chưa có đơn đặt cọc nào.
-        </div>
-      </div>
+            <div class="menu-item active">
+              <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
+              <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
 
-      <div v-else class="row">
-        <div
-          class="col-lg-6 mb-4"
-          v-for="(order, index) in filteredOrders"
-          :key="getOrderId(order) || index"
-        >
-          <div class="card border-0 shadow-sm h-100 order-card">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <div class="small text-muted">Mã đơn</div>
-                  <div class="font-weight-bold text-primary">
-                    #{{ getShortOrderCode(getOrderId(order)) }}
-                  </div>
-                </div>
-                <div class="text-right">
-                  <span class="badge px-3 py-2" :class="getStatusClass(order.status)">
-                    {{ order.status }}
-                  </span>
-                </div>
-              </div>
+            <div class="menu-item">
+              <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
+              <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
 
-              <div class="d-flex align-items-center mb-3" v-if="order.dogId">
-                <img
-                  :src="getDogImage(order)"
-                  alt="dog"
-                  class="rounded shadow-sm mr-3"
-                  style="width: 90px; height: 90px; object-fit: cover;"
-                />
-                <div>
-                  <h5 class="mb-1 font-weight-bold text-dark">
-                    {{ order.dogId.name || "Bé cún" }}
-                  </h5>
-                  <p class="mb-1 text-muted small">
-                    Mã chó: {{ order.dogId.maCho || "---" }}
-                  </p>
-                  <p class="mb-0">
-                    <span class="badge px-2 py-1" :class="getDogStatusClass(order.dogId.status)">
-                      {{ order.dogId.status || "---" }}
-                    </span>
-                  </p>
-                </div>
-              </div>
+            <div class="menu-item">
+              <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
+              <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
 
-              <div v-else class="alert alert-danger py-2 small">
-                Dữ liệu bé chó không còn tồn tại hoặc đã bị xóa.
-              </div>
+            <div class="menu-item">
+              <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
+              <small>0379889868</small>
+            </div>
 
-              <div class="border rounded p-3 bg-light mb-3">
-                <div class="row">
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Ngày đặt</div>
-                    <div class="font-weight-bold">{{ formatDate(order.createdAt) }}</div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Trang trại</div>
-                    <div class="font-weight-bold">
-                      {{ order.farmId?.name || "---" }}
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Tổng tiền</div>
-                    <div class="font-weight-bold text-dark">
-                      {{ formatCurrency(order.totalPrice) }}
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Tiền cọc</div>
-                    <div class="font-weight-bold text-danger">
+            <div class="menu-item">
+              <span><i class="fas fa-globe mr-2"></i> Trang web</span>
+              <small>petshop.vn</small>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Nội dung phải -->
+        <section class="order-content">
+          <div class="content-head">
+            <div>
+              <h3 class="content-title">Lịch sử đặt cọc</h3>
+              <p class="content-subtitle mb-0">
+                Theo dõi các đơn đặt cọc của bạn
+              </p>
+            </div>
+          </div>
+
+          <div class="toolbar-box">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                v-model="searchText"
+                placeholder="Tìm theo mã đơn hoặc tên bé chó"
+              />
+            </div>
+
+            <button class="refresh-btn" @click="fetchOrders">
+              <i class="fas fa-sync-alt mr-1"></i> Làm mới
+            </button>
+          </div>
+
+          <div class="status-tabs">
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Tất cả' }"
+              @click="statusFilter = 'Tất cả'"
+            >
+              Tất cả
+            </button>
+
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Chờ xác nhận cọc' }"
+              @click="statusFilter = 'Chờ xác nhận cọc'"
+            >
+              Chờ xác nhận
+            </button>
+
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Đã nhận cọc' }"
+              @click="statusFilter = 'Đã nhận cọc'"
+            >
+              Đã nhận cọc
+            </button>
+
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Đang giao' }"
+              @click="statusFilter = 'Đang giao'"
+            >
+              Đang giao
+            </button>
+
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Hoàn thành' }"
+              @click="statusFilter = 'Hoàn thành'"
+            >
+              Hoàn thành
+            </button>
+
+            <button
+              class="status-tab"
+              :class="{ active: statusFilter === 'Đã hủy' }"
+              @click="statusFilter = 'Đã hủy'"
+            >
+              Đã hủy
+            </button>
+          </div>
+
+          <div v-if="loading" class="empty-panel">
+            <i class="fas fa-spinner fa-spin empty-icon"></i>
+            <p>Đang tải lịch sử đặt cọc...</p>
+          </div>
+
+          <div v-else-if="filteredOrders.length === 0" class="empty-panel">
+            <i class="fas fa-box-open empty-icon"></i>
+            <p>Bạn chưa có đơn đặt cọc nào</p>
+          </div>
+
+          <div v-else class="table-card">
+            <div class="table-wrap">
+              <table class="order-table">
+                <thead>
+                  <tr>
+                    <th>Mã đơn</th>
+                    <th>Bé chó</th>
+                    <th>Ngày đặt</th>
+                    <th>Tổng tiền</th>
+                    <th>Tiền cọc</th>
+                    <th>Còn lại</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr
+                    v-for="(order, index) in filteredOrders"
+                    :key="getOrderId(order) || index"
+                  >
+                    <td class="td-code">
+                      #{{ getShortOrderCode(getOrderId(order)) }}
+                    </td>
+
+                    <td>
+                      <div class="dog-cell" v-if="order.dogId">
+                        <img :src="getDogImage(order)" alt="dog" class="dog-thumb" />
+                        <div>
+                          <div class="dog-name">{{ order.dogId.name || "Bé cún" }}</div>
+                          <div class="dog-sub">{{ order.dogId.maCho || "---" }}</div>
+                        </div>
+                      </div>
+                      <span v-else class="text-danger">Không còn dữ liệu</span>
+                    </td>
+
+                    <td>{{ formatDate(order.createdAt) }}</td>
+                    <td>{{ formatCurrency(order.totalPrice) }}</td>
+                    <td class="money-deposit">
                       {{ formatCurrency(order.depositAmount) }}
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Tiền còn lại</div>
-                    <div class="font-weight-bold text-primary">
+                    </td>
+                    <td class="money-remaining">
                       {{ formatCurrency(getRemainingAmount(order)) }}
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="small text-muted">Thanh toán cọc</div>
-                    <div class="font-weight-bold">
-                      {{ order.paymentMethod || "Chuyển khoản" }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    </td>
 
-              <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div class="small text-muted mb-2 mb-md-0">
-                  <i class="fas fa-info-circle mr-1"></i>
-                  {{ getCustomerMessage(order) }}
-                </div>
+                    <td>
+                      <span class="order-badge" :class="getStatusClass(order.status)">
+                        {{ order.status }}
+                      </span>
+                    </td>
 
-                <div class="d-flex flex-wrap">
-                  <button
-                    v-if="order.status === 'Chờ xác nhận cọc'"
-                    class="btn btn-outline-danger btn-sm mr-2 mb-2"
-                    @click="cancelOrder(order)"
-                  >
-                    <i class="fas fa-times mr-1"></i> Hủy đơn
-                  </button>
+                    <td>
+                      <div class="table-actions">
+                        <button
+                          v-if="order.status === 'Chờ xác nhận cọc'"
+                          class="btn btn-outline-danger btn-sm"
+                          @click="cancelOrder(order)"
+                        >
+                          Hủy
+                        </button>
 
-                  <button
-                    v-if="canBuyAgain(order)"
-                    class="btn btn-outline-success btn-sm mr-2 mb-2"
-                    @click="buyAgain(order)"
-                  >
-                    <i class="fas fa-redo-alt mr-1"></i> Mua lại
-                  </button>
+                        <button
+                          v-if="canBuyAgain(order)"
+                          class="btn btn-outline-success btn-sm"
+                          @click="buyAgain(order)"
+                        >
+                          Mua lại
+                        </button>
 
-                  <button
-                    class="btn btn-outline-primary btn-sm mb-2"
-                    @click="openDetail(order)"
-                  >
-                    <i class="fas fa-eye mr-1"></i> Xem chi tiết
-                  </button>
-                </div>
-              </div>
+                        <button
+                          class="btn btn-outline-primary btn-sm"
+                          @click="openDetail(order)"
+                        >
+                          Chi tiết
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Modal chi tiết -->
@@ -225,7 +238,7 @@
       >
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header modal-head-custom">
               <h5 class="modal-title mb-0">
                 <i class="fas fa-file-alt mr-2"></i>Chi tiết đơn đặt cọc
               </h5>
@@ -240,17 +253,17 @@
                   <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
                   <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(getOrderId(selectedOrder)) }}</p>
                   <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}</p>
-                  <p class="mb-1"><strong>Trạng thái đơn:</strong> {{ selectedOrder.status }}</p>
+                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
                   <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}</p>
                   <p class="mb-1"><strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}</p>
                   <p class="mb-1"><strong>Tiền còn lại:</strong> {{ formatCurrency(getRemainingAmount(selectedOrder)) }}</p>
                   <p class="mb-1"><strong>Phương thức cọc:</strong> {{ selectedOrder.paymentMethod || "Chuyển khoản" }}</p>
-                  <p class="mb-1"><strong>Trạng thái thanh toán cọc:</strong> {{ selectedOrder.paymentStatus || "---" }}</p>
+                  <p class="mb-1"><strong>Trạng thái thanh toán:</strong> {{ selectedOrder.paymentStatus || "---" }}</p>
                   <p class="mb-1"><strong>Minh chứng cọc:</strong> {{ selectedOrder.paymentProof || "Không có" }}</p>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-success">Thông tin nhận hàng</h6>
+                  <h6 class="font-weight-bold text-success">Thông tin nhận bé</h6>
                   <p class="mb-1"><strong>Khách hàng:</strong> {{ selectedOrder.customerName }}</p>
                   <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
                   <p class="mb-1"><strong>Địa chỉ:</strong> {{ selectedOrder.customerAddress || "---" }}</p>
@@ -258,7 +271,7 @@
                 </div>
 
                 <div class="col-12" v-if="selectedOrder.dogId">
-                  <hr>
+                  <hr />
                   <h6 class="font-weight-bold text-danger">Thông tin bé cún</h6>
                   <div class="d-flex align-items-center">
                     <img
@@ -275,12 +288,6 @@
                     </div>
                   </div>
                 </div>
-
-                <div class="col-12 mt-3" v-if="selectedOrder.farmId">
-                  <hr>
-                  <h6 class="font-weight-bold text-dark">Thông tin trang trại</h6>
-                  <p class="mb-1"><strong>Tên trại:</strong> {{ selectedOrder.farmId.name }}</p>
-                </div>
               </div>
             </div>
 
@@ -290,14 +297,13 @@
                 class="btn btn-success"
                 @click="buyAgain(selectedOrder)"
               >
-                <i class="fas fa-redo-alt mr-1"></i> Mua lại
+                Mua lại
               </button>
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -307,6 +313,8 @@ import OrderService from "@/services/order.service";
 import DogService from "@/services/dog.service";
 
 export default {
+  name: "OrderHistoryPage",
+
   data() {
     return {
       orders: [],
@@ -336,6 +344,16 @@ export default {
   },
 
   methods: {
+    getAvatarText() {
+      const name = this.currentUser?.fullName || this.currentUser?.username || "KH";
+      return name
+        .split(" ")
+        .map((item) => item[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase();
+    },
+
     async fetchOrders() {
       try {
         if (!this.currentUser) return;
@@ -440,42 +458,12 @@ export default {
     },
 
     getStatusClass(status) {
-      if (status === "Chờ xác nhận cọc") return "badge-warning text-dark";
-      if (status === "Đã nhận cọc") return "badge-info text-white";
-      if (status === "Đang giao") return "badge-primary text-white";
-      if (status === "Hoàn thành") return "badge-success text-white";
-      if (status === "Đã hủy") return "badge-danger text-white";
-      return "badge-secondary";
-    },
-
-    getDogStatusClass(status) {
-      if (status === "Chờ duyệt") return "badge-warning text-dark";
-      if (status === "Đã duyệt") return "badge-success";
-      if (status === "Từ chối") return "badge-danger";
-      if (status === "Chờ thanh toán") return "badge-info text-dark";
-      if (status === "Đã đặt cọc") return "badge-primary";
-      if (status === "Đang giao") return "badge-secondary";
-      if (status === "Đã bán") return "badge-dark";
-      return "badge-light border";
-    },
-
-    getCustomerMessage(order) {
-      if (order.status === "Chờ xác nhận cọc") {
-        return "Đơn của bạn đang chờ admin xác nhận khoản cọc.";
-      }
-      if (order.status === "Đã nhận cọc") {
-        return `Đã xác nhận cọc. Bạn còn lại ${this.formatCurrency(this.getRemainingAmount(order))} khi nhận chó.`;
-      }
-      if (order.status === "Đang giao") {
-        return `Bé cún đang được bàn giao. Số tiền còn lại cần thanh toán là ${this.formatCurrency(this.getRemainingAmount(order))}.`;
-      }
-      if (order.status === "Hoàn thành") {
-        return "Đơn hàng đã hoàn tất. Bạn có thể mua lại nếu bé cún đã được mở bán lại.";
-      }
-      if (order.status === "Đã hủy") {
-        return "Đơn này đã bị hủy. Bạn có thể mua lại nếu bé cún đã sẵn sàng mở bán.";
-      }
-      return "Đơn hàng đang được xử lý.";
+      if (status === "Chờ xác nhận cọc") return "status-waiting";
+      if (status === "Đã nhận cọc") return "status-confirmed";
+      if (status === "Đang giao") return "status-delivering";
+      if (status === "Hoàn thành") return "status-completed";
+      if (status === "Đã hủy") return "status-cancelled";
+      return "status-default";
     },
 
     async cancelOrder(order) {
@@ -516,15 +504,451 @@ export default {
 </script>
 
 <style scoped>
-.order-card {
+.order-history-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+}
+
+.order-page-container {
+  max-width: 1420px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.order-layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.account-card,
+.sidebar-menu,
+.order-content,
+.table-card {
+  background: #ffffff;
+  border: 1px solid #eee2f7;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
+}
+
+/* ===== SIDEBAR ===== */
+.account-card {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.account-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.account-info {
+  min-width: 0;
+}
+
+.account-name {
+  margin: 0;
+  font-weight: 800;
+  color: #2f1b44;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.account-email {
+  color: #7b7287;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.account-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.account-note {
+  margin-top: 14px;
+  color: #746a80;
+  font-size: 0.91rem;
+  line-height: 1.7;
+}
+
+.sidebar-menu {
+  overflow: hidden;
+}
+
+.menu-item {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #3e3550;
+  border-bottom: 1px solid #f2ebf8;
+  font-weight: 600;
+  font-size: 0.95rem;
   transition: all 0.2s ease;
 }
 
-.order-card:hover {
-  transform: translateY(-2px);
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:hover {
+  background: #fbf8fe;
+}
+
+.menu-item span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.menu-arrow {
+  color: #8c7ea5;
+  font-size: 0.82rem;
+}
+
+.menu-item.active {
+  background: #f3e8ff;
+  color: #6a1b9a;
+  font-weight: 800;
+}
+
+.menu-item.active .menu-arrow {
+  color: #6a1b9a;
+}
+
+.menu-item small {
+  color: #8c7ea5;
+  font-size: 0.87rem;
+  white-space: nowrap;
+}
+
+/* ===== CONTENT ===== */
+.order-content {
+  padding: 22px;
+  min-width: 0;
+}
+
+.content-head {
+  margin-bottom: 12px;
+}
+
+.content-title {
+  margin: 0 0 4px;
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #2f1b44;
+  line-height: 1.15;
+}
+
+.content-subtitle {
+  color: #7b7287;
+  font-size: 0.92rem;
+}
+
+.toolbar-box {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box i {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8b7fa0;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid #dfd3ec;
+  border-radius: 14px;
+  padding: 0 16px 0 40px;
+  outline: none;
+  font-size: 0.94rem;
+  background: #fff;
+  color: #3b3150;
+  transition: all 0.2s ease;
+}
+
+.search-box input::placeholder {
+  color: #9b90ad;
+}
+
+.search-box input:focus {
+  border-color: #7b3fc8;
+  box-shadow: 0 0 0 3px rgba(123, 63, 200, 0.08);
+}
+
+.refresh-btn {
+  border: none;
+  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  color: #fff;
+  height: 46px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
+}
+
+/* ===== TABS ===== */
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-bottom: 1px solid #ece3f4;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
+
+.status-tab {
+  border: none;
+  background: none;
+  padding: 0 0 10px;
+  font-weight: 700;
+  color: #7f748f;
+  border-bottom: 2px solid transparent;
+  font-size: 0.94rem;
+  transition: all 0.2s ease;
+}
+
+.status-tab:hover {
+  color: #6a1b9a;
+}
+
+.status-tab.active {
+  color: #6a1b9a;
+  border-bottom-color: #6a1b9a;
+}
+
+/* ===== EMPTY ===== */
+.empty-panel {
+  background: #fff;
+  border: 1px solid #eee2f7;
+  border-radius: 16px;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #7a708a;
+}
+
+.empty-icon {
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+  color: #cfbfdc;
+}
+
+/* ===== TABLE ===== */
+.table-card {
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 820px;
+}
+
+.order-table thead th {
+  background: #f8f3fc;
+  color: #514564;
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 14px 12px;
+  border-bottom: 1px solid #ece3f4;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.order-table tbody td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #f2ebf8;
+  vertical-align: middle;
+  font-size: 0.92rem;
+  color: #3d3450;
+}
+
+.order-table tbody tr:hover {
+  background: #fcfaff;
+}
+
+.order-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.td-code {
+  font-weight: 900;
+  color: #6b46d9;
+  white-space: nowrap;
+}
+
+.dog-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 170px;
+}
+
+.dog-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #ece3f4;
+}
+
+.dog-name {
+  font-weight: 700;
+  color: #2f1b44;
+  font-size: 0.93rem;
+  line-height: 1.35;
+}
+
+.dog-sub {
+  color: #8b7fa0;
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+.money-deposit {
+  color: #dc2626;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.money-remaining {
+  color: #2563eb;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.order-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-actions .btn {
+  font-size: 0.83rem;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+/* ===== STATUS BADGES ===== */
+.status-waiting {
+  background: #fff3d8;
+  color: #b7791f;
+}
+
+.status-confirmed {
+  background: #efe7ff;
+  color: #6a1b9a;
+}
+
+.status-delivering {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.status-completed {
+  background: #e7f8ee;
+  color: #15803d;
+}
+
+.status-cancelled {
+  background: #fdeaea;
+  color: #dc2626;
+}
+
+.status-default {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* ===== MODAL ===== */
+.modal-head-custom {
+  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  color: #fff;
 }
 
 .modal {
   overflow-y: auto;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1199.98px) {
+  .content-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .order-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-box {
+    grid-template-columns: 1fr;
+  }
+
+  .refresh-btn {
+    width: 100%;
+  }
+
+  .content-title {
+    font-size: 1.35rem;
+  }
+
+  .order-page-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }
 </style>

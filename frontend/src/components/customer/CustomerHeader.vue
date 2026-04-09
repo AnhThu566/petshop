@@ -197,9 +197,47 @@
               </div>
             </div>
 
-            <router-link to="/accessories" class="bottom-menu-item text-decoration-none">
-              Phụ kiện
-            </router-link>
+            <!-- DROPDOWN PHỤ KIỆN -->
+            <div
+              class="menu-dropdown"
+              @mouseenter="openAccessoryMenu"
+              @mouseleave="closeAccessoryMenu"
+            >
+              <a
+                href="#"
+                class="bottom-menu-item text-decoration-none dropdown-toggle-link"
+                :class="{ active: isAccessoryMenuActive }"
+                @click.prevent="toggleAccessoryMenu"
+              >
+                Phụ kiện
+                <i class="fas fa-chevron-down menu-caret ml-2"></i>
+              </a>
+
+              <div
+                class="menu-dropdown-panel shadow"
+                :class="{ 'show-dropdown': isAccessoryMenuOpen }"
+              >
+                <router-link
+                  to="/accessories"
+                  class="menu-dropdown-item text-decoration-none"
+                  @click="closeAllDropdowns"
+                >
+                  <i class="fas fa-th-large mr-2"></i>
+                  Tất cả phụ kiện
+                </router-link>
+
+                <router-link
+                  v-for="category in accessoryCategories"
+                  :key="category._id || category.id"
+                  :to="`/accessories?category=${category._id || category.id}`"
+                  class="menu-dropdown-item text-decoration-none"
+                  @click="closeAllDropdowns"
+                >
+                  <i class="fas fa-box mr-2"></i>
+                  {{ category.name }}
+                </router-link>
+              </div>
+            </div>
 
             <router-link to="/services" class="bottom-menu-item text-decoration-none">
               Dịch vụ
@@ -222,6 +260,8 @@
 </template>
 
 <script>
+import AccessoryCategoryService from "@/services/accessoryCategory.service";
+
 export default {
   props: {
     currentUser: {
@@ -238,6 +278,8 @@ export default {
     return {
       isUserDropdownOpen: false,
       isDogMenuOpen: false,
+      isAccessoryMenuOpen: false,
+      accessoryCategories: [],
     };
   },
 
@@ -245,6 +287,11 @@ export default {
     isDogMenuActive() {
       const path = this.$route.path || "";
       return path.startsWith("/dogs") || path.startsWith("/dog/");
+    },
+
+    isAccessoryMenuActive() {
+      const path = this.$route.path || "";
+      return path.startsWith("/accessories") || path.startsWith("/accessory/");
     },
   },
 
@@ -255,18 +302,33 @@ export default {
   },
 
   methods: {
+    async fetchAccessoryCategories() {
+      try {
+        const data = await AccessoryCategoryService.getAll();
+        this.accessoryCategories = (data || []).filter(
+          (item) => item.status === "active" || !item.status
+        );
+      } catch (error) {
+        console.error("Lỗi tải loại phụ kiện:", error);
+        this.accessoryCategories = [];
+      }
+    },
+
     closeAllDropdowns() {
       this.isUserDropdownOpen = false;
       this.isDogMenuOpen = false;
+      this.isAccessoryMenuOpen = false;
     },
 
     toggleUserDropdown() {
       this.isDogMenuOpen = false;
+      this.isAccessoryMenuOpen = false;
       this.isUserDropdownOpen = !this.isUserDropdownOpen;
     },
 
     toggleDogMenu() {
       this.isUserDropdownOpen = false;
+      this.isAccessoryMenuOpen = false;
       this.isDogMenuOpen = !this.isDogMenuOpen;
     },
 
@@ -276,6 +338,20 @@ export default {
 
     closeDogMenu() {
       this.isDogMenuOpen = false;
+    },
+
+    toggleAccessoryMenu() {
+      this.isUserDropdownOpen = false;
+      this.isDogMenuOpen = false;
+      this.isAccessoryMenuOpen = !this.isAccessoryMenuOpen;
+    },
+
+    openAccessoryMenu() {
+      this.isAccessoryMenuOpen = true;
+    },
+
+    closeAccessoryMenu() {
+      this.isAccessoryMenuOpen = false;
     },
 
     logout() {
@@ -291,6 +367,10 @@ export default {
         this.$router.push("/");
       }
     },
+  },
+
+  async mounted() {
+    await this.fetchAccessoryCategories();
   },
 };
 </script>
@@ -575,7 +655,7 @@ export default {
   background: #f4c842;
 }
 
-/* DROPDOWN CHÓ CẢNH */
+/* DROPDOWN MENU */
 .menu-dropdown {
   position: relative;
   display: flex;
@@ -597,7 +677,7 @@ export default {
   top: calc(100% + 18px);
   left: 50%;
   transform: translateX(-50%);
-  min-width: 230px;
+  min-width: 240px;
   background: white;
   border-radius: 14px;
   padding: 10px;

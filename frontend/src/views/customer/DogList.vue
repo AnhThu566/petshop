@@ -45,6 +45,10 @@
             <div class="group-name">
               {{ group.name }}
             </div>
+
+            <div v-if="viewMode === 'farm'" class="group-subtext">
+              {{ group.address || "Thông tin trại đang cập nhật" }}
+            </div>
           </button>
         </div>
       </div>
@@ -70,6 +74,59 @@
         <div class="result-top">
           <h1 class="result-page-title">{{ listTitle }}</h1>
           <p class="result-count mb-0">Có {{ filteredDogs.length }} bé cún</p>
+        </div>
+
+        <div
+          v-if="viewMode === 'farm' && selectedGroup"
+          class="farm-info-panel mb-4"
+        >
+          <div class="farm-info-inner">
+            <div class="farm-avatar-wrap">
+              <img
+                v-if="getGroupImage(selectedGroup)"
+                :src="getGroupImage(selectedGroup)"
+                :alt="selectedGroup.name"
+                class="farm-avatar"
+              />
+              <div v-else class="farm-avatar-placeholder">
+                <i class="fas fa-warehouse"></i>
+              </div>
+            </div>
+
+            <div class="farm-content">
+              <div class="farm-badge">TRẠI ĐĂNG BÁN</div>
+              <h2 class="farm-title">{{ selectedGroup.name }}</h2>
+
+              <p class="farm-desc mb-3">
+                {{
+                  selectedGroup.description ||
+                  "Trang trại tham gia hệ thống với thông tin nguồn gốc rõ ràng, cung cấp các bé cún có hồ sơ minh bạch."
+                }}
+              </p>
+
+              <div class="farm-meta-grid">
+                <div class="farm-meta-item">
+                  <span class="farm-meta-label">Mã trại</span>
+                  <strong>{{ selectedGroup.maTrai || "Đang cập nhật" }}</strong>
+                </div>
+
+                <div class="farm-meta-item">
+                  <span class="farm-meta-label">Khu vực</span>
+                  <strong>{{ selectedGroup.address || "Đang cập nhật" }}</strong>
+                </div>
+
+                <div class="farm-meta-item">
+                  <span class="farm-meta-label">Liên hệ</span>
+                  <strong>{{ selectedGroup.phone || "Đang cập nhật" }}</strong>
+                </div>
+
+                <div class="farm-meta-item">
+                  <span class="farm-meta-label">Số bé đang hiển thị</span>
+                  <strong>{{ filteredDogs.length }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="loadingDogs" class="empty-box mt-4">
@@ -100,11 +157,16 @@
                 <div v-else class="dog-placeholder">
                   <i class="fas fa-dog"></i>
                 </div>
+
+                <span class="dog-status-badge" :class="getDogStatusClass(dog.status)">
+                  {{ getDogStatusText(dog.status) }}
+                </span>
               </div>
             </div>
 
             <div class="dog-meta">
               <h4 class="dog-name">{{ dog.name }}</h4>
+              <div class="dog-breed">{{ dog.breedId?.name || "Đang cập nhật giống" }}</div>
               <div class="dog-price">{{ formatCurrency(dog.price) }}</div>
             </div>
           </router-link>
@@ -154,7 +216,7 @@ export default {
 
     sectionDesc() {
       return this.viewMode === "farm"
-        ? "Chọn trang trại để xem các bé cún có nguồn gốc từ trại đó."
+        ? "Chọn trang trại để xem thông tin trang trại và các bé cún có nguồn gốc từ trại đó."
         : "Chọn giống chó để xem các bé cún thuộc giống đó.";
     },
 
@@ -248,9 +310,7 @@ export default {
       try {
         const data = await DogService.getPublic();
         this.dogList = (data || []).filter((dog) =>
-          ["Đã duyệt", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(
-            dog.status
-          )
+          ["Đã duyệt", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(dog.status)
         );
       } catch (error) {
         console.error("Lỗi tải danh sách chó:", error);
@@ -292,6 +352,34 @@ export default {
 
     formatCurrency(value) {
       return Number(value || 0).toLocaleString("vi-VN") + " VNĐ";
+    },
+
+    getDogStatusText(status) {
+      if (status === "Đã bán") return "Đã bán";
+
+      if (
+        status === "Chờ thanh toán" ||
+        status === "Đã đặt cọc" ||
+        status === "Đang giao"
+      ) {
+        return "Đang có khách giữ chỗ";
+      }
+
+      return "Sẵn sàng đón về";
+    },
+
+    getDogStatusClass(status) {
+      if (status === "Đã bán") return "status-sold";
+
+      if (
+        status === "Chờ thanh toán" ||
+        status === "Đã đặt cọc" ||
+        status === "Đang giao"
+      ) {
+        return "status-hold";
+      }
+
+      return "status-approved";
     },
   },
 };
@@ -410,6 +498,13 @@ export default {
   line-height: 1.35;
 }
 
+.group-subtext {
+  margin-top: 6px;
+  color: #8a7d9e;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 .page-toolbar {
   display: flex;
   align-items: center;
@@ -465,6 +560,98 @@ export default {
   box-shadow: 0 10px 22px rgba(95, 53, 168, 0.28);
 }
 
+.farm-info-panel {
+  background: linear-gradient(135deg, #f7f2ff, #ffffff);
+  border: 1px solid #e6daf7;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(94, 53, 177, 0.08);
+}
+
+.farm-info-inner {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.farm-avatar-wrap {
+  width: 230px;
+  height: 230px;
+  border-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f3ebff;
+}
+
+.farm-avatar,
+.farm-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.farm-avatar {
+  object-fit: cover;
+  display: block;
+}
+
+.farm-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7b4cc2;
+  font-size: 3rem;
+}
+
+.farm-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.farm-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ede2ff;
+  color: #6f42c1;
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.farm-title {
+  color: #4f3a73;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.farm-desc {
+  color: #75678a;
+  line-height: 1.7;
+  max-width: 760px;
+}
+
+.farm-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.farm-meta-item {
+  background: #ffffff;
+  border: 1px solid #eadff8;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.farm-meta-label {
+  display: block;
+  color: #8a7d9e;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
 .dog-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -493,6 +680,7 @@ export default {
 }
 
 .dog-image-wrap {
+  position: relative;
   width: 100%;
   height: 250px;
   overflow: hidden;
@@ -513,6 +701,33 @@ export default {
   transform: scale(1.04);
 }
 
+.dog-status-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.status-approved {
+  background: #28a745;
+}
+
+.status-hold {
+  background: #f0ad4e;
+}
+
+.status-sold {
+  background: #343a40;
+}
+
+.status-default {
+  background: #6c757d;
+}
+
 .dog-meta {
   margin-top: 14px;
   text-align: center;
@@ -522,9 +737,15 @@ export default {
   color: #5b4f66;
   font-size: 1.15rem;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.3;
   text-align: center;
+}
+
+.dog-breed {
+  color: #8a7d9e;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
 }
 
 .dog-price {
@@ -557,7 +778,8 @@ export default {
 
 @media (max-width: 992px) {
   .section-title,
-  .result-page-title {
+  .result-page-title,
+  .farm-title {
     font-size: 1.7rem;
   }
 
@@ -574,6 +796,16 @@ export default {
   .dog-image-wrap {
     height: 220px;
   }
+
+  .farm-info-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .farm-avatar-wrap {
+    width: 100%;
+    height: 280px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -582,7 +814,8 @@ export default {
   }
 
   .section-title,
-  .result-page-title {
+  .result-page-title,
+  .farm-title {
     font-size: 1.3rem;
   }
 
@@ -611,6 +844,10 @@ export default {
 
   .breadcrumb-wrap {
     font-size: 0.9rem;
+  }
+
+  .farm-meta-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

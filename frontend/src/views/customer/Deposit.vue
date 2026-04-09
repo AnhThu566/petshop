@@ -1,30 +1,27 @@
 <template>
-  <div class="deposit-page bg-light py-5" style="min-height: 100vh;">
+  <div class="deposit-page py-5">
     <div class="container custom-container">
-      <div class="text-center mb-5">
-        <h2 class="font-weight-bold" style="color: #6a1b9a; text-transform: uppercase;">
-          <i class="fas fa-hand-holding-usd mr-2 text-warning"></i>
+      <div class="page-head text-center mb-5">
+        <h2 class="page-title">
+          <i class="fas fa-hand-holding-heart mr-2"></i>
           Đặt cọc đón bé về nhà
         </h2>
-        <p class="text-muted">
-          Vui lòng điền thông tin và xác nhận thanh toán cọc để giữ bé cún.
-          Sau khi admin xác nhận cọc, hệ thống sẽ tiến hành xử lý giao dịch cho bạn.
+        <p class="page-subtitle mb-0">
+          Kiểm tra thông tin bé chó, nguồn gốc từ trại và điền thông tin nhận bé trước khi gửi yêu cầu đặt cọc.
         </p>
       </div>
 
       <div class="row" v-if="dog">
         <div class="col-lg-7 mb-4">
-          <div class="card border-0 shadow-sm rounded-lg p-4 p-md-5">
-            <h5 class="font-weight-bold border-bottom pb-3 mb-4" style="color: #4a148c;">
-              Thông tin người nhận
-            </h5>
+          <div class="content-card p-4 p-md-5">
+            <h5 class="block-title">Thông tin người nhận</h5>
 
             <form @submit.prevent="submitDeposit">
               <div class="form-group mb-4">
-                <label class="font-weight-bold text-muted small">
+                <label class="field-label">
                   Họ và tên người nhận <span class="text-danger">*</span>
                 </label>
-                <div class="input-group">
+                <div class="input-group custom-input-group">
                   <div class="input-group-prepend">
                     <span class="input-group-text bg-white">
                       <i class="fas fa-user text-muted"></i>
@@ -34,17 +31,17 @@
                     type="text"
                     class="form-control"
                     v-model.trim="form.customerName"
-                    placeholder="Nhập họ tên của bạn..."
+                    placeholder="Nhập họ tên..."
                     required
                   />
                 </div>
               </div>
 
               <div class="form-group mb-4">
-                <label class="font-weight-bold text-muted small">
+                <label class="field-label">
                   Số điện thoại liên hệ <span class="text-danger">*</span>
                 </label>
-                <div class="input-group">
+                <div class="input-group custom-input-group">
                   <div class="input-group-prepend">
                     <span class="input-group-text bg-white">
                       <i class="fas fa-phone text-muted"></i>
@@ -61,10 +58,10 @@
               </div>
 
               <div class="form-group mb-4">
-                <label class="font-weight-bold text-muted small">
-                  Địa chỉ giao thú cưng <span class="text-danger">*</span>
+                <label class="field-label">
+                  Địa chỉ nhận bé <span class="text-danger">*</span>
                 </label>
-                <div class="input-group">
+                <div class="input-group custom-input-group">
                   <div class="input-group-prepend">
                     <span class="input-group-text bg-white">
                       <i class="fas fa-map-marker-alt text-muted"></i>
@@ -74,81 +71,68 @@
                     type="text"
                     class="form-control"
                     v-model.trim="form.customerAddress"
-                    placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện..."
+                    placeholder="Nhập địa chỉ nhận bé..."
                     required
                   />
                 </div>
               </div>
 
               <div class="form-group mb-4">
-                <label class="font-weight-bold text-muted small">
+                <label class="field-label">
                   Phương thức thanh toán cọc <span class="text-danger">*</span>
                 </label>
-                <select class="form-control" v-model="form.paymentMethod" required>
+                <select class="form-control custom-select" v-model="form.paymentMethod" required>
                   <option value="Chuyển khoản">Chuyển khoản</option>
                   <option value="Tiền mặt">Tiền mặt</option>
                 </select>
               </div>
 
               <div class="form-group mb-4" v-if="form.paymentMethod === 'Chuyển khoản'">
-                <label class="font-weight-bold text-muted small">
-                  Mã giao dịch / link ảnh bill / tên file bill <span class="text-danger">*</span>
+                <label class="field-label">
+                  Minh chứng chuyển khoản <span class="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   class="form-control"
                   v-model.trim="form.paymentProof"
-                  placeholder="VD: MB123456789 hoặc https://... hoặc bill-coc-be-lulu.jpg"
+                  placeholder="Mã giao dịch / link bill / tên file bill"
                 />
                 <small class="text-muted">
-                  Đây là minh chứng để admin đối soát trước khi xác nhận đã nhận cọc.
+                  Dùng để đối soát trước khi xác nhận cọc.
                 </small>
               </div>
 
               <div class="form-group mb-4">
-                <label class="font-weight-bold text-muted small">Ghi chú thêm (Tùy chọn)</label>
+                <label class="field-label">Ghi chú thêm</label>
                 <textarea
                   class="form-control"
                   v-model.trim="form.note"
                   rows="3"
-                  placeholder="Lời nhắn cho hệ thống hoặc trang trại..."
+                  placeholder="Lời nhắn thêm..."
                 ></textarea>
               </div>
 
-              <div class="alert alert-light border mb-3">
-                <div class="d-flex justify-content-between mb-2">
-                  <span>Tổng giá chó:</span>
-                  <strong>{{ formatCurrency(dog.price) }}</strong>
+              <div class="policy-box mb-4">
+                <div class="policy-title mb-2">
+                  <i class="fas fa-shield-alt mr-2"></i>Chính sách đặt cọc
                 </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span>Tiền cọc (30%):</span>
-                  <strong class="text-danger">{{ formatCurrency(depositAmount) }}</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span>Tiền còn lại khi nhận chó:</span>
-                  <strong class="text-primary">{{ formatCurrency(remainingAmount) }}</strong>
-                </div>
-              </div>
-
-              <div class="alert alert-warning small mb-4">
-                <strong>Chính sách đặt cọc & cam kết giao dịch:</strong><br />
-                - Yêu cầu đặt cọc chỉ được xác nhận khi admin kiểm tra thông tin thanh toán hợp lệ.<br />
-                - Nếu chọn <strong>chuyển khoản</strong>, khách hàng bắt buộc cung cấp minh chứng thanh toán.<br />
-                - Khách chỉ có thể tự hủy đơn khi đơn đang ở trạng thái <strong>Chờ xác nhận cọc</strong>.<br />
-                - Sau khi admin xác nhận cọc, mọi yêu cầu hủy sẽ được xử lý theo chính sách của hệ thống.<br />
-                - Phần tiền còn lại sẽ được thanh toán khi bàn giao chó thành công.
+                <ul class="policy-list mb-0">
+                  <li>Yêu cầu đặt cọc được xác nhận sau khi hệ thống kiểm tra thông tin thanh toán.</li>
+                  <li>Nếu chọn chuyển khoản, khách cần cung cấp minh chứng.</li>
+                  <li>Phần tiền còn lại thanh toán khi bàn giao chó thành công.</li>
+                </ul>
               </div>
 
               <button
                 type="submit"
-                class="btn btn-main btn-lg btn-block font-weight-bold py-3 mt-4 shadow"
+                class="btn btn-main btn-lg btn-block font-weight-bold py-3 mt-4 shadow-sm"
                 :disabled="isSubmitting"
               >
                 <span v-if="isSubmitting">
                   <i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...
                 </span>
                 <span v-else>
-                  <i class="fas fa-check-circle mr-2"></i> XÁC NHẬN & TẠO ĐƠN ĐẶT CỌC
+                  <i class="fas fa-check-circle mr-2"></i> XÁC NHẬN ĐẶT CỌC
                 </span>
               </button>
             </form>
@@ -156,70 +140,81 @@
         </div>
 
         <div class="col-lg-5">
-          <div class="card border-0 shadow-sm rounded-lg overflow-hidden sticky-top" style="top: 20px;">
-            <div class="bg-light p-4 border-bottom d-flex align-items-center">
-              <img
-                :src="dog.image ? 'http://localhost:3000' + dog.image : 'https://via.placeholder.com/100'"
-                class="rounded shadow-sm object-fit-cover mr-3 border"
-                style="width: 90px; height: 90px; border-color: #e1d5ed !important;"
-              />
-              <div>
-                <h5 class="font-weight-bold mb-1 text-dark">{{ dog.name }}</h5>
-                <p class="text-muted small mb-1">Giống: {{ dog.breedId?.name || 'Đang cập nhật' }}</p>
-                <strong class="text-danger">{{ formatCurrency(dog.price) }}</strong>
+          <div class="summary-card sticky-top" style="top: 20px;">
+            <div class="summary-top">
+              <img :src="dogImage" class="dog-thumb" alt="Ảnh chó" />
+
+              <div class="summary-top-content">
+                <div class="summary-badge">GIỮ CHỖ BÉ CHÓ</div>
+                <h4 class="summary-name mb-1">{{ dog.name }}</h4>
+                <p class="summary-sub mb-1">Giống: {{ dog.breedId?.name || "Đang cập nhật" }}</p>
+                <strong class="summary-price">{{ formatCurrency(dog.price) }}</strong>
               </div>
             </div>
 
-            <div class="p-4 bg-white">
-              <div class="d-flex justify-content-between mb-3 text-muted">
-                <span>Tổng giá trị:</span>
-                <span>{{ formatCurrency(dog.price) }}</span>
-              </div>
-
-              <div class="d-flex justify-content-between mb-2 text-muted">
-                <span>Tỷ lệ đặt cọc:</span>
-                <span>30%</span>
-              </div>
-
-              <div class="d-flex justify-content-between mb-4 text-muted border-bottom pb-3">
-                <span>Tiền còn lại:</span>
-                <span>{{ formatCurrency(remainingAmount) }}</span>
-              </div>
-
-              <div class="d-flex justify-content-between align-items-center mb-4">
-                <span class="font-weight-bold h6 mb-0 text-dark">SỐ TIỀN CẦN CỌC:</span>
-                <strong class="text-danger h3 mb-0">{{ formatCurrency(depositAmount) }}</strong>
-              </div>
-
-              <div
-                class="payment-info p-3 rounded"
-                style="background-color: #f4ebf8; border: 1px dashed #6a1b9a;"
-                v-if="form.paymentMethod === 'Chuyển khoản'"
-              >
-                <p class="font-weight-bold mb-2 text-center" style="color: #6a1b9a;">
-                  <i class="fas fa-university mr-1"></i> Thông tin chuyển khoản
-                </p>
-                <div class="small text-dark mb-1"><strong>Ngân hàng:</strong> Vietcombank (VCB)</div>
-                <div class="small text-dark mb-1"><strong>Chủ tài khoản:</strong> NGUYEN VAN A</div>
-                <div class="small text-dark mb-1">
-                  <strong>Số tài khoản:</strong> 0123456789
-                </div>
-                <div class="small text-danger mt-2 font-italic text-center">
-                  *Nội dung CK:
-                  <strong>Cọc bé {{ dog.maCho || dog.name }} - {{ form.customerPhone || "SĐT" }}</strong>
+            <div class="summary-body">
+              <div class="source-box mb-3">
+                <div class="source-title">Nguồn gốc từ trại</div>
+                <div class="source-value">{{ dog.farmId?.name || "Đang cập nhật" }}</div>
+                <div class="source-desc">
+                  Thông tin trại đăng bán được hiển thị rõ ràng.
                 </div>
               </div>
 
-              <div
-                class="payment-info p-3 rounded"
-                style="background-color: #fdf6e3; border: 1px dashed #d4a017;"
-                v-else
-              >
-                <p class="font-weight-bold mb-2 text-center text-warning">
-                  <i class="fas fa-money-bill-wave mr-1"></i> Thanh toán tiền mặt
-                </p>
+              <div class="health-box mb-3">
+                <div class="health-title">Hồ sơ sức khỏe</div>
+                <div class="health-row">
+                  <span>Sức khỏe</span>
+                  <strong>{{ dog.healthStatus || "Đang cập nhật" }}</strong>
+                </div>
+                <div class="health-row">
+                  <span>Tẩy giun gần nhất</span>
+                  <strong>{{ formatDate(dog.lastDeworming) }}</strong>
+                </div>
+                <div class="health-row">
+                  <span>Số mũi tiêm</span>
+                  <strong>{{ dog.healthRecord?.length || 0 }}</strong>
+                </div>
+              </div>
+
+              <div class="price-breakdown mb-3">
+                <div class="price-row">
+                  <span>Tổng giá trị</span>
+                  <strong>{{ formatCurrency(dog.price) }}</strong>
+                </div>
+                <div class="price-row">
+                  <span>Tỷ lệ cọc</span>
+                  <strong>30%</strong>
+                </div>
+                <div class="price-row">
+                  <span>Tiền còn lại</span>
+                  <strong>{{ formatCurrency(remainingAmount) }}</strong>
+                </div>
+                <div class="price-row total-row">
+                  <span>Số tiền cần cọc</span>
+                  <strong>{{ formatCurrency(depositAmount) }}</strong>
+                </div>
+              </div>
+
+              <div class="payment-box" v-if="form.paymentMethod === 'Chuyển khoản'">
+                <div class="payment-title text-center">
+                  <i class="fas fa-university mr-1"></i>Thông tin chuyển khoản
+                </div>
+                <div class="payment-item"><strong>Ngân hàng:</strong> Vietcombank (VCB)</div>
+                <div class="payment-item"><strong>Chủ tài khoản:</strong> NGUYEN VAN A</div>
+                <div class="payment-item"><strong>Số tài khoản:</strong> 0123456789</div>
+                <div class="payment-note">
+                  Nội dung CK:
+                  <strong>Cọc bé {{ dog.name }} - {{ form.customerPhone || "SĐT" }}</strong>
+                </div>
+              </div>
+
+              <div class="payment-box cash-box" v-else>
+                <div class="payment-title text-center text-warning">
+                  <i class="fas fa-money-bill-wave mr-1"></i>Thanh toán tiền mặt
+                </div>
                 <div class="small text-dark text-center">
-                  Bạn đã chọn thanh toán tiền mặt. Admin sẽ liên hệ xác nhận khoản cọc này thủ công.
+                  Hệ thống sẽ ghi nhận yêu cầu và quản trị viên sẽ liên hệ xác nhận.
                 </div>
               </div>
             </div>
@@ -227,9 +222,9 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-5 bg-white shadow-sm rounded">
+      <div v-else class="empty-state text-center py-5">
         <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-        <h4 class="text-dark">Không tìm thấy thông tin thú cưng!</h4>
+        <h4 class="text-dark">Không tìm thấy thông tin thú cưng</h4>
         <p class="text-muted mb-4">
           Vui lòng quay lại danh sách để chọn một bé cún trước khi đặt cọc nhé.
         </p>
@@ -246,6 +241,8 @@ import OrderService from "@/services/order.service";
 import DogService from "@/services/dog.service";
 
 export default {
+  name: "DepositPage",
+
   data() {
     return {
       dog: null,
@@ -271,6 +268,12 @@ export default {
     remainingAmount() {
       if (!this.dog || !this.dog.price) return 0;
       return Number(this.dog.price) - this.depositAmount;
+    },
+
+    dogImage() {
+      if (!this.dog?.image) return "https://via.placeholder.com/100";
+      if (String(this.dog.image).startsWith("http")) return this.dog.image;
+      return `http://localhost:3000${this.dog.image}`;
     },
   },
 
@@ -301,11 +304,16 @@ export default {
       return Number(value).toLocaleString("vi-VN") + " ₫";
     },
 
+    formatDate(date) {
+      if (!date) return "Chưa cập nhật";
+      return new Date(date).toLocaleDateString("vi-VN");
+    },
+
     async submitDeposit() {
       if (!this.dog) return;
 
-      if (!this.currentUser) {
-        alert("⚠️ Vui lòng đăng nhập để thực hiện đặt cọc!");
+      if (!this.currentUser || this.currentUser.role !== "customer") {
+        alert("⚠️ Chỉ khách hàng mới có thể thực hiện đặt cọc!");
         this.$router.push("/login");
         return;
       }
@@ -328,6 +336,7 @@ export default {
       const confirmMessage =
         `Vui lòng kiểm tra lại thông tin đặt cọc:\n\n` +
         `- Bé chó: ${this.dog.name}\n` +
+        `- Trại đăng bán: ${this.dog.farmId?.name || "Đang cập nhật"}\n` +
         `- Tổng giá: ${this.formatCurrency(this.dog.price)}\n` +
         `- Tiền cọc: ${this.formatCurrency(this.depositAmount)}\n` +
         `- Tiền còn lại: ${this.formatCurrency(this.remainingAmount)}\n` +
@@ -353,7 +362,6 @@ export default {
 
       try {
         await OrderService.createDeposit(orderData);
-
         localStorage.removeItem("checkoutDog");
         alert("🎉 Tạo yêu cầu đặt cọc thành công! Đơn của bạn đang chờ admin xác nhận khoản cọc.");
         this.$router.push("/tra-cuu-don");
@@ -368,49 +376,251 @@ export default {
 </script>
 
 <style scoped>
+.deposit-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #faf7fc 0%, #f5effb 100%);
+}
+
 @media (min-width: 1200px) {
   .custom-container {
     max-width: 1300px !important;
   }
 }
-.object-fit-cover {
-  object-fit: cover;
+
+.page-title {
+  color: #6a1b9a;
+  font-weight: 800;
+  text-transform: uppercase;
 }
-.cursor-pointer {
-  cursor: pointer;
+
+.page-subtitle {
+  color: #6b7280;
+  max-width: 760px;
+  margin: 0 auto;
+  line-height: 1.7;
 }
+
+.content-card,
+.summary-card,
+.empty-state {
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(106, 27, 154, 0.08);
+  border: 1px solid #eee2f7;
+}
+
+.block-title {
+  font-weight: 800;
+  color: #4a148c;
+  border-bottom: 1px solid #eee2f7;
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.field-label {
+  font-weight: 700;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
 .btn-main {
   background-color: #6a1b9a;
   color: white;
   transition: all 0.2s;
   border: none;
 }
+
 .btn-main:hover {
   background-color: #4a148c;
   color: white;
   transform: translateY(-2px);
 }
+
 .btn-main:disabled {
   background-color: #9c27b0;
   opacity: 0.7;
   transform: none;
 }
-.form-control {
-  border-left: none;
+
+.form-control,
+.custom-select {
   border-color: #e1d5ed;
+  min-height: 46px;
 }
-.form-control:focus {
+
+.form-control:focus,
+.custom-select:focus {
   box-shadow: none;
   border-color: #6a1b9a;
 }
+
 .input-group-text {
   border-right: none;
   border-color: #e1d5ed;
 }
-.input-group:focus-within .input-group-text {
+
+.custom-input-group .form-control {
+  border-left: none;
+}
+
+.custom-input-group:focus-within .input-group-text {
   border-color: #6a1b9a;
 }
-.input-group:focus-within .fas {
+
+.custom-input-group:focus-within .fas {
   color: #6a1b9a !important;
+}
+
+.policy-box {
+  background: #faf6fd;
+  border: 1px solid #eadcf5;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.policy-title {
+  color: #6a1b9a;
+  font-weight: 800;
+}
+
+.policy-list {
+  padding-left: 18px;
+  color: #6b7280;
+}
+
+.policy-list li + li {
+  margin-top: 8px;
+}
+
+.summary-top {
+  padding: 22px;
+  border-bottom: 1px solid #eee2f7;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.dog-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid #e1d5ed;
+  flex-shrink: 0;
+}
+
+.summary-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f1e7fb;
+  color: #6a1b9a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.summary-name {
+  color: #2f1b44;
+  font-weight: 800;
+}
+
+.summary-sub {
+  color: #7b7287;
+}
+
+.summary-price {
+  color: #d63384;
+  font-size: 1.2rem;
+}
+
+.summary-body {
+  padding: 22px;
+}
+
+.source-box,
+.health-box {
+  background: #faf6fd;
+  border: 1px solid #eadcf5;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.source-title,
+.health-title,
+.payment-title {
+  font-weight: 800;
+  color: #6a1b9a;
+  margin-bottom: 8px;
+}
+
+.source-value {
+  font-weight: 800;
+  color: #2f1b44;
+  margin-bottom: 4px;
+}
+
+.source-desc {
+  color: #6b7280;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.health-row,
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  color: #5f6673;
+}
+
+.health-row + .health-row,
+.price-row + .price-row {
+  border-top: 1px dashed #eadcf5;
+}
+
+.price-breakdown {
+  background: #ffffff;
+  border: 1px solid #eadcf5;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.total-row strong {
+  color: #dc3545;
+  font-size: 1.1rem;
+}
+
+.payment-box {
+  background-color: #f4ebf8;
+  border: 1px dashed #6a1b9a;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.payment-item {
+  color: #2f1b44;
+  font-size: 0.94rem;
+  margin-bottom: 6px;
+}
+
+.payment-note {
+  color: #c2410c;
+  font-size: 0.9rem;
+  font-style: italic;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.cash-box {
+  background-color: #fdf6e3;
+  border-color: #d4a017;
+}
+
+@media (max-width: 991.98px) {
+  .summary-card {
+    position: static !important;
+  }
 }
 </style>
