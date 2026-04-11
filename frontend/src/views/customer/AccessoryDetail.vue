@@ -32,27 +32,12 @@
 
       <div v-else class="detail-card">
         <div class="detail-grid">
-          <!-- BÊN TRÁI: ẢNH -->
           <div class="gallery-panel">
             <div class="main-image-box">
               <img :src="currentImage" alt="accessory" class="main-image" />
             </div>
-
-            <div class="thumb-list">
-              <button
-                v-for="(img, index) in galleryImages"
-                :key="index"
-                type="button"
-                class="thumb-btn"
-                :class="{ active: currentImage === img }"
-                @click="currentImage = img"
-              >
-                <img :src="img" alt="thumb" class="thumb-image" />
-              </button>
-            </div>
           </div>
 
-          <!-- BÊN PHẢI: THÔNG TIN -->
           <div class="info-panel">
             <h1 class="accessory-title">
               {{ accessory.name || "---" }}
@@ -66,12 +51,12 @@
             </div>
 
             <div class="stock-row">
-              <span class="stock-pill" :class="getStatusClass(accessory.status)">
+              <span class="status-pill" :class="getStatusClass(accessory.status)">
                 {{ accessory.status || "Đang cập nhật" }}
               </span>
 
               <span class="stock-text">
-                Tồn kho: <strong>{{ accessory.quantity ?? 0 }}</strong>
+                Tồn kho: <strong>{{ safeStock }}</strong>
               </span>
             </div>
 
@@ -79,14 +64,35 @@
               <div class="purchase-title">Số lượng mua</div>
 
               <div class="qty-control">
-                <button class="qty-btn" @click="decreaseQty">-</button>
+                <button
+                  class="qty-btn"
+                  @click="decreaseQty"
+                  :disabled="quantity <= 1 || !canBuy"
+                >
+                  -
+                </button>
+
                 <input
                   type="number"
                   min="1"
+                  :max="safeStock"
                   class="qty-input"
                   v-model.number="quantity"
+                  @input="normalizeQuantityInput"
+                  :disabled="!canBuy"
                 />
-                <button class="qty-btn" @click="increaseQty">+</button>
+
+                <button
+                  class="qty-btn"
+                  @click="increaseQty"
+                  :disabled="!canBuy || quantity >= safeStock"
+                >
+                  +
+                </button>
+              </div>
+
+              <div class="stock-warning" v-if="canBuy">
+                Bạn có thể mua tối đa {{ safeStock }} sản phẩm.
               </div>
 
               <div class="action-row">
@@ -110,12 +116,15 @@
             </div>
 
             <div class="short-note">
-              {{ canBuy ? "Sản phẩm hiện đang có sẵn." : "Sản phẩm hiện không khả dụng." }}
+              {{
+                canBuy
+                  ? "Sản phẩm hiện đang có sẵn."
+                  : "Sản phẩm hiện không khả dụng."
+              }}
             </div>
           </div>
         </div>
 
-        <!-- MÔ TẢ -->
         <div class="description-section">
           <h3 class="description-title">
             <i class="fas fa-file-alt mr-2"></i>Mô tả sản phẩm
@@ -139,7 +148,11 @@
             @click="goToDetail(item)"
           >
             <div class="related-image-wrap">
-              <img :src="getAccessoryImage(item)" alt="related" class="related-image" />
+              <img
+                :src="getAccessoryImage(item)"
+                alt="related"
+                class="related-image"
+              />
             </div>
             <div class="related-name">{{ item.name }}</div>
             <div class="related-price">{{ formatCurrency(item.price) }}</div>
@@ -166,22 +179,21 @@ export default {
       quantity: 1,
       errorMessage: "",
       currentImage: "",
+      baseImageUrl: "http://localhost:3000",
     };
   },
 
   computed: {
+    safeStock() {
+      return Number(this.accessory?.quantity || 0);
+    },
+
     canBuy() {
       return (
         this.accessory &&
         this.accessory.status === "Đang bán" &&
-        Number(this.accessory.quantity || 0) > 0
+        this.safeStock > 0
       );
-    },
-
-    galleryImages() {
-      if (!this.accessory) return [];
-      const main = this.getAccessoryImage(this.accessory);
-      return [main, main, main, main];
     },
   },
 
@@ -199,6 +211,8 @@ export default {
 
         this.accessory = await AccessoryService.get(id);
         this.currentImage = this.getAccessoryImage(this.accessory);
+        this.quantity = this.canBuy ? 1 : 0;
+
         await this.fetchRelatedAccessories();
       } catch (error) {
         console.error("Lỗi tải chi tiết phụ kiện:", error);
@@ -228,7 +242,10 @@ export default {
 
             return (
               String(itemId) !== String(currentId) &&
-              (!currentCategoryId || String(itemCategoryId) === String(currentCategoryId))
+              item.status === "Đang bán" &&
+              Number(item.quantity || 0) > 0 &&
+              (!currentCategoryId ||
+                String(itemCategoryId) === String(currentCategoryId))
             );
           })
           .slice(0, 5);
@@ -236,6 +253,22 @@ export default {
         console.error("Lỗi tải phụ kiện liên quan:", error);
         this.relatedAccessories = [];
       }
+    },
+
+    normalizeQuantityInput() {
+      let qty = Number(this.quantity);
+
+      if (!Number.isFinite(qty) || qty < 1) {
+        qty = 1;
+      }
+
+      qty = Math.floor(qty);
+
+      if (this.canBuy && qty > this.safeStock) {
+        qty = this.safeStock;
+      }
+
+      this.quantity = qty;
     },
 
     async addToCart(redirectToCart = false) {
@@ -253,19 +286,47 @@ export default {
         return;
       }
 
-      if (Number(this.accessory.quantity) <= 0) {
+      if (this.safeStock <= 0) {
         alert("Phụ kiện này đang hết hàng.");
         return;
       }
+
+      this.normalizeQuantityInput();
 
       if (!this.quantity || this.quantity < 1) {
         alert("Số lượng không hợp lệ.");
         return;
       }
 
+      if (this.quantity > this.safeStock) {
+        alert(`Số lượng vượt quá tồn kho. Chỉ còn ${this.safeStock} sản phẩm.`);
+        this.quantity = this.safeStock;
+        return;
+      }
+
       this.isSubmitting = true;
 
       try {
+        const cartResponse = await CartService.getCart();
+        const cartItems = cartResponse?.items || [];
+
+        const currentCartItem = cartItems.find((item) => {
+          const itemAccessoryId =
+            item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
+          const currentAccessoryId = this.accessory.id || this.accessory._id;
+          return String(itemAccessoryId) === String(currentAccessoryId);
+        });
+
+        const existingQty = Number(currentCartItem?.quantity || 0);
+        const nextQty = existingQty + Number(this.quantity);
+
+        if (nextQty > this.safeStock) {
+          alert(
+            `Bạn đã có ${existingQty} sản phẩm trong giỏ. Chỉ còn ${this.safeStock} sản phẩm trong kho.`
+          );
+          return;
+        }
+
         await CartService.addToCart(
           this.accessory.id || this.accessory._id,
           Number(this.quantity)
@@ -291,8 +352,9 @@ export default {
     },
 
     increaseQty() {
+      if (!this.canBuy) return;
       const current = Number(this.quantity || 1);
-      this.quantity = current + 1;
+      this.quantity = current >= this.safeStock ? this.safeStock : current + 1;
     },
 
     decreaseQty() {
@@ -301,8 +363,11 @@ export default {
     },
 
     getAccessoryImage(item) {
-      if (item && item.image) return "http://localhost:3000" + item.image;
-      return "https://via.placeholder.com/500x400";
+      if (!item?.image) return "";
+      if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
+        return item.image;
+      }
+      return this.baseImageUrl + item.image;
     },
 
     formatCurrency(value) {
@@ -443,34 +508,6 @@ export default {
   object-fit: contain;
 }
 
-.thumb-list {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.thumb-btn {
-  border: 1px solid #e7dff1;
-  background: #fff;
-  border-radius: 12px;
-  padding: 6px;
-  height: 86px;
-  transition: all 0.2s ease;
-}
-
-.thumb-btn.active {
-  border-color: #7b3fc8;
-  box-shadow: 0 0 0 2px rgba(123, 63, 200, 0.08);
-}
-
-.thumb-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
 .info-panel {
   min-width: 0;
 }
@@ -567,7 +604,7 @@ export default {
   overflow: hidden;
   border: 2px solid #8e3fd1;
   border-radius: 14px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .qty-btn {
@@ -590,6 +627,12 @@ export default {
   outline: none;
   font-weight: 800;
   color: #2f1b44;
+}
+
+.stock-warning {
+  color: #746a80;
+  font-size: 0.9rem;
+  margin-bottom: 18px;
 }
 
 .action-row {
@@ -629,7 +672,8 @@ export default {
 }
 
 .cart-btn:disabled,
-.buy-btn:disabled {
+.buy-btn:disabled,
+.qty-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -757,10 +801,6 @@ export default {
     padding: 12px;
   }
 
-  .thumb-list {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
   .action-row {
     grid-template-columns: 1fr;
   }
@@ -771,7 +811,6 @@ export default {
 }
 
 @media (max-width: 575.98px) {
-  .thumb-list,
   .related-grid {
     grid-template-columns: 1fr;
   }

@@ -1,7 +1,19 @@
+const mongoose = require("mongoose");
 const AccessoryOrder = require("../models/accessoryOrder.model");
 const AccessoryOrderItem = require("../models/accessoryOrderItem.model");
 const Accessory = require("../models/accessory.model");
 const ApiError = require("../api-error");
+
+const VALID_STATUSES = [
+  "Chờ xác nhận",
+  "Đã xác nhận",
+  "Đang giao",
+  "Giao thất bại",
+  "Hoàn thành",
+  "Đã hủy",
+];
+
+const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 
 const generateNextCode = async () => {
   const lastOrder = await AccessoryOrder.findOne().sort({ maDonPhuKien: -1 });
@@ -16,73 +28,122 @@ const generateNextCode = async () => {
   return nextCode;
 };
 
+const getCurrentUserId = (req) => req.user?._id || req.user?.id || null;
+const getCurrentUserRole = (req) => req.user?.role || "";
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const normalizeText = (value) => String(value || "").trim();
+
+const populateOrderWithItems = async (orderId) => {
+  const order = await AccessoryOrder.findById(orderId).populate(
+    "customerId",
+    "username fullName phone"
+  );
+
+  const items = await AccessoryOrderItem.find({ orderId }).populate(
+    "accessoryId",
+    "maPhuKien name image"
+  );
+
+  return {
+    order,
+    items,
+  };
+};
+
 // Customer tạo đơn phụ kiện
 exports.create = async (req, res, next) => {
   try {
-    if (!req.user) {
+    const currentUserId = getCurrentUserId(req);
+
+    if (!currentUserId) {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const {
-      customerName,
-      customerPhone,
-      shippingAddress,
-      note,
-      items,
-    } = req.body;
+    const customerName = normalizeText(req.body.customerName);
+    const customerPhone = normalizeText(req.body.customerPhone);
+    const shippingAddress = normalizeText(req.body.shippingAddress);
+    const note = normalizeText(req.body.note);
+    const items = req.body.items;
 
     if (!customerName || !customerPhone || !shippingAddress) {
       return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin người nhận"));
+    }
+
+    if (customerName.length < 2 || customerName.length > 100) {
+      return next(new ApiError(400, "Tên người nhận không hợp lệ"));
+    }
+
+    if (!PHONE_REGEX.test(customerPhone)) {
+      return next(new ApiError(400, "Số điện thoại không hợp lệ"));
+    }
+
+    if (shippingAddress.length < 5 || shippingAddress.length > 300) {
+      return next(new ApiError(400, "Địa chỉ giao hàng không hợp lệ"));
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return next(new ApiError(400, "Đơn phụ kiện phải có ít nhất 1 sản phẩm"));
     }
 
-    const maDonPhuKien = await generateNextCode();
-
+    const normalizedItems = [];
     let totalAmount = 0;
-    const orderItemsToInsert = [];
 
+    // Bước 1: validate toàn bộ item trước
     for (const item of items) {
-      if (!item.accessoryId || !item.quantity || Number(item.quantity) <= 0) {
-        return next(new ApiError(400, "Dữ liệu sản phẩm trong đơn không hợp lệ"));
+      const accessoryId = item?.accessoryId;
+      const quantity = Number(item?.quantity);
+
+      if (!accessoryId || !isValidObjectId(accessoryId)) {
+        return next(new ApiError(400, "Có phụ kiện không hợp lệ trong đơn hàng"));
       }
 
-      const accessory = await Accessory.findById(item.accessoryId);
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+        return next(new ApiError(400, "Số lượng sản phẩm trong đơn không hợp lệ"));
+      }
+
+      const accessory = await Accessory.findById(accessoryId);
 
       if (!accessory) {
         return next(new ApiError(404, "Có phụ kiện không tồn tại trong hệ thống"));
       }
 
       if (accessory.status !== "Đang bán") {
-        return next(new ApiError(400, `Phụ kiện [${accessory.name}] hiện không còn bán`));
+        return next(
+          new ApiError(400, `Phụ kiện [${accessory.name}] hiện không còn bán`)
+        );
       }
 
-      if (Number(accessory.quantity) < Number(item.quantity)) {
+      if (Number(accessory.quantity) < quantity) {
         return next(
           new ApiError(400, `Phụ kiện [${accessory.name}] không đủ số lượng tồn kho`)
         );
       }
 
-      const subTotal = Number(accessory.price) * Number(item.quantity);
+      const subTotal = Number(accessory.price) * quantity;
       totalAmount += subTotal;
 
-      orderItemsToInsert.push({
+      normalizedItems.push({
+        accessory,
         accessoryId: accessory._id,
         accessoryName: accessory.name,
         price: accessory.price,
-        quantity: Number(item.quantity),
+        quantity,
         subTotal,
       });
-
-      accessory.quantity = Number(accessory.quantity) - Number(item.quantity);
-      await accessory.save();
     }
+
+    // Bước 2: mọi item hợp lệ rồi mới trừ kho
+    for (const item of normalizedItems) {
+      item.accessory.quantity =
+        Number(item.accessory.quantity) - Number(item.quantity);
+      await item.accessory.save();
+    }
+
+    const maDonPhuKien = await generateNextCode();
 
     const newOrder = new AccessoryOrder({
       maDonPhuKien,
-      customerId: req.user._id || req.user.id,
+      customerId: currentUserId,
       customerName,
       customerPhone,
       shippingAddress,
@@ -93,26 +154,22 @@ exports.create = async (req, res, next) => {
 
     await newOrder.save();
 
-    const finalItems = orderItemsToInsert.map((item) => ({
-      ...item,
+    const finalItems = normalizedItems.map((item) => ({
       orderId: newOrder._id,
+      accessoryId: item.accessoryId,
+      accessoryName: item.accessoryName,
+      price: item.price,
+      quantity: item.quantity,
+      subTotal: item.subTotal,
     }));
 
     await AccessoryOrderItem.insertMany(finalItems);
 
-    const createdOrder = await AccessoryOrder.findById(newOrder._id).populate(
-      "customerId",
-      "username fullName phone"
-    );
-
-    const createdItems = await AccessoryOrderItem.find({ orderId: newOrder._id }).populate(
-      "accessoryId",
-      "maPhuKien name image"
-    );
+    const { order, items: createdItems } = await populateOrderWithItems(newOrder._id);
 
     return res.send({
       message: "Đặt đơn phụ kiện thành công!",
-      order: createdOrder,
+      order,
       items: createdItems,
     });
   } catch (error) {
@@ -122,11 +179,15 @@ exports.create = async (req, res, next) => {
 };
 
 // Customer xem đơn của mình
-exports.findByUserId = async (req, res, next) => {
+exports.findMyOrders = async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const currentUserId = getCurrentUserId(req);
 
-    const orders = await AccessoryOrder.find({ customerId: userId })
+    if (!currentUserId) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
+    const orders = await AccessoryOrder.find({ customerId: currentUserId })
       .populate("customerId", "username fullName phone")
       .sort({ createdAt: -1 });
 
@@ -146,7 +207,7 @@ exports.findByUserId = async (req, res, next) => {
 
     return res.send(result);
   } catch (error) {
-    console.error("Lỗi find accessory orders by user:", error);
+    console.error("Lỗi find my accessory orders:", error);
     return next(new ApiError(500, "Lỗi khi lấy lịch sử đơn phụ kiện: " + error.message));
   }
 };
@@ -182,18 +243,13 @@ exports.findAll = async (req, res, next) => {
 exports.updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const status = normalizeText(req.body.status);
 
-    const validStatuses = [
-      "Chờ xác nhận",
-      "Đã xác nhận",
-      "Đang giao",
-      "Giao thất bại",
-      "Hoàn thành",
-      "Đã hủy",
-    ];
+    if (!isValidObjectId(id)) {
+      return next(new ApiError(400, "ID đơn phụ kiện không hợp lệ"));
+    }
 
-    if (!validStatuses.includes(status)) {
+    if (!VALID_STATUSES.includes(status)) {
       return next(new ApiError(400, "Trạng thái đơn phụ kiện không hợp lệ"));
     }
 
@@ -205,23 +261,22 @@ exports.updateStatus = async (req, res, next) => {
     const oldStatus = order.status;
 
     if (oldStatus === status) {
+      const { order: sameOrder, items } = await populateOrderWithItems(order._id);
       return res.send({
         message: "Trạng thái đơn không thay đổi.",
-        order,
+        order: sameOrder,
+        items,
       });
     }
 
-    // Không cho thay đổi nếu đơn đã hoàn thành
     if (oldStatus === "Hoàn thành") {
       return next(new ApiError(400, "Đơn đã hoàn thành không thể thay đổi trạng thái"));
     }
 
-    // Không cho hồi sinh đơn đã hủy
     if (oldStatus === "Đã hủy") {
       return next(new ApiError(400, "Đơn đã hủy không thể chuyển sang trạng thái khác"));
     }
 
-    // Kiểm tra luồng chuyển trạng thái hợp lệ
     const allowedTransitions = {
       "Chờ xác nhận": ["Đã xác nhận", "Đã hủy"],
       "Đã xác nhận": ["Đang giao", "Đã hủy"],
@@ -238,7 +293,6 @@ exports.updateStatus = async (req, res, next) => {
       );
     }
 
-    // Chỉ cộng lại tồn kho khi chuyển sang Đã hủy
     if (status === "Đã hủy") {
       const orderItems = await AccessoryOrderItem.find({ orderId: order._id });
 
@@ -256,15 +310,7 @@ exports.updateStatus = async (req, res, next) => {
     order.status = status;
     await order.save();
 
-    const updatedOrder = await AccessoryOrder.findById(order._id).populate(
-      "customerId",
-      "username fullName phone"
-    );
-
-    const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
-      "accessoryId",
-      "maPhuKien name image"
-    );
+    const { order: updatedOrder, items } = await populateOrderWithItems(order._id);
 
     return res.send({
       message: "Cập nhật trạng thái đơn phụ kiện thành công!",
@@ -282,13 +328,28 @@ exports.updateStatus = async (req, res, next) => {
 // Xem chi tiết 1 đơn phụ kiện
 exports.findOne = async (req, res, next) => {
   try {
-    const order = await AccessoryOrder.findById(req.params.id).populate(
+    const { id } = req.params;
+    const currentUserId = getCurrentUserId(req);
+    const currentRole = getCurrentUserRole(req);
+
+    if (!isValidObjectId(id)) {
+      return next(new ApiError(400, "ID đơn phụ kiện không hợp lệ"));
+    }
+
+    const order = await AccessoryOrder.findById(id).populate(
       "customerId",
       "username fullName phone"
     );
 
     if (!order) {
       return next(new ApiError(404, "Không tìm thấy đơn phụ kiện"));
+    }
+
+    if (currentRole !== "admin") {
+      const orderUserId = order.customerId?._id || order.customerId;
+      if (String(orderUserId) !== String(currentUserId)) {
+        return next(new ApiError(403, "Bạn không có quyền xem đơn này"));
+      }
     }
 
     const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
@@ -309,18 +370,23 @@ exports.findOne = async (req, res, next) => {
 // Customer hủy đơn của mình
 exports.cancelByCustomer = async (req, res, next) => {
   try {
-    if (!req.user) {
+    const currentUserId = getCurrentUserId(req);
+
+    if (!currentUserId) {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
     const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return next(new ApiError(400, "ID đơn phụ kiện không hợp lệ"));
+    }
 
     const order = await AccessoryOrder.findById(id);
     if (!order) {
       return next(new ApiError(404, "Không tìm thấy đơn phụ kiện"));
     }
 
-    const currentUserId = req.user._id || req.user.id;
     const orderUserId = order.customerId?._id || order.customerId;
 
     if (String(orderUserId) !== String(currentUserId)) {
@@ -347,15 +413,7 @@ exports.cancelByCustomer = async (req, res, next) => {
     order.status = "Đã hủy";
     await order.save();
 
-    const updatedOrder = await AccessoryOrder.findById(order._id).populate(
-      "customerId",
-      "username fullName phone"
-    );
-
-    const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
-      "accessoryId",
-      "maPhuKien name image"
-    );
+    const { order: updatedOrder, items } = await populateOrderWithItems(order._id);
 
     return res.send({
       message: "Hủy đơn phụ kiện thành công!",

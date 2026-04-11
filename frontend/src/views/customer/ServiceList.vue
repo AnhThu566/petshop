@@ -1,95 +1,107 @@
 <template>
-  <div class="service-list-page bg-light py-5" style="min-height: 100vh;">
-    <div class="container">
-      <div class="text-center mb-5">
-        <h2 class="font-weight-bold text-dark">
-          <i class="fas fa-concierge-bell text-primary mr-2"></i>
-          DỊCH VỤ CHĂM SÓC
-        </h2>
-        <p class="text-muted mb-0">
-          Khám phá các dịch vụ chăm sóc dành cho bé cún của bạn
-        </p>
-      </div>
-
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-3">
-          <div class="row align-items-center">
-            <div class="col-md-6 mb-2 mb-md-0">
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <span class="input-group-text bg-white">
-                    <i class="fas fa-search text-primary"></i>
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Tìm tên hoặc mã dịch vụ..."
-                  v-model="searchText"
-                />
-              </div>
-            </div>
-
-            <div class="col-md-6 text-md-right">
-              <button class="btn btn-outline-primary btn-sm" @click="fetchServices">
-                <i class="fas fa-sync-alt mr-1"></i> Làm mới
-              </button>
-            </div>
-          </div>
+  <div class="service-list-page">
+    <div class="container py-4">
+      <div class="hero-box">
+        <div class="hero-content">
+          <p class="hero-badge">Dịch vụ chăm sóc thú cưng</p>
+          <h1>Chọn dịch vụ phù hợp cho bé cưng của bạn</h1>
+          <p>
+            Khám phá các dịch vụ chăm sóc, vệ sinh và hỗ trợ sức khỏe với quy trình
+            rõ ràng, dễ đặt lịch và dễ theo dõi.
+          </p>
         </div>
       </div>
 
-      <div v-if="loading" class="text-center py-5 text-muted">
-        <i class="fas fa-spinner fa-spin fa-2x mb-3 d-block"></i>
-        Đang tải danh sách dịch vụ...
-      </div>
-
-      <div v-else-if="filteredServices.length === 0" class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
-          <i class="fas fa-concierge-bell fa-3x mb-3 d-block"></i>
-          Hiện chưa có dịch vụ nào đang hoạt động.
+      <div class="toolbar">
+        <div class="search-box">
+          <input
+            v-model.trim="keyword"
+            type="text"
+            placeholder="Tìm theo tên dịch vụ..."
+          />
         </div>
-      </div>
 
-      <div v-else class="row">
-        <div
-          class="col-lg-4 col-md-6 mb-4"
-          v-for="item in filteredServices"
-          :key="item._id || item.id"
+        <router-link
+          v-if="isCustomer"
+          to="/service-bookings"
+          class="btn-history"
         >
-          <div class="card border-0 shadow-sm h-100 service-card">
-            <img
-              :src="getServiceImage(item)"
-              class="card-img-top"
-              alt="service"
-              style="height: 240px; object-fit: cover;"
-            />
+          Lịch sử đặt dịch vụ
+        </router-link>
+      </div>
 
-            <div class="card-body d-flex flex-column">
-              <div class="mb-2">
-                <span class="badge badge-light border text-primary">
-                  {{ item.maDichVu || "---" }}
-                </span>
+      <div v-if="loading" class="state-box">
+        <div class="spinner"></div>
+        <p>Đang tải danh sách dịch vụ...</p>
+      </div>
+
+      <div v-else-if="errorMessage" class="state-box error-box">
+        <p>{{ errorMessage }}</p>
+        <button class="btn-reload" @click="loadServices">Tải lại</button>
+      </div>
+
+      <div v-else-if="filteredServices.length === 0" class="state-box empty-box">
+        <div class="empty-icon">🛁</div>
+        <h3>Không tìm thấy dịch vụ phù hợp</h3>
+        <p>Hãy thử từ khóa khác hoặc quay lại sau.</p>
+      </div>
+
+      <div v-else class="service-grid">
+        <div
+          v-for="service in filteredServices"
+          :key="service._id || service.id"
+          class="service-card"
+        >
+          <router-link
+            :to="`/services/${service._id || service.id}`"
+            class="service-image-link"
+          >
+            <img
+              :src="getImageUrl(service.image)"
+              :alt="service.name"
+              class="service-image"
+              @error="handleImageError"
+            />
+          </router-link>
+
+          <div class="service-body">
+            <div class="service-top">
+              <span class="service-code">
+                {{ service.maDichVu || "DV---" }}
+              </span>
+              <span
+                class="service-status"
+                :class="service.status === 'Đang hoạt động' ? 'status-active' : 'status-paused'"
+              >
+                {{ service.status || "Đang hoạt động" }}
+              </span>
+            </div>
+
+            <h3 class="service-name">
+              <router-link :to="`/services/${service._id || service.id}`">
+                {{ service.name }}
+              </router-link>
+            </h3>
+
+            <p class="service-category" v-if="service.categoryId?.name">
+              Loại dịch vụ: {{ service.categoryId.name }}
+            </p>
+
+            <p class="service-description">
+              {{ truncateText(service.description, 120) }}
+            </p>
+
+            <div class="service-bottom">
+              <div class="service-price">
+                {{ formatCurrency(service.price) }}
               </div>
 
-              <h5 class="font-weight-bold text-dark">
-                {{ item.name }}
-              </h5>
-
-              <p class="text-danger font-weight-bold mb-2">
-                {{ formatCurrency(item.price) }}
-              </p>
-
-              <p class="text-muted small flex-grow-1">
-                {{ shortDescription(item.description) }}
-              </p>
-
-              <button
-                class="btn btn-outline-primary btn-sm mt-2"
-                @click="goToDetail(item)"
+              <router-link
+                :to="`/services/${service._id || service.id}`"
+                class="btn-detail"
               >
-                <i class="fas fa-eye mr-1"></i> Xem chi tiết
-              </button>
+                Xem chi tiết
+              </router-link>
             </div>
           </div>
         </div>
@@ -102,77 +114,369 @@
 import ServiceService from "@/services/service.service";
 
 export default {
+  name: "ServiceList",
   data() {
     return {
       services: [],
-      searchText: "",
       loading: false,
+      errorMessage: "",
+      keyword: "",
+      baseImageUrl: "http://localhost:3000",
+      fallbackImage: "https://via.placeholder.com/600x400?text=Service",
     };
   },
-
   computed: {
     filteredServices() {
-      return this.services.filter((item) => {
-        const keyword = (this.searchText || "").toLowerCase();
-        const name = item.name ? item.name.toLowerCase() : "";
-        const code = item.maDichVu ? item.maDichVu.toLowerCase() : "";
+      const keyword = this.keyword.toLowerCase();
 
-        return name.includes(keyword) || code.includes(keyword);
+      return this.services.filter((service) => {
+        const statusOk =
+          !service.status || service.status === "Đang hoạt động";
+
+        const name = String(service.name || "").toLowerCase();
+        const code = String(service.maDichVu || "").toLowerCase();
+        const description = String(service.description || "").toLowerCase();
+        const category = String(service.categoryId?.name || "").toLowerCase();
+
+        const keywordOk =
+          name.includes(keyword) ||
+          code.includes(keyword) ||
+          description.includes(keyword) ||
+          category.includes(keyword);
+
+        return statusOk && keywordOk;
       });
     },
+    isCustomer() {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      return user?.role === "customer";
+    },
   },
-
   methods: {
-    async fetchServices() {
+    async loadServices() {
+      this.loading = true;
+      this.errorMessage = "";
+
       try {
-        this.loading = true;
-        this.services = await ServiceService.getPublic();
+        const data = await ServiceService.getPublic();
+        this.services = Array.isArray(data) ? data : [];
       } catch (error) {
-        console.error("Lỗi tải dịch vụ:", error);
-        alert("Không thể tải danh sách dịch vụ.");
+        console.error("Lỗi loadServices:", error);
+        this.errorMessage =
+          error?.response?.data?.message ||
+          "Không thể tải danh sách dịch vụ.";
       } finally {
         this.loading = false;
       }
     },
 
-    getServiceImage(item) {
-      if (item?.image) return "http://localhost:3000" + item.image;
-      return "https://via.placeholder.com/400x300";
-    },
-
     formatCurrency(value) {
-      if (value === null || value === undefined) return "---";
-      return Number(value).toLocaleString("vi-VN") + " ₫";
+      return Number(value || 0).toLocaleString("vi-VN") + " đ";
     },
 
-    shortDescription(text) {
-      if (!text) return "Chưa có mô tả cho dịch vụ này.";
-      if (text.length <= 100) return text;
-      return text.slice(0, 100) + "...";
+    truncateText(text, maxLength = 120) {
+      const content = String(text || "").trim();
+      if (!content) return "Dịch vụ đang được cập nhật mô tả.";
+      if (content.length <= maxLength) return content;
+      return content.slice(0, maxLength) + "...";
     },
 
-    goToDetail(item) {
-      const id = item._id || item.id;
-      if (!id) {
-        alert("Dịch vụ này chưa có ID hợp lệ.");
-        return;
+    getImageUrl(image) {
+      if (!image) return this.fallbackImage;
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        return image;
       }
-      this.$router.push(`/services/${id}`);
+      return `${this.baseImageUrl}${image}`;
+    },
+
+    handleImageError(event) {
+      event.target.src = this.fallbackImage;
     },
   },
-
-  async mounted() {
-    await this.fetchServices();
+  mounted() {
+    this.loadServices();
   },
 };
 </script>
 
 <style scoped>
+.service-list-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.hero-box {
+  margin-bottom: 24px;
+  border-radius: 24px;
+  padding: 36px 28px;
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  border: 1px solid #dbeafe;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.hero-content h1 {
+  margin: 0 0 10px;
+  font-size: 34px;
+  line-height: 1.2;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.hero-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.7;
+  max-width: 760px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 260px;
+}
+
+.search-box input {
+  width: 100%;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+.search-box input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.btn-history,
+.btn-detail,
+.btn-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-history {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-history:hover {
+  background: #1d4ed8;
+}
+
+.btn-detail {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.btn-detail:hover {
+  background: #dbeafe;
+}
+
+.btn-reload {
+  background: #2563eb;
+  color: #fff;
+  margin-top: 10px;
+}
+
+.state-box {
+  background: #fff;
+  border-radius: 18px;
+  padding: 48px 20px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  animation: spin 0.8s linear infinite;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
 .service-card {
-  transition: all 0.2s ease;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  border: 1px solid #eef2f7;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+}
+
+.service-image-link {
+  display: block;
+  height: 220px;
+  background: #f1f5f9;
+}
+
+.service-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.service-body {
+  padding: 18px;
+}
+
+.service-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.service-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.service-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.status-active {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-paused {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.service-name {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.service-name a {
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.service-name a:hover {
+  color: #2563eb;
+}
+
+.service-category {
+  margin: 0 0 8px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.service-description {
+  margin: 0 0 16px;
+  color: #64748b;
+  line-height: 1.6;
+  min-height: 52px;
+}
+
+.service-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.service-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: #dc2626;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 992px) {
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 28px;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-history {
+    width: 100%;
+  }
 }
 </style>

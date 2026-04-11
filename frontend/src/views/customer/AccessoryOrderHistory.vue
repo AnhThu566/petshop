@@ -2,7 +2,6 @@
   <div class="accessory-order-history-page">
     <div class="container-fluid order-page-container py-4">
       <div class="order-layout">
-        <!-- Sidebar trái -->
         <aside class="account-sidebar">
           <div class="account-card">
             <div class="account-top">
@@ -26,25 +25,25 @@
           </div>
 
           <div class="sidebar-menu">
-            <div class="menu-item">
+            <router-link to="/profile" class="menu-item text-decoration-none">
               <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
               <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            </router-link>
 
-            <div class="menu-item">
+            <router-link to="/orders" class="menu-item text-decoration-none">
               <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
               <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            </router-link>
 
-            <div class="menu-item active">
+            <router-link to="/accessory-orders" class="menu-item active text-decoration-none">
               <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
               <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            </router-link>
 
-            <div class="menu-item">
+            <router-link to="/service-bookings" class="menu-item text-decoration-none">
               <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
               <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            </router-link>
 
             <div class="menu-item">
               <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
@@ -58,7 +57,6 @@
           </div>
         </aside>
 
-        <!-- Bên phải -->
         <section class="order-content">
           <div class="content-head">
             <div>
@@ -74,12 +72,12 @@
               <i class="fas fa-search"></i>
               <input
                 type="text"
-                v-model="searchText"
+                v-model.trim="searchText"
                 placeholder="Tìm theo mã đơn hoặc tên người nhận"
               />
             </div>
 
-            <button class="refresh-btn" @click="fetchOrders">
+            <button class="refresh-btn" @click="fetchOrders" :disabled="loading">
               <i class="fas fa-sync-alt mr-1"></i> Làm mới
             </button>
           </div>
@@ -180,7 +178,7 @@
                       <div class="receiver-phone">{{ order.customerPhone }}</div>
                     </td>
 
-                    <td>{{ order.items?.length || 0 }}</td>
+                    <td>{{ getProductCount(order) }}</td>
 
                     <td class="money-total">
                       {{ formatCurrency(order.totalAmount) }}
@@ -226,7 +224,6 @@
         </section>
       </div>
 
-      <!-- Modal chi tiết -->
       <div
         v-if="selectedOrder"
         class="modal fade show d-block"
@@ -305,7 +302,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -326,6 +322,7 @@ export default {
       searchText: "",
       statusFilter: "Tất cả",
       selectedOrder: null,
+      baseImageUrl: "http://localhost:3000",
     };
   },
 
@@ -370,6 +367,12 @@ export default {
       return String(id).substring(String(id).length - 6).toUpperCase();
     },
 
+    getProductCount(order) {
+      return Array.isArray(order.items)
+        ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+        : 0;
+    },
+
     async fetchOrders() {
       try {
         const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -381,11 +384,12 @@ export default {
 
         this.currentUser = user;
         this.loading = true;
-        const userId = user._id || user.id;
-        this.orders = await AccessoryOrderService.getByUserId(userId);
+        this.orders = await AccessoryOrderService.getMyOrders();
       } catch (error) {
         console.error("Lỗi tải lịch sử đơn phụ kiện:", error);
-        alert("Không thể tải lịch sử đơn phụ kiện.");
+        alert(
+          error.response?.data?.message || "Không thể tải lịch sử đơn phụ kiện."
+        );
       } finally {
         this.loading = false;
       }
@@ -437,6 +441,9 @@ export default {
       }
 
       try {
+        const cartResponse = await CartService.getCart();
+        const cartItems = cartResponse?.items || [];
+
         for (const item of order.items) {
           const accessoryId =
             item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
@@ -449,13 +456,31 @@ export default {
           if (latestAccessory.status !== "Đang bán") continue;
           if (Number(latestAccessory.quantity) <= 0) continue;
 
+          const currentCartItem = cartItems.find((cartItem) => {
+            const cartAccessoryId =
+              cartItem.accessoryId?._id ||
+              cartItem.accessoryId?.id ||
+              cartItem.accessoryId;
+            return String(cartAccessoryId) === String(accessoryId);
+          });
+
+          const existingQty = Number(currentCartItem?.quantity || 0);
+          const buyQty = Number(item.quantity || 1);
+          const allowedQty = Number(latestAccessory.quantity || 0) - existingQty;
+
+          if (allowedQty <= 0) continue;
+
+          const finalQty = buyQty > allowedQty ? allowedQty : buyQty;
+          if (finalQty <= 0) continue;
+
           await CartService.addToCart(
             latestAccessory._id || latestAccessory.id,
-            Number(item.quantity || 1)
+            finalQty
           );
         }
 
-        alert("Đã thêm lại các sản phẩm còn bán vào giỏ hàng!");
+        window.dispatchEvent(new Event("cart-updated"));
+        alert("Đã thêm lại các sản phẩm còn phù hợp vào giỏ hàng!");
         this.closeDetail();
         this.$router.push("/cart");
       } catch (error) {
@@ -467,8 +492,11 @@ export default {
     },
 
     getAccessoryImage(item) {
-      if (item?.image) return "http://localhost:3000" + item.image;
-      return "https://via.placeholder.com/100";
+      if (!item?.image) return "";
+      if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
+        return item.image;
+      }
+      return this.baseImageUrl + item.image;
     },
 
     formatCurrency(value) {

@@ -11,6 +11,7 @@
           v-if="cart.length > 0"
           class="clear-cart-btn"
           @click="clearCart"
+          :disabled="loading || isSubmitting"
         >
           <i class="fas fa-trash mr-1"></i> Xóa toàn bộ
         </button>
@@ -63,6 +64,12 @@
                           >
                             Tồn kho: {{ item.stock }}
                           </div>
+                          <div
+                            v-if="item.status && item.status !== 'Đang bán'"
+                            class="product-sub text-danger"
+                          >
+                            Sản phẩm hiện không còn mở bán
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -76,7 +83,7 @@
                         <button
                           class="qty-btn"
                           @click="decreaseQuantity(item)"
-                          :disabled="updatingItemId === item.id"
+                          :disabled="updatingItemId === item.id || Number(item.quantity) <= 1"
                         >
                           -
                         </button>
@@ -84,6 +91,7 @@
                         <input
                           type="number"
                           min="1"
+                          :max="item.stock || 1"
                           class="qty-input"
                           :value="item.quantity"
                           @change="changeQuantity(item, $event)"
@@ -93,7 +101,10 @@
                         <button
                           class="qty-btn"
                           @click="increaseQuantity(item)"
-                          :disabled="updatingItemId === item.id"
+                          :disabled="
+                            updatingItemId === item.id ||
+                            !canIncrease(item)
+                          "
                         >
                           +
                         </button>
@@ -172,7 +183,11 @@
               </div>
             </div>
 
-            <button class="submit-btn" @click="submitOrder" :disabled="isSubmitting">
+            <button
+              class="submit-btn"
+              @click="submitOrder"
+              :disabled="isSubmitting || cart.length === 0"
+            >
               <i class="fas fa-check-circle mr-1"></i>
               {{ isSubmitting ? "Đang xử lý..." : "Đặt hàng phụ kiện" }}
             </button>
@@ -204,6 +219,7 @@ export default {
       loading: false,
       isSubmitting: false,
       updatingItemId: null,
+      baseImageUrl: "http://localhost:3000",
       form: {
         customerName: "",
         customerPhone: "",
@@ -234,11 +250,13 @@ export default {
 
         this.cart = (response.items || []).map((item) => ({
           id: item.id,
-          accessoryId: item.accessoryId?._id || item.accessoryId?.id || item.accessoryId,
+          accessoryId:
+            item.accessoryId?._id || item.accessoryId?.id || item.accessoryId,
           name: item.accessoryId?.name || "",
           price: item.priceAtTime || item.accessoryId?.price || 0,
           image: item.accessoryId?.image || "",
           stock: item.accessoryId?.quantity ?? null,
+          status: item.accessoryId?.status || "",
           quantity: item.quantity || 1,
         }));
 
@@ -256,10 +274,33 @@ export default {
       }
     },
 
-    async changeQuantity(item, event) {
-      const value = Number(event.target.value);
+    canIncrease(item) {
+      const stock = Number(item.stock || 0);
+      const qty = Number(item.quantity || 0);
+      return stock > 0 && qty < stock;
+    },
 
-      if (!value || value < 1) {
+    normalizeInputQuantity(item, rawValue) {
+      let value = Number(rawValue);
+
+      if (!Number.isFinite(value) || value < 1) {
+        value = 1;
+      }
+
+      value = Math.floor(value);
+
+      const stock = Number(item.stock || 0);
+      if (stock > 0 && value > stock) {
+        value = stock;
+      }
+
+      return value;
+    },
+
+    async changeQuantity(item, event) {
+      const value = this.normalizeInputQuantity(item, event.target.value);
+
+      if (value === Number(item.quantity)) {
         event.target.value = item.quantity;
         return;
       }
@@ -268,6 +309,7 @@ export default {
         this.updatingItemId = item.id;
         await CartService.updateQuantity(item.id, value);
         await this.loadCart();
+        window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
         console.error("Lỗi cập nhật số lượng:", error);
         alert(error.response?.data?.message || "Không thể cập nhật số lượng.");
@@ -277,10 +319,13 @@ export default {
     },
 
     async increaseQuantity(item) {
+      if (!this.canIncrease(item)) return;
+
       try {
         this.updatingItemId = item.id;
         await CartService.updateQuantity(item.id, Number(item.quantity) + 1);
         await this.loadCart();
+        window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
         console.error("Lỗi tăng số lượng:", error);
         alert(error.response?.data?.message || "Không thể tăng số lượng.");
@@ -296,6 +341,7 @@ export default {
         this.updatingItemId = item.id;
         await CartService.updateQuantity(item.id, Number(item.quantity) - 1);
         await this.loadCart();
+        window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
         console.error("Lỗi giảm số lượng:", error);
         alert(error.response?.data?.message || "Không thể giảm số lượng.");
@@ -333,6 +379,44 @@ export default {
       }
     },
 
+    validateOrderBeforeSubmit() {
+      if (!this.form.customerName) {
+        throw new Error("Vui lòng nhập họ tên người nhận.");
+      }
+
+      if (!this.form.customerPhone) {
+        throw new Error("Vui lòng nhập số điện thoại.");
+      }
+
+      if (!this.form.shippingAddress) {
+        throw new Error("Vui lòng nhập địa chỉ nhận hàng.");
+      }
+
+      if (this.cart.length === 0) {
+        throw new Error("Giỏ hàng đang trống.");
+      }
+
+      for (const item of this.cart) {
+        if (!item.accessoryId) {
+          throw new Error(`Sản phẩm [${item.name}] không hợp lệ.`);
+        }
+
+        if (item.status !== "Đang bán") {
+          throw new Error(`Phụ kiện [${item.name}] hiện không còn mở bán.`);
+        }
+
+        if (Number(item.stock || 0) <= 0) {
+          throw new Error(`Phụ kiện [${item.name}] đã hết hàng.`);
+        }
+
+        if (Number(item.quantity || 0) > Number(item.stock || 0)) {
+          throw new Error(
+            `Phụ kiện [${item.name}] vượt quá tồn kho. Chỉ còn ${item.stock} sản phẩm.`
+          );
+        }
+      }
+    },
+
     async submitOrder() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       if (!user) {
@@ -341,23 +425,10 @@ export default {
         return;
       }
 
-      if (!this.form.customerName) {
-        alert("Vui lòng nhập họ tên người nhận.");
-        return;
-      }
-
-      if (!this.form.customerPhone) {
-        alert("Vui lòng nhập số điện thoại.");
-        return;
-      }
-
-      if (!this.form.shippingAddress) {
-        alert("Vui lòng nhập địa chỉ nhận hàng.");
-        return;
-      }
-
-      if (this.cart.length === 0) {
-        alert("Giỏ hàng đang trống.");
+      try {
+        this.validateOrderBeforeSubmit();
+      } catch (error) {
+        alert(error.message);
         return;
       }
 
@@ -391,8 +462,11 @@ export default {
     },
 
     getAccessoryImage(item) {
-      if (item?.image) return "http://localhost:3000" + item.image;
-      return "https://via.placeholder.com/100";
+      if (!item?.image) return "";
+      if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
+        return item.image;
+      }
+      return this.baseImageUrl + item.image;
     },
 
     formatCurrency(value) {

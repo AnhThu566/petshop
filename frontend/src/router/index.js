@@ -44,243 +44,236 @@ import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
 import DogList from "@/views/customer/DogList.vue";
 
-
 const routes = [
-    {
-        path: "/",
-        name: "home",
-        component: Home
-    },
-
-        {
+  // ============================================================
+  // ROUTE CÔNG KHAI / KHÁCH HÀNG
+  // ============================================================
+  {
+    path: "/",
+    name: "home",
+    component: Home,
+  },
+  {
     path: "/dogs",
     name: "dog-list",
-    component:DogList
-},
+    component: DogList,
+  },
+  {
+    path: "/dog/:id",
+    name: "dog-detail",
+    component: DogDetail,
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: Login,
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: Register,
+  },
+  {
+    path: "/cart",
+    name: "cart",
+    component: Cart,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/deposit",
+    name: "deposit",
+    component: Deposit,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/tra-cuu-don",
+    name: "order-history",
+    component: OrderHistory,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/profile",
+    name: "profile",
+    component: Profile,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/accessories",
+    name: "accessory-list",
+    component: AccessoryList,
+  },
+  {
+    path: "/accessories/:id",
+    name: "accessory-detail",
+    component: AccessoryDetail,
+  },
+  {
+    path: "/accessory-orders",
+    name: "accessory-order-history",
+    component: AccessoryOrderHistory,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/services",
+    name: "service-list",
+    component: ServiceList,
+  },
+  {
+    path: "/services/:id",
+    name: "service-detail",
+    component: ServiceDetail,
+  },
+  {
+    path: "/service-bookings",
+    name: "service-booking-history",
+    component: ServiceBookingHistory,
+    meta: { requiresCustomer: true },
+  },
 
-    {
-        path: "/cart",
-        name: "Cart",
-        component: Cart,
-        meta: { requiresCustomer: true }
-    },
-
-    {
-        path: "/login",
-        name: "login",
-        component: Login
-    },
-
-
-
-    {
-        path: "/dog/:id",
-        name: "DogDetail",
-        component: DogDetail
-    },
-
-    {
-        path: "/deposit",
-        name: "Deposit",
-        component: Deposit,
-        meta: { requiresCustomer: true }
-    },
-
-    {
-        path: "/tra-cuu-don",
-        name: "order-history",
-        component: OrderHistory,
-        meta: { requiresCustomer: true }
-    },
-
-    {
-        path: "/register",
-        name: "register",
-        component: Register
-    },
-
-    {
-        path: "/profile",
-        name: "profile",
-        component: Profile,
-        meta: { requiresCustomer: true }
-    },
-
-    {
-        path: "/accessories",
-        name: "accessory-list",
-        component: AccessoryList
-    },
-
-    {
-        path: "/accessories/:id",
-        name: "accessory-detail",
-        component: AccessoryDetail
-    },
-
-    {
-        path: "/services",
-        name: "service-list",
-        component: ServiceList
-    },
-
-    {
-        path: "/services/:id",
-        name: "service-detail",
-        component: ServiceDetail
-    },
-    {
-        path: "/service-bookings",
-        name: "service-booking-history",
-        component: ServiceBookingHistory,
-        meta: { requiresCustomer: true }
-    },
-    {
-        path: "/accessory-orders",
-        name: "accessory-order-history",
-        component: AccessoryOrderHistory,
-        meta: { requiresCustomer: true }
-    },
-
-    // ============================================================
-    // ROUTER CHO CHỦ TRẠI (FARM)
-    // ============================================================
-{
+  // ============================================================
+  // ROUTER CHO CHỦ TRẠI (FARM)
+  // ============================================================
+  {
     path: "/farm",
     component: FarmDashboard,
     meta: { requiresFarm: true },
     children: [
-        {
-            path: "",
-            redirect: "/farm/dashboard"
-        },
-        {
-            path: "dashboard",
-            name: "farm-dog-list",
-            component: FarmDogList,
-            meta: { requiresFarm: true }
-        },
-        {
-            path: "add-dog",
-            name: "farm-dog-add",
-            component: FarmDogForm,
-            meta: { requiresFarm: true }
-        },
-        {
-            path: "transactions",
-            name: "farm-transactions",
-            component: FarmTransactionPage,
-            meta: { requiresFarm: true }
-        },
-        {
-    path: "profile",
-    name: "farm-profile",
-    component: FarmProfilePage,
-    meta: { requiresFarm: true }
-}
+      {
+        path: "",
+        redirect: "/farm/dashboard",
+      },
+      {
+        path: "dashboard",
+        name: "farm-dashboard",
+        component: FarmDogList,
+        meta: { requiresFarm: true },
+      },
+      {
+        path: "add-dog",
+        name: "farm-dog-add",
+        component: FarmDogForm,
+        meta: { requiresFarm: true },
+      },
+      {
+        path: "transactions",
+        name: "farm-transactions",
+        component: FarmTransactionPage,
+        meta: { requiresFarm: true },
+      },
+      {
+        path: "profile",
+        name: "farm-profile",
+        component: FarmProfilePage,
+        meta: { requiresFarm: true },
+      },
+    ],
+  },
 
-    ]
-},
-
-    // ============================================================
-    // ROUTER CHO ADMIN
-    // ============================================================
-    {
-        path: "/admin",
-        component: AdminDashboard,
+  // ============================================================
+  // ROUTER CHO ADMIN
+  // ============================================================
+  {
+    path: "/admin",
+    component: AdminDashboard,
+    meta: { requiresAdmin: true },
+    children: [
+      {
+        path: "",
+        redirect: "/admin/dashboard",
+      },
+      {
+        path: "dashboard",
+        name: "admin-overview",
+        component: DashboardOverview,
         meta: { requiresAdmin: true },
-        children: [
-            {
-                path: "",
-                redirect: "/admin/dashboard"
-            },
-            {
-                path: "dashboard",
-                name: "admin-overview",
-                component: DashboardOverview,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "dog",
-                name: "admin-dog",
-                component: DogPage,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "customer",
-                name: "admin-customer",
-                component: () => import("@/views/admin/customer/CustomerPage.vue"),
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "farm",
-                name: "admin-farm",
-                component: FarmPage,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "breed",
-                name: "admin-breed",
-                component: BreedPage,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "vaccine",
-                name: "admin-vaccine",
-                component: () => import("@/views/admin/vaccine/VaccinePage.vue"),
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "orders",
-                name: "admin-orders",
-                component: OrderAdmin,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "accessory",
-                name: "admin-accessory",
-                component: AccessoryPage,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "service",
-                name: "admin-service",
-                component: ServicePage,
-                meta: { requiresAdmin: true }
-            },
-            {
-                path: "service-booking",
-                name: "admin-service-booking",
-                component: ServiceBookingPage,
-                meta: { requiresAdmin: true }
-            },
-            {
-    path: "accessory-orders",
-    name: "admin-accessory-orders",
-    component: AccessoryOrderPage,
-    meta: { requiresAdmin: true }
-},
+      },
+      {
+        path: "dog",
+        name: "admin-dog",
+        component: DogPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "customer",
+        name: "admin-customer",
+        component: () => import("@/views/admin/customer/CustomerPage.vue"),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "farm",
+        name: "admin-farm",
+        component: FarmPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "breed",
+        name: "admin-breed",
+        component: BreedPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "vaccine",
+        name: "admin-vaccine",
+        component: () => import("@/views/admin/vaccine/VaccinePage.vue"),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "orders",
+        name: "admin-orders",
+        component: OrderAdmin,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "accessory",
+        name: "admin-accessory",
+        component: AccessoryPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "accessory-orders",
+        name: "admin-accessory-orders",
+        component: AccessoryOrderPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "accessory-category",
+        name: "admin-accessory-category",
+        component: AccessoryCategoryPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "services",
+        name: "admin-service",
+        component: ServicePage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "service-bookings",
+        name: "admin-service-booking",
+        component: ServiceBookingPage,
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "service-category",
+        name: "admin-service-category",
+        component: ServiceCategoryPage,
+        meta: { requiresAdmin: true },
+      },
+    ],
+  },
 
-{
-  path: "accessory-category",
-  name: "admin-accessory-category",
-  component: AccessoryCategoryPage,
-  meta: { requiresAdmin: true }
-},
-
-{
-  path: "service-category",
-  name: "admin-service-category",
-  component: ServiceCategoryPage,
-  meta: { requiresAdmin: true }
-},
-        ]
-    }
+  // ============================================================
+  // FALLBACK
+  // ============================================================
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
+  },
 ];
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
-    routes,
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
 });
 
 // ============================================================
@@ -300,6 +293,7 @@ router.beforeEach((to) => {
     return "/";
   }
 
+  // Admin
   if (to.matched.some((record) => record.meta.requiresAdmin)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập tài khoản quản trị.");
@@ -314,6 +308,7 @@ router.beforeEach((to) => {
     return true;
   }
 
+  // Farm
   if (to.matched.some((record) => record.meta.requiresFarm)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập tài khoản trang trại.");
@@ -329,6 +324,7 @@ router.beforeEach((to) => {
     return true;
   }
 
+  // Customer
   if (to.matched.some((record) => record.meta.requiresCustomer)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập để tiếp tục.");

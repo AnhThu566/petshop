@@ -11,21 +11,15 @@ const router = express.Router();
 router.post("/", requireCustomer, accessoryOrderController.create);
 
 // Customer xem lịch sử đơn của mình
-router.get("/user/:userId", requireCustomer, accessoryOrderController.findByUserId);
+router.get("/my-orders", requireCustomer, accessoryOrderController.findMyOrders);
 
-// Customer hủy đơn
+// Customer hủy đơn của mình
 router.put("/:id/cancel", requireCustomer, accessoryOrderController.cancelByCustomer);
 
 // Admin xem tất cả đơn
 router.get("/", requireAdmin, accessoryOrderController.findAll);
 
-// Xem chi tiết 1 đơn
-router.get("/:id", accessoryOrderController.findOne);
-
-// Admin cập nhật trạng thái
+// Admin cập nhật trạng thái đơn
 router.put("/:id/status", requireAdmin, accessoryOrderController.updateStatus);
-
-console.log("requireCustomer =", requireCustomer);
-console.log("cancelByCustomer =", accessoryOrderController.cancelByCustomer);
 
 module.exports = router;

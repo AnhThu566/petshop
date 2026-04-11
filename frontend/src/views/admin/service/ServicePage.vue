@@ -1,44 +1,126 @@
 <template>
-  <div class="service-admin-page bg-light py-4" style="min-height: 100vh;">
-    <div class="container-fluid px-2">
-      <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-        <h4 class="font-weight-bold text-dark mb-0">
-          <i class="fas fa-concierge-bell mr-2 text-primary"></i>
-          QUẢN LÝ DỊCH VỤ
-        </h4>
-
-        <div>
-          <button class="btn btn-outline-primary btn-sm mr-2" @click="retrieveServices">
-            <i class="fas fa-sync-alt mr-1"></i> Làm mới
-          </button>
-          <button class="btn btn-primary btn-sm" @click="openCreateModal">
-            <i class="fas fa-plus mr-1"></i> Thêm dịch vụ
-          </button>
-        </div>
+  <div class="service-admin-page">
+    <div class="page-header">
+      <div>
+        <h2>Quản lý dịch vụ</h2>
+        <p>Thêm, cập nhật và quản lý các dịch vụ trong hệ thống.</p>
       </div>
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-3">
-          <div class="row align-items-center">
-            <div class="col-md-4 mb-2 mb-md-0">
-              <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                  <span class="input-group-text bg-white">
-                    <i class="fas fa-search text-primary"></i>
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Tìm tên hoặc mã dịch vụ..."
-                  v-model="searchText"
-                />
+      <div class="header-actions">
+        <router-link to="/admin/service-bookings" class="btn-secondary">
+          Quản lý lịch đặt
+        </router-link>
+        <button class="btn-primary" @click="openCreateModal">
+          + Thêm dịch vụ
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input
+        v-model.trim="keyword"
+        type="text"
+        class="search-input"
+        placeholder="Tìm theo mã, tên hoặc mô tả dịch vụ..."
+      />
+    </div>
+
+    <div v-if="loading" class="state-box">
+      <div class="spinner"></div>
+      <p>Đang tải danh sách dịch vụ...</p>
+    </div>
+
+    <div v-else-if="errorMessage" class="state-box error-box">
+      <p>{{ errorMessage }}</p>
+      <button class="btn-primary" @click="loadServices">Tải lại</button>
+    </div>
+
+    <div v-else class="table-card">
+      <table class="service-table">
+        <thead>
+          <tr>
+            <th>Ảnh</th>
+            <th>Mã DV</th>
+            <th>Tên dịch vụ</th>
+            <th>Danh mục</th>
+            <th>Giá</th>
+            <th>Trạng thái</th>
+            <th class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="filteredServices.length === 0">
+            <td colspan="7" class="empty-row">Không có dịch vụ phù hợp.</td>
+          </tr>
+
+          <tr
+            v-for="service in filteredServices"
+            :key="service._id || service.id"
+          >
+            <td>
+              <img
+                :src="getImageUrl(service.image)"
+                :alt="service.name"
+                class="service-thumb"
+              />
+            </td>
+            <td>{{ service.maDichVu || "---" }}</td>
+            <td>
+              <div class="service-name-cell">
+                <strong>{{ service.name }}</strong>
+                <small>{{ truncateText(service.description, 70) }}</small>
               </div>
+            </td>
+            <td>{{ service.categoryId?.name || "---" }}</td>
+            <td class="price">{{ formatCurrency(service.price) }}</td>
+            <td>
+              <span class="status-badge" :class="getStatusClass(service.status)">
+                {{ service.status }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="action-group">
+                <button class="btn-edit" @click="openEditModal(service)">
+                  Sửa
+                </button>
+                <button class="btn-delete" @click="handleDelete(service)">
+                  Xóa
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>{{ isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới" }}</h3>
+          <button class="btn-close" @click="closeModal">×</button>
+        </div>
+
+        <form class="modal-body" @submit.prevent="submitForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tên dịch vụ</label>
+              <input v-model.trim="form.name" type="text" required />
             </div>
 
-            <div class="col-md-4 mb-2 mb-md-0">
-              <select class="form-control form-control-sm" v-model="categoryFilter">
-                <option value="Tất cả">Tất cả loại dịch vụ</option>
+            <div class="form-group">
+              <label>Giá dịch vụ</label>
+              <input
+                v-model.number="form.price"
+                type="number"
+                min="0"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Danh mục dịch vụ</label>
+              <select v-model="form.categoryId" required>
+                <option value="">-- Chọn danh mục --</option>
                 <option
                   v-for="category in categories"
                   :key="category._id || category.id"
@@ -49,288 +131,62 @@
               </select>
             </div>
 
-            <div class="col-md-4 text-md-right">
-              <div class="btn-group flex-wrap">
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Tất cả' ? 'btn-dark' : 'btn-light'"
-                  @click="statusFilter = 'Tất cả'"
-                >
-                  Tất cả
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đang hoạt động' ? 'btn-success text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đang hoạt động'"
-                >
-                  Đang hoạt động
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Ngừng hoạt động' ? 'btn-secondary text-white' : 'btn-light'"
-                  @click="statusFilter = 'Ngừng hoạt động'"
-                >
-                  Ngừng hoạt động
-                </button>
+            <div class="form-group">
+              <label>Trạng thái</label>
+              <select v-model="form.status" required>
+                <option value="Đang hoạt động">Đang hoạt động</option>
+                <option value="Ngừng hoạt động">Ngừng hoạt động</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Mô tả</label>
+              <textarea
+                v-model.trim="form.description"
+                rows="4"
+                placeholder="Nhập mô tả dịch vụ..."
+              ></textarea>
+            </div>
+
+            <div class="form-group full-width">
+              <label>
+                Hình ảnh
+                <span class="required-star">*</span>
+              </label>
+              <input type="file" accept="image/*" @change="handleFileChange" />
+              <small class="form-hint">
+                Khi thêm dịch vụ mới, bắt buộc phải chọn hình ảnh.
+              </small>
+
+              <div v-if="previewImage" class="preview-wrap">
+                <img :src="previewImage" alt="preview" class="preview-image" />
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="card border-0 shadow-sm" v-if="filteredServices.length > 0">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle text-center mb-0">
-            <thead class="bg-light">
-              <tr class="small text-secondary">
-                <th class="py-3">Ảnh</th>
-                <th class="py-3">Mã</th>
-                <th class="py-3">Tên dịch vụ</th>
-                <th class="py-3">Loại dịch vụ</th>
-                <th class="py-3">Giá</th>
-                <th class="py-3">Trạng thái</th>
-                <th class="py-3">Ngày tạo</th>
-                <th class="py-3">Thao tác</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-for="item in filteredServices" :key="item._id || item.id">
-                <td>
-                  <img
-                    :src="getServiceImage(item)"
-                    alt="service"
-                    style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px;"
-                  />
-                </td>
-
-                <td class="font-weight-bold text-primary">
-                  {{ item.maDichVu || "---" }}
-                </td>
-
-                <td class="font-weight-bold text-dark text-left">
-                  {{ item.name }}
-                </td>
-
-                <td>
-                  <span class="badge badge-light border">
-                    {{ item.categoryId?.name || "---" }}
-                  </span>
-                </td>
-
-                <td class="text-danger font-weight-bold">
-                  {{ formatCurrency(item.price) }}
-                </td>
-
-                <td>
-                  <span class="badge px-3 py-2" :class="getStatusClass(item.status)">
-                    {{ item.status }}
-                  </span>
-                </td>
-
-                <td>
-                  {{ formatDateOnly(item.createdAt) }}
-                </td>
-
-                <td>
-                  <div class="d-flex justify-content-center flex-wrap">
-                    <button
-                      class="btn btn-sm btn-outline-secondary mr-1 mb-1"
-                      @click="openDetailModal(item)"
-                      title="Xem chi tiết"
-                    >
-                      <i class="fas fa-eye"></i>
-                    </button>
-
-                    <button
-                      class="btn btn-sm btn-outline-warning mr-1 mb-1"
-                      @click="openEditModal(item)"
-                      title="Sửa dịch vụ"
-                    >
-                      <i class="fas fa-edit"></i>
-                    </button>
-
-                    <button
-                      class="btn btn-sm btn-outline-danger mb-1"
-                      @click="deleteService(item)"
-                      title="Xóa dịch vụ"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div v-else class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
-          <i class="fas fa-concierge-bell fa-3x mb-3 d-block"></i>
-          Chưa có dịch vụ nào phù hợp.
-        </div>
-      </div>
-
-      <!-- Modal thêm/sửa -->
-      <div
-        v-if="showFormModal"
-        class="modal fade show d-block"
-        tabindex="-1"
-        style="background: rgba(0,0,0,0.45);"
-      >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-          <div class="modal-content border-0 shadow">
-            <div class="modal-header" :class="isEditMode ? 'bg-warning' : 'bg-primary text-white'">
-              <h5 class="modal-title mb-0" :class="isEditMode ? 'text-dark' : 'text-white'">
-                <i class="fas mr-2" :class="isEditMode ? 'fa-edit' : 'fa-plus-circle'"></i>
-                {{ isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới" }}
-              </h5>
-              <button type="button" class="close" :class="isEditMode ? '' : 'text-white'" @click="closeFormModal">
-                <span>&times;</span>
-              </button>
-            </div>
-
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-md-7">
-                  <div class="form-group">
-                    <label class="font-weight-bold">Tên dịch vụ <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" v-model.trim="form.name" />
-                  </div>
-
-                  <div class="form-group">
-                    <label class="font-weight-bold">Loại dịch vụ</label>
-                    <select class="form-control" v-model="form.categoryId">
-                      <option value="">-- Chọn loại dịch vụ --</option>
-                      <option
-                        v-for="category in activeCategories"
-                        :key="category._id || category.id"
-                        :value="category._id || category.id"
-                      >
-                        {{ category.name }}
-                      </option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="font-weight-bold">Giá dịch vụ <span class="text-danger">*</span></label>
-                    <input type="number" min="0" class="form-control" v-model="form.price" />
-                  </div>
-
-                  <div class="form-group">
-                    <label class="font-weight-bold">Trạng thái</label>
-                    <select class="form-control" v-model="form.status">
-                      <option value="Đang hoạt động">Đang hoạt động</option>
-                      <option value="Ngừng hoạt động">Ngừng hoạt động</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="font-weight-bold">Mô tả</label>
-                    <textarea class="form-control" rows="4" v-model.trim="form.description"></textarea>
-                  </div>
-                </div>
-
-                <div class="col-md-5">
-                  <label class="font-weight-bold">Hình ảnh</label>
-                  <div
-                    class="border rounded mb-3 d-flex align-items-center justify-content-center bg-light shadow-sm"
-                    style="height: 250px; overflow: hidden;"
-                  >
-                    <img
-                      v-if="previewImage"
-                      :src="previewImage"
-                      alt="preview"
-                      style="object-fit: cover; width: 100%; height: 100%;"
-                    />
-                    <div v-else class="text-muted text-center">
-                      <i class="fas fa-image fa-4x mb-2 opacity-25"></i>
-                      <p class="small mb-0">Chưa có ảnh dịch vụ</p>
-                    </div>
-                  </div>
-
-                  <div class="custom-file text-left">
-                    <input
-                      type="file"
-                      class="custom-file-input"
-                      id="serviceImage"
-                      accept="image/*"
-                      @change="handleFileUpload"
-                    />
-                    <label class="custom-file-label text-truncate" for="serviceImage">
-                      {{ selectedFileName || "Chọn ảnh dịch vụ..." }}
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn btn-secondary" @click="closeFormModal">Hủy</button>
-              <button
-                class="btn"
-                :class="isEditMode ? 'btn-warning text-dark' : 'btn-primary'"
-                @click="submitForm"
-                :disabled="isSubmitting"
-              >
-                <i class="fas mr-1" :class="isEditMode ? 'fa-save' : 'fa-plus'"></i>
-                {{ isSubmitting ? "Đang xử lý..." : (isEditMode ? "Lưu thay đổi" : "Thêm dịch vụ") }}
-              </button>
-            </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="closeModal">
+              Hủy
+            </button>
+            <button type="submit" class="btn-primary" :disabled="submitting">
+              {{
+                submitting
+                  ? "Đang lưu..."
+                  : isEditMode
+                  ? "Cập nhật"
+                  : "Tạo mới"
+              }}
+            </button>
           </div>
-        </div>
+        </form>
       </div>
-
-      <!-- Modal chi tiết -->
-      <div
-        v-if="selectedService"
-        class="modal fade show d-block"
-        tabindex="-1"
-        style="background: rgba(0,0,0,0.45);"
-      >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-          <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-              <h5 class="modal-title mb-0">
-                <i class="fas fa-concierge-bell mr-2"></i>Chi tiết dịch vụ
-              </h5>
-              <button type="button" class="close text-white" @click="closeDetailModal">
-                <span>&times;</span>
-              </button>
-            </div>
-
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-md-4 text-center mb-3">
-                  <img
-                    :src="getServiceImage(selectedService)"
-                    class="img-fluid rounded shadow-sm"
-                    alt="service"
-                    style="max-height: 250px; object-fit: cover;"
-                  />
-                </div>
-
-                <div class="col-md-8">
-                  <h5 class="font-weight-bold">{{ selectedService.name }}</h5>
-                  <p class="mb-1"><strong>Mã dịch vụ:</strong> {{ selectedService.maDichVu || "---" }}</p>
-                  <p class="mb-1"><strong>Loại dịch vụ:</strong> {{ selectedService.categoryId?.name || "---" }}</p>
-                  <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedService.price) }}</p>
-                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedService.status || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày tạo:</strong> {{ formatDateOnly(selectedService.createdAt) }}</p>
-                  <p class="mb-1"><strong>Mô tả:</strong> {{ selectedService.description || "---" }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn btn-secondary" @click="closeDetailModal">Đóng</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
+
+    <transition name="fade">
+      <div v-if="successMessage" class="toast-success">
+        {{ successMessage }}
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -339,257 +195,567 @@ import ServiceService from "@/services/service.service";
 import ServiceCategoryService from "@/services/serviceCategory.service";
 
 export default {
+  name: "ServicePage",
   data() {
     return {
       services: [],
       categories: [],
-      searchText: "",
-      statusFilter: "Tất cả",
-      categoryFilter: "Tất cả",
-
-      showFormModal: false,
+      keyword: "",
+      loading: false,
+      submitting: false,
+      errorMessage: "",
+      successMessage: "",
+      showModal: false,
       isEditMode: false,
-      isSubmitting: false,
-      selectedService: null,
-
+      editingId: null,
       selectedFile: null,
-      selectedFileName: "",
-      previewImage: null,
-
+      previewImage: "",
+      baseImageUrl: "http://localhost:3000",
       form: {
-        _id: null,
-        categoryId: "",
         name: "",
-        price: "",
+        price: 0,
         description: "",
+        categoryId: "",
         status: "Đang hoạt động",
       },
     };
   },
-
   computed: {
-    activeCategories() {
-      return this.categories.filter(
-        (item) => item.status === "Hoạt động" || !item.status
-      );
-    },
-
     filteredServices() {
-      return this.services.filter((item) => {
-        const keyword = (this.searchText || "").toLowerCase();
-        const name = item.name ? item.name.toLowerCase() : "";
-        const code = item.maDichVu ? item.maDichVu.toLowerCase() : "";
-        const itemCategoryId =
-          item.categoryId?._id || item.categoryId?.id || item.categoryId || "";
+      const kw = this.keyword.toLowerCase();
+      return this.services.filter((service) => {
+        const name = String(service.name || "").toLowerCase();
+        const code = String(service.maDichVu || "").toLowerCase();
+        const desc = String(service.description || "").toLowerCase();
+        const category = String(service.categoryId?.name || "").toLowerCase();
 
-        const matchSearch = name.includes(keyword) || code.includes(keyword);
-        const matchStatus =
-          this.statusFilter === "Tất cả" || item.status === this.statusFilter;
-        const matchCategory =
-          this.categoryFilter === "Tất cả" ||
-          String(itemCategoryId) === String(this.categoryFilter);
-
-        return matchSearch && matchStatus && matchCategory;
+        return (
+          name.includes(kw) ||
+          code.includes(kw) ||
+          desc.includes(kw) ||
+          category.includes(kw)
+        );
       });
     },
   },
-
   methods: {
-    async retrieveServices() {
+    async loadServices() {
+      this.loading = true;
+      this.errorMessage = "";
       try {
-        this.services = await ServiceService.getAll();
+        const data = await ServiceService.getAll();
+        this.services = Array.isArray(data) ? data : [];
       } catch (error) {
-        console.error("Lỗi tải danh sách dịch vụ:", error);
-        alert("Không thể tải danh sách dịch vụ.");
+        console.error("Lỗi loadServices:", error);
+        this.errorMessage =
+          error?.response?.data?.message || "Không thể tải danh sách dịch vụ.";
+      } finally {
+        this.loading = false;
       }
     },
 
-    async retrieveCategories() {
+    async loadCategories() {
       try {
-        this.categories = await ServiceCategoryService.getAll();
+        const data = await ServiceCategoryService.getAll();
+        this.categories = Array.isArray(data) ? data : [];
       } catch (error) {
-        console.error("Lỗi tải loại dịch vụ:", error);
+        console.error("Lỗi loadCategories:", error);
+        this.categories = [];
       }
-    },
-
-    getServiceImage(item) {
-      if (item?.image) return "http://localhost:3000" + item.image;
-      return "https://via.placeholder.com/300x300";
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return "---";
-      return Number(value).toLocaleString("vi-VN") + " ₫";
-    },
-
-    formatDateOnly(date) {
-      if (!date) return "---";
-      return new Date(date).toLocaleDateString("vi-VN");
-    },
-
-    getStatusClass(status) {
-      if (status === "Đang hoạt động") return "badge-success";
-      if (status === "Ngừng hoạt động") return "badge-secondary";
-      return "badge-light border";
-    },
-
-    openCreateModal() {
-      this.isEditMode = false;
-      this.showFormModal = true;
-      this.resetForm();
-    },
-
-    openEditModal(item) {
-      this.isEditMode = true;
-      this.showFormModal = true;
-
-      this.form = {
-        _id: item._id || item.id,
-        categoryId: item.categoryId?._id || item.categoryId?.id || item.categoryId || "",
-        name: item.name || "",
-        price: item.price ?? "",
-        description: item.description || "",
-        status: item.status || "Đang hoạt động",
-      };
-
-      this.selectedFile = null;
-      this.selectedFileName = "";
-      this.previewImage = item.image ? "http://localhost:3000" + item.image : null;
-    },
-
-    closeFormModal() {
-      this.showFormModal = false;
-      this.resetForm();
     },
 
     resetForm() {
       this.form = {
-        _id: null,
-        categoryId: "",
         name: "",
-        price: "",
+        price: 0,
         description: "",
+        categoryId: "",
         status: "Đang hoạt động",
       };
-
       this.selectedFile = null;
-      this.selectedFileName = "";
-      this.previewImage = null;
+      this.previewImage = "";
+      this.editingId = null;
+      this.isEditMode = false;
     },
 
-    handleFileUpload(event) {
-      const file = event.target.files[0];
+    openCreateModal() {
+      this.resetForm();
+      this.showModal = true;
+    },
+
+    openEditModal(service) {
+      this.isEditMode = true;
+      this.editingId = service._id || service.id;
+      this.form = {
+        name: service.name || "",
+        price: service.price || 0,
+        description: service.description || "",
+        categoryId: service.categoryId?._id || service.categoryId?.id || "",
+        status: service.status || "Đang hoạt động",
+      };
+      this.previewImage = this.getImageUrl(service.image);
+      this.selectedFile = null;
+      this.showModal = true;
+    },
+
+    closeModal() {
+      this.showModal = false;
+      this.resetForm();
+    },
+
+    handleFileChange(event) {
+      const file = event.target.files?.[0];
       if (!file) return;
 
-      if (!file.type.startsWith("image/")) {
-        alert("Vui lòng chọn file hình ảnh hợp lệ.");
-        event.target.value = "";
-        return;
-      }
-
       this.selectedFile = file;
-      this.selectedFileName = file.name;
       this.previewImage = URL.createObjectURL(file);
     },
 
-    validateForm() {
-      if (!this.form.name?.trim()) {
-        alert("Vui lòng nhập tên dịch vụ.");
-        return false;
+    buildFormData() {
+      const categoryId = this.form.categoryId || "";
+      if (!categoryId) {
+        throw new Error("Vui lòng chọn danh mục dịch vụ");
       }
 
-      if (this.form.price === "" || Number(this.form.price) < 0) {
-        alert("Giá dịch vụ không hợp lệ.");
-        return false;
+      const price = Number(this.form.price);
+      if (Number.isNaN(price) || price < 0) {
+        throw new Error("Giá dịch vụ không hợp lệ");
       }
 
-      if (!this.isEditMode && !this.selectedFile) {
-        alert("Vui lòng chọn hình ảnh dịch vụ.");
-        return false;
+      const formData = new FormData();
+      formData.append("name", this.form.name);
+      formData.append("price", String(price));
+      formData.append("description", this.form.description || "");
+      formData.append("categoryId", categoryId);
+      formData.append("status", this.form.status);
+
+      if (this.selectedFile) {
+        formData.append("image", this.selectedFile);
       }
 
-      return true;
+      return formData;
     },
 
     async submitForm() {
-      if (!this.validateForm()) return;
-
-      this.isSubmitting = true;
-
+      this.submitting = true;
       try {
-        const formData = new FormData();
-        formData.append("categoryId", this.form.categoryId || "");
-        formData.append("name", this.form.name.trim());
-        formData.append("price", this.form.price);
-        formData.append("description", this.form.description || "");
-        formData.append("status", this.form.status);
-
-        if (this.selectedFile) {
-          formData.append("image", this.selectedFile);
+        if (!this.isEditMode && !this.selectedFile) {
+          alert("Vui lòng chọn hình ảnh cho dịch vụ");
+          this.submitting = false;
+          return;
         }
+
+        const formData = this.buildFormData();
 
         if (this.isEditMode) {
-          await ServiceService.update(this.form._id, formData);
-          alert("✅ Cập nhật dịch vụ thành công!");
+          await ServiceService.update(this.editingId, formData);
+          this.showSuccess("Cập nhật dịch vụ thành công!");
         } else {
           await ServiceService.create(formData);
-          alert("✅ Thêm dịch vụ thành công!");
+          this.showSuccess("Thêm dịch vụ thành công!");
         }
 
-        this.closeFormModal();
-        await this.retrieveServices();
+        this.closeModal();
+        await this.loadServices();
       } catch (error) {
-        console.error("Lỗi lưu dịch vụ:", error);
-        alert("❌ Lỗi: " + (error.response?.data?.message || error.message));
+        console.error("Lỗi submitForm:", error);
+        alert(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Không thể lưu dịch vụ. Vui lòng thử lại."
+        );
       } finally {
-        this.isSubmitting = false;
+        this.submitting = false;
       }
     },
 
-    openDetailModal(item) {
-      this.selectedService = JSON.parse(JSON.stringify(item));
-    },
-
-    closeDetailModal() {
-      this.selectedService = null;
-    },
-
-    async deleteService(service) {
-      if (!confirm(`Bạn có chắc muốn xóa dịch vụ [${service.name}] không?`)) return;
+    async handleDelete(service) {
+      const confirmed = window.confirm(
+        `Bạn có chắc muốn xóa dịch vụ "${service.name}" không?`
+      );
+      if (!confirmed) return;
 
       try {
         await ServiceService.delete(service._id || service.id);
-        alert("✅ Xóa dịch vụ thành công!");
-        await this.retrieveServices();
+        this.showSuccess("Xóa dịch vụ thành công!");
+        await this.loadServices();
       } catch (error) {
-        console.error("Lỗi xóa dịch vụ:", error);
-        alert("❌ Lỗi xóa dịch vụ: " + (error.response?.data?.message || error.message));
+        console.error("Lỗi handleDelete:", error);
+        alert(
+          error?.response?.data?.message ||
+            "Không thể xóa dịch vụ. Vui lòng thử lại."
+        );
       }
     },
-  },
 
+    formatCurrency(value) {
+      return Number(value || 0).toLocaleString("vi-VN") + " đ";
+    },
+
+    truncateText(text, maxLength = 70) {
+      const content = String(text || "").trim();
+      if (!content) return "Chưa có mô tả.";
+      if (content.length <= maxLength) return content;
+      return content.slice(0, maxLength) + "...";
+    },
+
+    getImageUrl(image) {
+      if (!image) return "";
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        return image;
+      }
+      return `${this.baseImageUrl}${image}`;
+    },
+
+    getStatusClass(status) {
+      return status === "Đang hoạt động" ? "status-active" : "status-paused";
+    },
+
+    showSuccess(message) {
+      this.successMessage = message;
+      setTimeout(() => {
+        this.successMessage = "";
+      }, 2500);
+    },
+  },
   async mounted() {
-    await Promise.all([
-      this.retrieveServices(),
-      this.retrieveCategories(),
-    ]);
+    await Promise.all([this.loadServices(), this.loadCategories()]);
   },
 };
 </script>
 
 <style scoped>
-.table td,
-.table th {
+.service-admin-page {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.page-header h2 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.page-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  margin-bottom: 18px;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 420px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #dbe2ea;
+  padding: 0 14px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.table-card {
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.service-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.service-table th,
+.service-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eef2f7;
+  text-align: left;
   vertical-align: middle;
 }
 
-.modal {
-  overflow-y: auto;
+.service-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 14px;
 }
 
-.custom-file-label::after {
-  content: "Chọn ảnh" !important;
-  background-color: #007bff;
-  color: white;
+.text-center {
+  text-align: center;
+}
+
+.service-thumb {
+  width: 84px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+.service-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.service-name-cell small {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.price {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-paused {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.action-group {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-edit,
+.btn-delete {
+  border: none;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.btn-edit {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: #fff;
+}
+
+.state-box {
+  background: #fff;
+  border-radius: 18px;
+  padding: 46px 20px;
+  text-align: center;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.empty-row {
+  text-align: center;
+  color: #64748b;
+  padding: 28px 12px !important;
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  animation: spin 0.8s linear infinite;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 16px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 760px;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #eef2f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.preview-wrap {
+  margin-top: 10px;
+}
+
+.preview-image {
+  width: 180px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.required-star {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.form-hint {
+  display: inline-block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.toast-success {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: #16a34a;
+  color: #fff;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-table {
+    min-width: 900px;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
 }
 </style>

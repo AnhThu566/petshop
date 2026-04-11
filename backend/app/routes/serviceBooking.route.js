@@ -1,9 +1,6 @@
 const express = require("express");
 const serviceBookingController = require("../controllers/serviceBooking.controller");
-const {
-  requireAdmin,
-  requireCustomer,
-} = require("../middlewares/auth.middleware");
+const { requireAdmin, requireCustomer } = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
@@ -14,7 +11,7 @@ router.post("/", requireCustomer, serviceBookingController.create);
 router.get("/", requireAdmin, serviceBookingController.findAll);
 
 // Khách xem lịch của mình
-router.get("/user/:userId", requireCustomer, serviceBookingController.findByUserId);
+router.get("/my-bookings", requireCustomer, serviceBookingController.findMyBookings);
 
 // Admin cập nhật trạng thái
 router.put("/:id/status", requireAdmin, serviceBookingController.updateStatus);
