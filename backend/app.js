@@ -20,6 +20,8 @@ const accessoryCategoryRouter = require("./app/routes/accessoryCategory.route");
 const serviceCategoryRouter = require("./app/routes/serviceCategory.route");
 const notificationRouter = require("./app/routes/notification.route");
 const cartRouter = require("./app/routes/cart.route");
+const dogReminderRouter = require("./app/routes/dogReminder.route");    
+const dogHealthRecordRouter = require("./app/routes/dogHealthRecord.route");
 
 
 const app = express();
@@ -51,6 +53,9 @@ app.use("/api/accessory-categories", accessoryCategoryRouter); // Đăng ký rou
 app.use("/api/service-categories", serviceCategoryRouter); // Đăng ký route cho loại dịch vụ
 app.use("/api/notifications", notificationRouter); // Đăng ký route cho thông báo
 app.use("/api/cart", cartRouter); // Đăng ký route cho giỏ hàng
+app.use("/api/notifications", notificationRouter); // Đăng ký route cho thông báo
+app.use("/api/dog-reminders", dogReminderRouter); // Đăng ký route cho nhắc nhở chó cưng
+app.use("/api/dog-health-records",dogHealthRecordRouter); // Đăng ký route cho hồ sơ sức khỏe chó cưng
 
 
 

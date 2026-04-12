@@ -46,7 +46,7 @@
               </p>
 
               <span class="badge badge-success px-3 py-2">
-                Đang hoạt động
+                {{ getFarmStatusText(farmInfo.status) }}
               </span>
             </div>
           </div>
@@ -94,17 +94,16 @@
           </div>
         </div>
 
-        <!-- Thống kê nhanh -->
         <div class="col-md-4 mb-4">
           <div class="card border-0 shadow-sm text-center py-4">
-            <div class="small text-muted">Tổng chó của trại</div>
+            <div class="small text-muted">Tổng hồ sơ chó đã cung cấp</div>
             <h3 class="font-weight-bold text-dark mb-0">{{ stats.totalDogs }}</h3>
           </div>
         </div>
 
         <div class="col-md-4 mb-4">
           <div class="card border-0 shadow-sm text-center py-4">
-            <div class="small text-muted">Chó chờ duyệt</div>
+            <div class="small text-muted">Hồ sơ chờ duyệt</div>
             <h3 class="font-weight-bold text-warning mb-0">{{ stats.pendingDogs }}</h3>
           </div>
         </div>
@@ -125,6 +124,8 @@ import DogService from "@/services/dog.service";
 import createApiClient from "@/services/api.service";
 
 export default {
+  name: "FarmProfilePage",
+
   data() {
     return {
       currentUser: null,
@@ -138,13 +139,18 @@ export default {
     stats() {
       return {
         totalDogs: this.dogs.length,
-        pendingDogs: this.dogs.filter((dog) => dog.status === "Chờ duyệt").length,
-        soldDogs: this.dogs.filter((dog) => dog.status === "Đã bán").length,
+        pendingDogs: this.dogs.filter((dog) => dog.approvalStatus === "Chờ duyệt").length,
+        soldDogs: this.dogs.filter((dog) => dog.saleStatus === "Đã bán").length,
       };
     },
   },
 
   methods: {
+    getFarmStatusText(status) {
+      if (status === "active" || !status) return "Đang hoạt động";
+      return "Đang cập nhật";
+    },
+
     async loadFarmInfo() {
       try {
         this.loading = true;
@@ -156,12 +162,10 @@ export default {
           this.currentUser = JSON.parse(userData);
         }
 
-        // Ưu tiên đọc từ localStorage farm
         if (farmData) {
           this.farmInfo = JSON.parse(farmData);
         }
 
-        // Nếu localStorage farm chỉ là tài khoản farm, thử gọi API farms để lấy trại thật
         if (!this.farmInfo?.name || !this.farmInfo?.address) {
           const api = createApiClient("/api/farms");
           const farms = await api.get("/");

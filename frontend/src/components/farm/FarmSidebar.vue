@@ -28,7 +28,7 @@
           active-class="active-menu"
         >
           <i class="fas fa-dog w-20px mr-2"></i>
-          Thú cưng của trại
+          Hồ sơ chó đã cung cấp
         </router-link>
       </li>
 
@@ -39,20 +39,10 @@
           active-class="active-menu"
         >
           <i class="fas fa-plus-circle w-20px mr-2"></i>
-          Đăng chó mới
+          Cung cấp hồ sơ chó
         </router-link>
       </li>
 
-      <li class="nav-item mb-2">
-  <router-link
-    to="/farm/transactions"
-    class="nav-link text-white rounded menu-item"
-    active-class="active-menu"
-  >
-    <i class="fas fa-exchange-alt w-20px mr-2"></i>
-    Theo dõi giao dịch
-  </router-link>
-</li>
       <li class="nav-item mb-2">
         <router-link
           to="/farm/profile"

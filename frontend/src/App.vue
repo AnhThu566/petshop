@@ -5,7 +5,8 @@
       :current-user="currentUser"
       :is-logged-in="isLoggedIn"
     />
-<div style="min-height: 80vh;">
+
+    <div style="min-height: 80vh;">
       <router-view />
     </div>
 
@@ -19,6 +20,7 @@ import CustomerFooter from "@/components/customer/CustomerFooter.vue";
 
 export default {
   name: "App",
+
   components: {
     CustomerHeader,
     CustomerFooter,

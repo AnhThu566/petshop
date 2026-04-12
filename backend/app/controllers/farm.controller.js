@@ -1,111 +1,170 @@
 const Farm = require("../models/farm.model");
 const ApiError = require("../api-error");
-const Dog = require("../models/dog.model"); // Cần cái này để check xem trại có chó không lúc Xóa
+const Dog = require("../models/dog.model");
 
-// 1. HÀM LẤY DANH SÁCH (Của em viết rất chuẩn, tôi giữ nguyên)
+// 1. Lấy danh sách trại
 exports.findAll = async (req, res, next) => {
-    try {
-        const farms = await Farm.find().populate("ownerId", "username email");
-        return res.send(farms);
-    } catch (error) {
-        return next(new ApiError(500, "Lỗi khi lấy danh sách trại"));
-    }
+  try {
+    const farms = await Farm.find().populate("ownerId", "username email");
+    return res.send(farms);
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi lấy danh sách trại"));
+  }
 };
 
-// 2. HÀM TẠO TRẠI CHÓ MỚI
+// 2. Tạo trại mới
 exports.create = async (req, res, next) => {
-    try {
-        const { maTrai, name, address, phone, description, ownerId, status } = req.body;
-        
-        if (!name || !address || !phone || !ownerId) {
-            return next(new ApiError(400, "Tên, địa chỉ, SĐT và Chủ trại không được để trống!"));
-        }
+  try {
+    const { maTrai, name, address, phone, description, ownerId, status } = req.body;
 
-        const newFarm = new Farm({
-            maTrai, name, address, phone, 
-            farmDescription: description, // Đổi cho khớp với model nếu cần
-            ownerId, status,
-            // Lưu dạng chuỗi đơn thay vì mảng để khớp với FarmForm.vue
-            image: req.file ? `/public/uploads/${req.file.filename}` : null 
-        });
-
-        await newFarm.save();
-        res.send({ message: "Thêm trại chó thành công!", farm: newFarm });
-    } catch (error) {
-        return next(new ApiError(500, "Lỗi khi tạo trại chó: " + error.message));
+    if (!name || !address || !phone || !ownerId) {
+      return next(
+        new ApiError(400, "Tên, địa chỉ, số điện thoại và chủ trại không được để trống")
+      );
     }
+
+    const newFarm = new Farm({
+      maTrai,
+      name,
+      address,
+      phone,
+      description: description || "",
+      ownerId,
+      status: status || "active",
+      image: req.file ? `/public/uploads/${req.file.filename}` : null,
+    });
+
+    await newFarm.save();
+
+    return res.send({
+      message: "Thêm trại chó thành công!",
+      farm: newFarm,
+    });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi tạo trại chó: " + error.message));
+  }
 };
 
-// 3. HÀM CẬP NHẬT TRẠI CHÓ
+// 3. Cập nhật trại
 exports.update = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        
-        // Kiểm tra an toàn để tránh lỗi "undefined"
-        if (!id || id === "undefined") {
-            return next(new ApiError(400, "ID trang trại không hợp lệ!"));
-        }
+  try {
+    const { id } = req.params;
 
-        const { _id, maTrai, ...updateData } = req.body; 
-
-        if (req.file) {
-            // Cập nhật đường dẫn ảnh mới
-            updateData.image = `/public/uploads/${req.file.filename}`; 
-        }
-
-        const updatedFarm = await Farm.findByIdAndUpdate(
-            id,
-            { $set: updateData },
-            { new: true } 
-        ).populate("ownerId", "username email");
-
-        if (!updatedFarm) return next(new ApiError(404, "Không tìm thấy trại chó này!"));
-
-        res.send({ message: "Cập nhật thành công!", farm: updatedFarm });
-    } catch (error) {
-        return next(new ApiError(500, `Lỗi khi cập nhật trại: ${error.message}`));
+    if (!id || id === "undefined") {
+      return next(new ApiError(400, "ID trang trại không hợp lệ"));
     }
+
+    const { _id, maTrai, ownerId, ...updateData } = req.body;
+
+    if (req.file) {
+      updateData.image = `/public/uploads/${req.file.filename}`;
+    }
+
+    const updatedFarm = await Farm.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).populate("ownerId", "username email");
+
+    if (!updatedFarm) {
+      return next(new ApiError(404, "Không tìm thấy trại chó này"));
+    }
+
+    return res.send({
+      message: "Cập nhật trại chó thành công!",
+      farm: updatedFarm,
+    });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi cập nhật trại: " + error.message));
+  }
 };
 
-// 4. HÀM XÓA TRẠI CHÓ (Quy tắc thép: Có chó thì không được xóa)
+// 4. Cập nhật trạng thái hợp tác
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ["active", "inactive"];
+    if (!validStatuses.includes(status)) {
+      return next(new ApiError(400, "Trạng thái trại không hợp lệ"));
+    }
+
+    const farm = await Farm.findById(id);
+    if (!farm) {
+      return next(new ApiError(404, "Không tìm thấy trại chó"));
+    }
+
+    if (status === "inactive") {
+      const linkedDogsCount = await Dog.countDocuments({
+        farmId: id,
+        saleStatus: { $in: ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao"] },
+      });
+
+      if (linkedDogsCount > 0) {
+        return next(
+          new ApiError(
+            400,
+            "Không thể ngừng hợp tác vì trại vẫn còn chó đang được hệ thống xử lý hoặc mở bán"
+          )
+        );
+      }
+    }
+
+    farm.status = status;
+    await farm.save();
+
+    return res.send({
+      message: "Cập nhật trạng thái hợp tác thành công!",
+      farm,
+    });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi cập nhật trạng thái trại: " + error.message));
+  }
+};
+
+// 5. Xóa trại
 exports.delete = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        // BƯỚC 1: Kiểm tra xem trại này có đang cung cấp chó không
-        const linkedDogsCount = await Dog.countDocuments({ farmId: id });
+    const linkedDogsCount = await Dog.countDocuments({ farmId: id });
 
-        if (linkedDogsCount > 0) {
-            return next(
-                new ApiError(400, `KHÔNG THỂ XÓA: Trại này đang cung cấp ${linkedDogsCount} bé chó. Vui lòng chuyển trạng thái sang "Ngừng hợp tác"!`)
-            );
-        }
-
-        // BƯỚC 2: An toàn thì tiến hành xóa
-        const deletedFarm = await Farm.findByIdAndDelete(id);
-
-        if (!deletedFarm) return next(new ApiError(404, "Trại chó không tồn tại!"));
-
-        res.send({ message: "Đã xóa trại chó thành công!" });
-    } catch (error) {
-        return next(new ApiError(500, `Lỗi khi xóa trại chó: ${error.message}`));
+    if (linkedDogsCount > 0) {
+      return next(
+        new ApiError(
+          400,
+          `KHÔNG THỂ XÓA: Trại này đang có ${linkedDogsCount} hồ sơ chó. Vui lòng chuyển trạng thái sang "Ngừng hợp tác".`
+        )
+      );
     }
+
+    const deletedFarm = await Farm.findByIdAndDelete(id);
+
+    if (!deletedFarm) {
+      return next(new ApiError(404, "Trại chó không tồn tại"));
+    }
+
+    return res.send({ message: "Đã xóa trại chó thành công!" });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi xóa trại chó: " + error.message));
+  }
 };
 
-// 5. HÀM TỰ ĐỘNG SINH MÃ TRẠI (VD: T001, T002)
+// 6. Tự động sinh mã trại
 exports.getNextCode = async (req, res, next) => {
-    try {
-        const lastFarm = await Farm.findOne().sort({ maTrai: -1 });
-        let nextCode = "T001"; 
+  try {
+    const lastFarm = await Farm.findOne().sort({ maTrai: -1 });
+    let nextCode = "T001";
 
-        if (lastFarm && lastFarm.maTrai) {
-            const lastNumber = parseInt(lastFarm.maTrai.replace("T", ""), 10);
-            const nextNumber = lastNumber + 1;
-            nextCode = "T" + nextNumber.toString().padStart(3, "0");
-        }
-
-        res.send({ nextCode: nextCode });
-    } catch (error) {
-        return next(new ApiError(500, "Lỗi khi tạo mã trại tự động"));
+    if (lastFarm && lastFarm.maTrai) {
+      const lastNumber = parseInt(lastFarm.maTrai.replace("T", ""), 10);
+      const nextNumber = lastNumber + 1;
+      nextCode = "T" + nextNumber.toString().padStart(3, "0");
     }
+
+    return res.send({ nextCode });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi tạo mã trại tự động"));
+  }
 };

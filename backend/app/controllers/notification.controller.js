@@ -1,6 +1,30 @@
 const Notification = require("../models/notification.model");
 const ApiError = require("../api-error");
 
+const normalizeRole = (role) => String(role || "").toLowerCase();
+
+const canAccessNotification = (notification, req) => {
+  const role = normalizeRole(req.user?.role);
+  const userId = req.user?._id || req.user?.id || null;
+  const farmId = req.user?.farmId || null;
+
+  if (notification.targetRole === "all") return true;
+
+  if (role === "customer") {
+    return String(notification.userId || "") === String(userId);
+  }
+
+  if (role === "farm") {
+    return farmId && String(notification.farmId || "") === String(farmId);
+  }
+
+  if (role === "admin") {
+    return notification.targetRole === "admin";
+  }
+
+  return false;
+};
+
 // 1. Tạo thông báo mới
 exports.create = async (req, res, next) => {
   try {
@@ -45,7 +69,17 @@ exports.create = async (req, res, next) => {
 // 2. Lấy tất cả thông báo (admin xem)
 exports.findAll = async (req, res, next) => {
   try {
-    const notifications = await Notification.find()
+    const filter = {};
+
+    if (req.query.targetRole) {
+      filter.targetRole = req.query.targetRole;
+    }
+
+    if (req.query.type) {
+      filter.type = req.query.type;
+    }
+
+    const notifications = await Notification.find(filter)
       .populate("userId", "username fullName phone")
       .populate("farmId", "name phone")
       .sort({ createdAt: -1 });
@@ -66,12 +100,8 @@ exports.findMineForCustomer = async (req, res, next) => {
     const currentUserId = req.user._id || req.user.id;
 
     const notifications = await Notification.find({
-      $or: [
-        { userId: currentUserId },
-        { targetRole: "all" },
-      ],
-    })
-      .sort({ createdAt: -1 });
+      $or: [{ userId: currentUserId }, { targetRole: "all" }],
+    }).sort({ createdAt: -1 });
 
     return res.send(notifications);
   } catch (error) {
@@ -86,15 +116,15 @@ exports.findMineForFarm = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const currentFarmId = req.user._id || req.user.id;
+    const currentFarmId = req.user.farmId;
+
+    if (!currentFarmId) {
+      return next(new ApiError(403, "Tài khoản này chưa được liên kết với trang trại"));
+    }
 
     const notifications = await Notification.find({
-      $or: [
-        { farmId: currentFarmId },
-        { targetRole: "all" },
-      ],
-    })
-      .sort({ createdAt: -1 });
+      $or: [{ farmId: currentFarmId }, { targetRole: "all" }],
+    }).sort({ createdAt: -1 });
 
     return res.send(notifications);
   } catch (error) {
@@ -105,13 +135,22 @@ exports.findMineForFarm = async (req, res, next) => {
 // 5. Đánh dấu đã đọc 1 thông báo
 exports.markAsRead = async (req, res, next) => {
   try {
+    if (!req.user) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
     const notification = await Notification.findById(req.params.id);
 
     if (!notification) {
       return next(new ApiError(404, "Không tìm thấy thông báo"));
     }
 
+    if (!canAccessNotification(notification, req)) {
+      return next(new ApiError(403, "Bạn không có quyền thao tác thông báo này"));
+    }
+
     notification.isRead = true;
+    notification.readAt = new Date();
     await notification.save();
 
     return res.send({
@@ -131,16 +170,14 @@ exports.markAllAsReadForCustomer = async (req, res, next) => {
     }
 
     const currentUserId = req.user._id || req.user.id;
+    const now = new Date();
 
     await Notification.updateMany(
       {
-        $or: [
-          { userId: currentUserId },
-          { targetRole: "all" },
-        ],
+        $or: [{ userId: currentUserId }, { targetRole: "all" }],
         isRead: false,
       },
-      { $set: { isRead: true } }
+      { $set: { isRead: true, readAt: now } }
     );
 
     return res.send({
@@ -158,17 +195,19 @@ exports.markAllAsReadForFarm = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const currentFarmId = req.user._id || req.user.id;
+    const currentFarmId = req.user.farmId;
+    if (!currentFarmId) {
+      return next(new ApiError(403, "Tài khoản này chưa được liên kết với trang trại"));
+    }
+
+    const now = new Date();
 
     await Notification.updateMany(
       {
-        $or: [
-          { farmId: currentFarmId },
-          { targetRole: "all" },
-        ],
+        $or: [{ farmId: currentFarmId }, { targetRole: "all" }],
         isRead: false,
       },
-      { $set: { isRead: true } }
+      { $set: { isRead: true, readAt: now } }
     );
 
     return res.send({

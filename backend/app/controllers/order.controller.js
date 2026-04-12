@@ -3,6 +3,9 @@ const Dog = require("../models/dog.model");
 const ApiError = require("../api-error");
 const OrderHistory = require("../models/orderHistory.model");
 const DogHistory = require("../models/dogHistory.model");
+const DogCareRecord = require("../models/dogCareRecord.model");
+const DogReminder = require("../models/dogReminder.model");
+const Notification = require("../models/notification.model");
 
 const getActorInfo = (req) => {
   const actorId = req.user?._id || req.user?.id || null;
@@ -62,11 +65,113 @@ const createDogHistory = async ({
   });
 };
 
+const createDogCareRecordAfterSale = async ({ order, dog, req }) => {
+  const actorId = req.user?._id || req.user?.id || null;
+
+  const existed = await DogCareRecord.findOne({
+    dogId: dog._id,
+    orderId: order._id,
+  });
+
+  if (existed) return existed;
+
+  return await DogCareRecord.create({
+    dogId: dog._id,
+    orderId: order._id,
+    customerId: order.userId,
+    handoverDate: new Date(),
+    handoverCondition: "Bàn giao ban đầu ổn định",
+    initialCareNote:
+      "Hệ thống tạo hồ sơ theo dõi sau bán sau khi đơn hàng hoàn thành.",
+    currentStatus: "Đang theo dõi",
+    nextCheckDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    adminNote: "Theo dõi sau bán đợt đầu",
+    createdBy: actorId,
+  });
+};
+
+const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
+  const actorId = req.user?._id || req.user?.id || null;
+
+  const reminders = [
+    {
+      reminderType: "Tái khám",
+      title: `Tái khám sau bàn giao cho bé ${dog.name}`,
+      description: "Nhắc khách đưa bé quay lại tái khám sau khi nhận chó.",
+      reminderDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+    {
+      reminderType: "Tẩy giun",
+      title: `Nhắc tẩy giun định kỳ cho bé ${dog.name}`,
+      description: "Nhắc khách theo dõi lịch tẩy giun định kỳ sau bán.",
+      reminderDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  ];
+
+  const created = [];
+
+  for (const item of reminders) {
+    const existed = await DogReminder.findOne({
+      dogId: dog._id,
+      customerId: order.userId,
+      reminderType: item.reminderType,
+      title: item.title,
+    });
+
+    if (!existed) {
+      const reminder = await DogReminder.create({
+        dogId: dog._id,
+        customerId: order.userId,
+        orderId: order._id,
+        careRecordId: careRecord?._id || null,
+        reminderType: item.reminderType,
+        title: item.title,
+        description: item.description,
+        reminderDate: item.reminderDate,
+        status: "Chờ nhắc",
+        createdBy: actorId,
+      });
+
+      created.push(reminder);
+    }
+  }
+
+  return created;
+};
+
+const createCustomerNotificationAfterSale = async ({ order, dog }) => {
+  return await Notification.create({
+    userId: order.userId,
+    title: `Hoàn tất bàn giao bé ${dog.name}`,
+    message:
+      `Đơn hàng của bạn đã hoàn thành. Hệ thống đã tạo hồ sơ theo dõi sau bán ` +
+      `và lịch nhắc chăm sóc cho bé ${dog.name}.`,
+    type: "DOG_CARE_UPDATE",
+    targetRole: "customer",
+    relatedId: String(order._id),
+    relatedModel: "Order",
+  });
+};
+
+const ACTIVE_ORDER_STATUSES = ["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"];
+const VALID_ORDER_STATUSES = [
+  "Chờ xác nhận cọc",
+  "Đã nhận cọc",
+  "Đang giao",
+  "Hoàn thành",
+  "Đã hủy",
+];
+
 // 1. Khách tạo đơn đặt cọc
 exports.createDeposit = async (req, res, next) => {
   try {
+    if (!req.user) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
+    const userId = req.user._id || req.user.id;
+
     const {
-      userId,
       customerName,
       customerPhone,
       customerAddress,
@@ -78,7 +183,6 @@ exports.createDeposit = async (req, res, next) => {
     } = req.body;
 
     if (
-      !userId ||
       !customerName ||
       !customerPhone ||
       !customerAddress ||
@@ -93,8 +197,11 @@ exports.createDeposit = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy bé chó cần đặt cọc"));
     }
 
-    // Chỉ cho đặt cọc khi chó đã được duyệt
-    if (dog.status !== "Đã duyệt") {
+    if (dog.approvalStatus !== "Đã duyệt") {
+      return next(new ApiError(400, "Bé chó này chưa được duyệt để mở bán"));
+    }
+
+    if (dog.saleStatus !== "Sẵn sàng bán") {
       return next(
         new ApiError(
           400,
@@ -103,7 +210,12 @@ exports.createDeposit = async (req, res, next) => {
       );
     }
 
-    // Đối chiếu farmId gửi từ frontend với farmId thật của bé chó
+    if (!dog.isPublished || !dog.sourceVerified || !dog.eligibleForSale) {
+      return next(
+        new ApiError(400, "Bé chó này hiện chưa đủ điều kiện giao dịch")
+      );
+    }
+
     const realFarmId = dog.farmId?._id || dog.farmId;
     if (String(realFarmId) !== String(farmId)) {
       return next(
@@ -111,29 +223,25 @@ exports.createDeposit = async (req, res, next) => {
       );
     }
 
-    // Một bé chó chỉ được có 1 đơn đang hoạt động
     const activeOrder = await Order.findOne({
       dogId,
-      status: { $in: ["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"] },
+      status: { $in: ACTIVE_ORDER_STATUSES },
     });
 
     if (activeOrder) {
       return next(new ApiError(400, "Bé chó này đang có người đặt trước"));
     }
 
-    // Luôn lấy giá từ DB, không tin totalPrice từ frontend
     const parsedTotalPrice = Number(dog.price);
     if (!parsedTotalPrice || parsedTotalPrice <= 0) {
       return next(new ApiError(400, "Giá bé chó không hợp lệ"));
     }
 
     const finalPaymentMethod = paymentMethod || "Chuyển khoản";
-
     if (!["Chuyển khoản", "Tiền mặt"].includes(finalPaymentMethod)) {
       return next(new ApiError(400, "Phương thức thanh toán cọc không hợp lệ"));
     }
 
-    // Nếu chuyển khoản thì bắt buộc phải có minh chứng
     if (
       finalPaymentMethod === "Chuyển khoản" &&
       (!paymentProof || !String(paymentProof).trim())
@@ -146,7 +254,11 @@ exports.createDeposit = async (req, res, next) => {
       );
     }
 
-    const depositAmount = Math.round(parsedTotalPrice * 0.3);
+    const depositAmount =
+      dog.depositAmount && Number(dog.depositAmount) > 0
+        ? Number(dog.depositAmount)
+        : Math.round(parsedTotalPrice * 0.3);
+
     const remainingAmount = parsedTotalPrice - depositAmount;
 
     const paymentStatus =
@@ -173,10 +285,9 @@ exports.createDeposit = async (req, res, next) => {
 
     await newOrder.save();
 
-    const oldDogStatus = dog.status;
-
-    // Khi tạo đơn cọc thì chó chuyển sang chờ thanh toán
-    dog.status = "Chờ thanh toán";
+    const oldDogSaleStatus = dog.saleStatus;
+    dog.saleStatus = "Chờ thanh toán";
+    dog.isPublished = true;
     await dog.save();
 
     await createOrderHistory({
@@ -191,7 +302,7 @@ exports.createDeposit = async (req, res, next) => {
 
     await createDogHistory({
       dogId: dog._id,
-      oldStatus: oldDogStatus,
+      oldStatus: oldDogSaleStatus,
       newStatus: "Chờ thanh toán",
       req,
       note: "Khách hàng tạo yêu cầu đặt cọc",
@@ -207,11 +318,14 @@ exports.createDeposit = async (req, res, next) => {
   }
 };
 
-// 2. Lấy tất cả đơn
+// 2. Admin lấy tất cả đơn
 exports.findAll = async (req, res, next) => {
   try {
     const orders = await Order.find()
-      .populate("dogId", "name image maCho price status")
+      .populate(
+        "dogId",
+        "name image maCho price approvalStatus saleStatus isPublished"
+      )
       .populate("farmId", "name")
       .populate("userId", "username fullName phone")
       .sort({ createdAt: -1 });
@@ -230,15 +344,7 @@ exports.updateStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validOrderStatuses = [
-      "Chờ xác nhận cọc",
-      "Đã nhận cọc",
-      "Đang giao",
-      "Hoàn thành",
-      "Đã hủy",
-    ];
-
-    if (!validOrderStatuses.includes(status)) {
+    if (!VALID_ORDER_STATUSES.includes(status)) {
       return next(new ApiError(400, "Trạng thái đơn hàng không hợp lệ"));
     }
 
@@ -254,9 +360,8 @@ exports.updateStatus = async (req, res, next) => {
 
     const oldStatus = order.status;
     const oldPaymentStatus = order.paymentStatus;
-    const oldDogStatus = dog.status;
+    const oldDogSaleStatus = dog.saleStatus;
 
-    // Không đổi nếu trạng thái giống nhau
     if (oldStatus === status) {
       return res.send({
         message: "Trạng thái đơn không thay đổi.",
@@ -264,21 +369,18 @@ exports.updateStatus = async (req, res, next) => {
       });
     }
 
-    // Đơn hoàn thành thì khóa
     if (oldStatus === "Hoàn thành") {
       return next(
         new ApiError(400, "Đơn đã hoàn thành không thể thay đổi trạng thái")
       );
     }
 
-    // Đơn đã hủy thì khóa
     if (oldStatus === "Đã hủy") {
       return next(
         new ApiError(400, "Đơn đã hủy không thể chuyển sang trạng thái khác")
       );
     }
 
-    // Chỉ cho chuyển trạng thái theo luồng đúng
     const allowedTransitions = {
       "Chờ xác nhận cọc": ["Đã nhận cọc", "Đã hủy"],
       "Đã nhận cọc": ["Đang giao", "Đã hủy"],
@@ -294,7 +396,6 @@ exports.updateStatus = async (req, res, next) => {
       );
     }
 
-    // Xác nhận đã nhận cọc
     if (status === "Đã nhận cọc") {
       if (
         order.paymentMethod === "Chuyển khoản" &&
@@ -309,10 +410,10 @@ exports.updateStatus = async (req, res, next) => {
       }
 
       order.paymentStatus = "Đã xác nhận";
-      dog.status = "Đã đặt cọc";
+      dog.saleStatus = "Đã đặt cọc";
+      dog.isPublished = true;
     }
 
-    // Bắt đầu giao chó
     if (status === "Đang giao") {
       if (oldStatus !== "Đã nhận cọc") {
         return next(
@@ -329,35 +430,49 @@ exports.updateStatus = async (req, res, next) => {
         );
       }
 
-      dog.status = "Đang giao";
+      dog.saleStatus = "Đang giao";
+      dog.isPublished = true;
     }
 
-    // Hoàn thành đơn
     if (status === "Hoàn thành") {
       if (oldStatus !== "Đang giao") {
-        return next(
-          new ApiError(400, "Chỉ được hoàn thành khi đơn đang giao")
-        );
+        return next(new ApiError(400, "Chỉ được hoàn thành khi đơn đang giao"));
       }
 
-      dog.status = "Đã bán";
+      dog.saleStatus = "Đã bán";
+      dog.isPublished = true;
     }
 
-    // Hủy đơn
     if (status === "Đã hủy") {
-      if (!["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"].includes(oldStatus)) {
+      if (!ACTIVE_ORDER_STATUSES.includes(oldStatus)) {
         return next(
           new ApiError(400, "Không thể hủy đơn ở trạng thái hiện tại")
         );
       }
 
-      dog.status = "Đã duyệt";
+      dog.saleStatus = "Sẵn sàng bán";
+      dog.isPublished = true;
     }
 
     order.status = status;
 
     await order.save();
     await dog.save();
+
+    let careRecord = null;
+
+    if (status === "Hoàn thành") {
+      careRecord = await createDogCareRecordAfterSale({ order, dog, req });
+
+      await createInitialDogReminders({
+        order,
+        dog,
+        careRecord,
+        req,
+      });
+
+      await createCustomerNotificationAfterSale({ order, dog });
+    }
 
     await createOrderHistory({
       orderId: order._id,
@@ -369,19 +484,23 @@ exports.updateStatus = async (req, res, next) => {
       note: "Admin cập nhật trạng thái đơn đặt cọc",
     });
 
-    if (oldDogStatus !== dog.status) {
+    if (oldDogSaleStatus !== dog.saleStatus) {
       await createDogHistory({
         dogId: dog._id,
-        oldStatus: oldDogStatus,
-        newStatus: dog.status,
+        oldStatus: oldDogSaleStatus,
+        newStatus: dog.saleStatus,
         req,
         note: `Đồng bộ theo trạng thái đơn: ${order.status}`,
       });
     }
 
     return res.send({
-      message: "Cập nhật trạng thái đơn hàng thành công!",
+      message:
+        status === "Hoàn thành"
+          ? "Hoàn thành đơn hàng thành công! Hệ thống đã tạo hồ sơ theo dõi sau bán và lịch nhắc ban đầu."
+          : "Cập nhật trạng thái đơn hàng thành công!",
       order,
+      careRecord: careRecord || null,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi cập nhật đơn hàng: " + error.message));
@@ -409,7 +528,6 @@ exports.cancelByCustomer = async (req, res, next) => {
       return next(new ApiError(403, "Bạn không có quyền hủy đơn này"));
     }
 
-    // Khách chỉ được tự hủy khi đang chờ xác nhận cọc
     if (order.status !== "Chờ xác nhận cọc") {
       return next(
         new ApiError(400, "Bạn chỉ có thể tự hủy đơn khi đang chờ xác nhận cọc")
@@ -420,11 +538,12 @@ exports.cancelByCustomer = async (req, res, next) => {
     const oldPaymentStatus = order.paymentStatus;
 
     const dog = await Dog.findById(order.dogId);
-    let oldDogStatus = "";
+    let oldDogSaleStatus = "";
 
     if (dog) {
-      oldDogStatus = dog.status;
-      dog.status = "Đã duyệt";
+      oldDogSaleStatus = dog.saleStatus;
+      dog.saleStatus = "Sẵn sàng bán";
+      dog.isPublished = true;
       await dog.save();
     }
 
@@ -445,8 +564,8 @@ exports.cancelByCustomer = async (req, res, next) => {
     if (dog) {
       await createDogHistory({
         dogId: dog._id,
-        oldStatus: oldDogStatus,
-        newStatus: "Đã duyệt",
+        oldStatus: oldDogSaleStatus,
+        newStatus: "Sẵn sàng bán",
         req,
         note: "Khách hủy đơn, chó quay lại trạng thái mở bán",
       });
@@ -463,29 +582,20 @@ exports.cancelByCustomer = async (req, res, next) => {
   }
 };
 
-// 5. Tìm đơn theo số điện thoại
-exports.findByPhone = async (req, res, next) => {
+// 5. Khách xem đơn của chính mình
+exports.findMyOrders = async (req, res, next) => {
   try {
-    const { phone } = req.params;
-    const orders = await Order.find({ customerPhone: phone })
-      .populate("dogId", "name image maCho price status")
-      .populate("farmId", "name")
-      .sort({ createdAt: -1 });
+    if (!req.user) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
 
-    return res.send(orders);
-  } catch (error) {
-    return next(
-      new ApiError(500, "Lỗi khi tra cứu lịch sử đặt cọc: " + error.message)
-    );
-  }
-};
+    const currentUserId = req.user._id || req.user.id;
 
-// 6. Tìm đơn theo userId
-exports.findByUserId = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const orders = await Order.find({ userId })
-      .populate("dogId", "name image maCho price status")
+    const orders = await Order.find({ userId: currentUserId })
+      .populate(
+        "dogId",
+        "name image maCho price approvalStatus saleStatus isPublished"
+      )
       .populate("farmId", "name")
       .sort({ createdAt: -1 });
 
@@ -493,6 +603,27 @@ exports.findByUserId = async (req, res, next) => {
   } catch (error) {
     return next(
       new ApiError(500, "Lỗi khi tải lịch sử đơn hàng của bạn: " + error.message)
+    );
+  }
+};
+
+exports.getHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return next(new ApiError(404, "Không tìm thấy đơn hàng"));
+    }
+
+    const histories = await OrderHistory.find({ orderId: id }).sort({
+      createdAt: -1,
+    });
+
+    return res.send(histories);
+  } catch (error) {
+    return next(
+      new ApiError(500, "Lỗi khi lấy lịch sử đơn hàng: " + error.message)
     );
   }
 };

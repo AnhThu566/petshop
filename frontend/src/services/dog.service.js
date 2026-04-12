@@ -28,11 +28,25 @@ class DogService {
   }
 
   async update(id, data) {
-    return (await this.api.put(`/${id}`, data)).data;
+    return (
+      await this.api.put(`/${id}`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+    ).data;
   }
 
-  async updateStatus(id, data) {
-    return (await this.api.put(`/${id}/status`, data)).data;
+  async updateApprovalStatus(id, data) {
+    return (await this.api.put(`/${id}/approval-status`, data)).data;
+  }
+
+  async updateSaleStatus(id, data) {
+    return (await this.api.put(`/${id}/sale-status`, data)).data;
+  }
+
+  async getHistory(id) {
+    return (await this.api.get(`/${id}/history`)).data;
   }
 }
 

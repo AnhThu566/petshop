@@ -7,7 +7,7 @@
           Đặt cọc đón bé về nhà
         </h2>
         <p class="page-subtitle mb-0">
-          Kiểm tra thông tin bé chó, nguồn gốc từ trại và điền thông tin nhận bé trước khi gửi yêu cầu đặt cọc.
+          Kiểm tra thông tin bé chó và điền thông tin nhận bé trước khi gửi yêu cầu đặt cọc.
         </p>
       </div>
 
@@ -98,7 +98,7 @@
                   placeholder="Mã giao dịch / link bill / tên file bill"
                 />
                 <small class="text-muted">
-                  Dùng để đối soát trước khi xác nhận cọc.
+                  Dùng để hệ thống đối soát trước khi xác nhận khoản cọc.
                 </small>
               </div>
 
@@ -117,7 +117,7 @@
                   <i class="fas fa-shield-alt mr-2"></i>Chính sách đặt cọc
                 </div>
                 <ul class="policy-list mb-0">
-                  <li>Yêu cầu đặt cọc được xác nhận sau khi hệ thống kiểm tra thông tin thanh toán.</li>
+                  <li>Yêu cầu đặt cọc được xác nhận sau khi quản trị viên kiểm tra thông tin thanh toán.</li>
                   <li>Nếu chọn chuyển khoản, khách cần cung cấp minh chứng.</li>
                   <li>Phần tiền còn lại thanh toán khi bàn giao chó thành công.</li>
                 </ul>
@@ -154,15 +154,17 @@
 
             <div class="summary-body">
               <div class="source-box mb-3">
-                <div class="source-title">Nguồn gốc từ trại</div>
-                <div class="source-value">{{ dog.farmId?.name || "Đang cập nhật" }}</div>
+                <div class="source-title">Thông tin nguồn gốc</div>
+                <div class="source-value">
+                  {{ dog.sourceVerified ? "Đã được hệ thống xác minh" : "Đang cập nhật trong hệ thống" }}
+                </div>
                 <div class="source-desc">
-                  Thông tin trại đăng bán được hiển thị rõ ràng.
+                  Thông tin nguồn gốc được hệ thống quản lý để đảm bảo minh bạch trước khi mở bán.
                 </div>
               </div>
 
               <div class="health-box mb-3">
-                <div class="health-title">Hồ sơ sức khỏe</div>
+                <div class="health-title">Thông tin sức khỏe tóm tắt</div>
                 <div class="health-row">
                   <span>Sức khỏe</span>
                   <strong>{{ dog.healthStatus || "Đang cập nhật" }}</strong>
@@ -172,8 +174,8 @@
                   <strong>{{ formatDate(dog.lastDeworming) }}</strong>
                 </div>
                 <div class="health-row">
-                  <span>Số mũi tiêm</span>
-                  <strong>{{ dog.healthRecord?.length || 0 }}</strong>
+                  <span>Điều kiện bán</span>
+                  <strong>{{ dog.eligibleForSale ? "Đủ điều kiện" : "Đang cập nhật" }}</strong>
                 </div>
               </div>
 
@@ -184,7 +186,7 @@
                 </div>
                 <div class="price-row">
                   <span>Tỷ lệ cọc</span>
-                  <strong>30%</strong>
+                  <strong>{{ depositRateText }}</strong>
                 </div>
                 <div class="price-row">
                   <span>Tiền còn lại</span>
@@ -228,8 +230,8 @@
         <p class="text-muted mb-4">
           Vui lòng quay lại danh sách để chọn một bé cún trước khi đặt cọc nhé.
         </p>
-        <router-link to="/" class="btn btn-main px-4 py-2 font-weight-bold rounded-pill">
-          Quay lại trang chủ
+        <router-link to="/dogs" class="btn btn-main px-4 py-2 font-weight-bold rounded-pill">
+          Quay lại danh sách chó
         </router-link>
       </div>
     </div>
@@ -261,13 +263,23 @@ export default {
 
   computed: {
     depositAmount() {
-      if (!this.dog || !this.dog.price) return 0;
+      if (!this.dog) return 0;
+      if (this.dog.depositAmount && Number(this.dog.depositAmount) > 0) {
+        return Number(this.dog.depositAmount);
+      }
+      if (!this.dog.price) return 0;
       return Math.round(Number(this.dog.price) * 0.3);
     },
 
     remainingAmount() {
       if (!this.dog || !this.dog.price) return 0;
       return Number(this.dog.price) - this.depositAmount;
+    },
+
+    depositRateText() {
+      if (!this.dog || !this.dog.price) return "---";
+      const rate = Math.round((this.depositAmount / Number(this.dog.price)) * 100);
+      return `${rate}%`;
     },
 
     dogImage() {
@@ -318,7 +330,13 @@ export default {
         return;
       }
 
-      if (this.dog.status !== "Đã duyệt") {
+      if (
+        this.dog.approvalStatus !== "Đã duyệt" ||
+        this.dog.saleStatus !== "Sẵn sàng bán" ||
+        !this.dog.isPublished ||
+        !this.dog.sourceVerified ||
+        !this.dog.eligibleForSale
+      ) {
         alert("❌ Bé chó này hiện không còn sẵn sàng để đặt cọc.");
         return;
       }
@@ -336,7 +354,7 @@ export default {
       const confirmMessage =
         `Vui lòng kiểm tra lại thông tin đặt cọc:\n\n` +
         `- Bé chó: ${this.dog.name}\n` +
-        `- Trại đăng bán: ${this.dog.farmId?.name || "Đang cập nhật"}\n` +
+        `- Nguồn gốc: ${this.dog.sourceVerified ? "Đã xác minh" : "Đang cập nhật"}\n` +
         `- Tổng giá: ${this.formatCurrency(this.dog.price)}\n` +
         `- Tiền cọc: ${this.formatCurrency(this.depositAmount)}\n` +
         `- Tiền còn lại: ${this.formatCurrency(this.remainingAmount)}\n` +
@@ -348,7 +366,6 @@ export default {
       this.isSubmitting = true;
 
       const orderData = {
-        userId: this.currentUser._id || this.currentUser.id,
         customerName: this.form.customerName,
         customerPhone: this.form.customerPhone,
         customerAddress: this.form.customerAddress,
@@ -357,7 +374,6 @@ export default {
         paymentProof: this.form.paymentProof,
         dogId: this.dog._id || this.dog.id,
         farmId: this.dog.farmId?._id || this.dog.farmId,
-        totalPrice: this.dog.price,
       };
 
       try {

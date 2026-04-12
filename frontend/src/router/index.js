@@ -24,7 +24,6 @@ import ServiceCategoryPage from "@/views/admin/service/ServiceCategoryPage.vue";
 import FarmDashboard from "@/views/farm/FarmDashboard.vue";
 import FarmDogList from "@/views/farm/FarmDogList.vue";
 import FarmDogForm from "@/views/farm/FarmDogForm.vue";
-import FarmTransactionPage from "@/views/farm/FarmTransactionPage.vue";
 import FarmProfilePage from "@/views/farm/FarmProfilePage.vue";
 
 // ==========================================
@@ -43,6 +42,9 @@ import ServiceDetail from "@/views/customer/ServiceDetail.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
 import DogList from "@/views/customer/DogList.vue";
+import CustomerNotification from "@/views/customer/CustomerNotification.vue";
+import CustomerDogReminder from "@/views/customer/CustomerDogReminder.vue";
+import CustomerMyDogs from "@/views/customer/CustomerMyDog.vue";
 
 const routes = [
   // ============================================================
@@ -129,6 +131,25 @@ const routes = [
     component: ServiceBookingHistory,
     meta: { requiresCustomer: true },
   },
+  {
+    path: "/my-notifications",
+    name: "customer-notifications",
+    component: CustomerNotification,
+    meta: { requiresCustomer: true },
+  },
+  {
+    path: "/my-dog-reminders",
+    name: "customer-dog-reminders",
+    component: CustomerDogReminder,
+    meta: { requiresCustomer: true },
+  },
+
+  {
+  path: "/my-dogs",
+  name: "customer-my-dogs",
+  component:CustomerMyDogs,
+  meta: { requiresCustomer: true },
+},
 
   // ============================================================
   // ROUTER CHO CHỦ TRẠI (FARM)
@@ -154,12 +175,7 @@ const routes = [
         component: FarmDogForm,
         meta: { requiresFarm: true },
       },
-      {
-        path: "transactions",
-        name: "farm-transactions",
-        component: FarmTransactionPage,
-        meta: { requiresFarm: true },
-      },
+      
       {
         path: "profile",
         name: "farm-profile",
@@ -259,6 +275,13 @@ const routes = [
         component: ServiceCategoryPage,
         meta: { requiresAdmin: true },
       },
+
+      {
+  path: "dog-health-records",
+  name: "admin-dog-health-records",
+  component: () => import("@/views/admin/dog/DogHealthRecordPage.vue"),
+  meta: { requiresAdmin: true },
+},
     ],
   },
 
@@ -320,7 +343,11 @@ router.beforeEach((to) => {
       return "/";
     }
 
-    if (farm) return true;
+    if (!farm) {
+      alert("Không tìm thấy thông tin trang trại. Vui lòng đăng nhập lại.");
+      return "/login";
+    }
+
     return true;
   }
 

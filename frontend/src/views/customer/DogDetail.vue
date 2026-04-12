@@ -7,7 +7,7 @@
             <router-link to="/" class="text-muted text-decoration-none">Trang chủ</router-link>
           </li>
           <li class="breadcrumb-item">
-            <router-link to="/" class="text-muted text-decoration-none">Chó cảnh</router-link>
+            <router-link to="/dogs" class="text-muted text-decoration-none">Chó cảnh</router-link>
           </li>
           <li class="breadcrumb-item active font-weight-bold text-dark" aria-current="page" v-if="dog">
             {{ dog.name }}
@@ -57,21 +57,18 @@
             <h1 class="pet-title font-weight-bold mb-2">{{ dog.name }}</h1>
 
             <p class="origin-message text-muted mb-3">
-              Chó được đăng bán từ trại có thông tin rõ ràng và hồ sơ sức khỏe minh bạch.
+              Bé chó được hệ thống tiếp nhận và quản lý với thông tin nguồn gốc rõ ràng, hồ sơ sức khỏe minh bạch trước khi mở bán.
             </p>
 
-            <div class="farm-mini-box mb-3" v-if="dog.farmId">
-              <span class="farm-mini-label">Nguồn gốc từ trại:</span>
-              <strong class="farm-mini-name">{{ dog.farmId?.name || "Đang cập nhật" }}</strong>
-
-              <button
-                v-if="dog.farmId?._id || dog.farmId?.id"
-                type="button"
-                class="btn-view-farm"
-                @click="goToFarmPage"
-              >
-                Xem trang trại
-              </button>
+            <div class="source-mini-box mb-3">
+              <span class="source-mini-label">Nguồn gốc:</span>
+              <strong class="source-mini-name">
+                {{
+                  dog.sourceVerified
+                    ? "Đã được hệ thống xác minh"
+                    : "Đang cập nhật trong hệ thống"
+                }}
+              </strong>
             </div>
 
             <div class="price-box mb-3">
@@ -80,7 +77,10 @@
               </span>
             </div>
 
-            <div class="availability-box mb-4" v-if="dog.status === 'Đã duyệt'">
+            <div
+              class="availability-box mb-4"
+              v-if="dog.saleStatus === 'Sẵn sàng bán'"
+            >
               <i class="fas fa-heart mr-2"></i>
               Sẵn sàng đón về.
             </div>
@@ -88,24 +88,41 @@
             <div
               class="availability-box hold-box mb-4"
               v-else-if="
-                dog.status === 'Chờ thanh toán' ||
-                dog.status === 'Đã đặt cọc' ||
-                dog.status === 'Đang giao'
+                dog.saleStatus === 'Chờ thanh toán' ||
+                dog.saleStatus === 'Đã đặt cọc' ||
+                dog.saleStatus === 'Đang giao'
               "
             >
               <i class="fas fa-clock mr-2"></i>
-              Đang có khách giữ chỗ.
+              {{ getSaleStatusText(dog.saleStatus) }}.
             </div>
 
-            <div class="availability-box sold-box mb-4" v-else-if="dog.status === 'Đã bán'">
+            <div
+              class="availability-box sold-box mb-4"
+              v-else-if="dog.saleStatus === 'Đã bán'"
+            >
               <i class="fas fa-check-circle mr-2"></i>
-              Đã bán.
+              Đã có chủ mới.
+            </div>
+
+            <div
+              class="availability-box stop-box mb-4"
+              v-else-if="dog.saleStatus === 'Ngừng bán'"
+            >
+              <i class="fas fa-pause-circle mr-2"></i>
+              Tạm ngừng mở bán.
             </div>
 
             <div class="highlight-tags mb-4">
-              <span class="highlight-tag"><i class="fas fa-shield-alt mr-1"></i>Nguồn gốc rõ ràng</span>
-              <span class="highlight-tag"><i class="fas fa-notes-medical mr-1"></i>Có hồ sơ sức khỏe</span>
-              <span class="highlight-tag"><i class="fas fa-store mr-1"></i>Trại đăng bán xác định</span>
+              <span class="highlight-tag">
+                <i class="fas fa-shield-alt mr-1"></i>Nguồn gốc rõ ràng
+              </span>
+              <span class="highlight-tag">
+                <i class="fas fa-notes-medical mr-1"></i>Có hồ sơ sức khỏe
+              </span>
+              <span class="highlight-tag">
+                <i class="fas fa-store mr-1"></i>Hệ thống bán chính thức
+              </span>
             </div>
 
             <h5 class="section-title pb-2 mb-3">THÔNG TIN VỀ CÚN YÊU</h5>
@@ -141,19 +158,10 @@
                   </strong>
                 </div>
                 <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3">
-                  <span class="info-label text-muted">Trại đăng bán:</span>
-                  <div class="farm-link-wrap">
-                    <strong class="text-dark mr-2">{{ dog.farmId?.name || "Đang cập nhật" }}</strong>
-
-                    <button
-                      v-if="dog.farmId?._id || dog.farmId?.id"
-                      type="button"
-                      class="btn-view-farm"
-                      @click="goToFarmPage"
-                    >
-                      Xem trại
-                    </button>
-                  </div>
+                  <span class="info-label text-muted">Nguồn gốc:</span>
+                  <strong class="text-dark">
+                    {{ dog.sourceVerified ? "Đã xác minh" : "Đang cập nhật" }}
+                  </strong>
                 </div>
               </div>
 
@@ -169,32 +177,15 @@
               </div>
 
               <div class="d-flex flex-wrap stripe-purple">
-                <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md flex-nowrap">
-                  <span class="info-label text-muted">Tẩy giun:</span>
-                  <strong class="text-dark mr-2">
-                    {{ dog.lastDeworming ? "Đã tẩy" : "Chưa cập nhật" }}
+                <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 border-right-md">
+                  <span class="info-label text-muted">Điều kiện bán:</span>
+                  <strong :class="dog.eligibleForSale ? 'text-success' : 'text-warning'">
+                    {{ dog.eligibleForSale ? "Đủ điều kiện" : "Đang cập nhật" }}
                   </strong>
-                  <a
-                    href="#"
-                    class="text-primary small font-weight-bold text-decoration-underline text-nowrap"
-                    @click.prevent="showDewormModal = true"
-                    v-if="dog.lastDeworming"
-                  >
-                    (Xem chi tiết)
-                  </a>
                 </div>
-
-                <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3 flex-nowrap">
-                  <span class="info-label text-muted">Tiêm phòng:</span>
-                  <strong class="text-dark mr-2">{{ dog.healthRecord?.length || 0 }} mũi</strong>
-                  <a
-                    href="#"
-                    class="text-primary small font-weight-bold text-decoration-underline text-nowrap"
-                    @click.prevent="showVaccineModal = true"
-                    v-if="dog.healthRecord && dog.healthRecord.length > 0"
-                  >
-                    (Xem chi tiết)
-                  </a>
+                <div class="col-12 col-md-6 d-flex align-items-center py-2 px-3">
+                  <span class="info-label text-muted">Trạng thái:</span>
+                  <strong class="text-dark">{{ getSaleStatusText(dog.saleStatus) }}</strong>
                 </div>
               </div>
 
@@ -206,16 +197,28 @@
               </div>
             </div>
 
+            <div class="health-note-box mb-4">
+              <h6 class="health-note-title mb-2">
+                <i class="fas fa-notes-medical mr-2"></i>Thông tin sức khỏe
+              </h6>
+              <p class="mb-0 text-muted">
+                Hồ sơ sức khỏe chi tiết trước và sau mua sẽ được hệ thống quản lý riêng. Ở trang này, khách hàng chỉ xem thông tin sức khỏe tóm tắt để phục vụ quyết định mua.
+              </p>
+            </div>
+
             <h5 class="section-title pb-2 mb-3 mt-4">LIÊN HỆ ĐÓN BÉ</h5>
 
             <div class="action-buttons d-flex flex-wrap">
               <button
                 class="btn btn-main font-weight-bold py-3 px-4 mr-3 mb-3 shadow-sm"
                 @click="goToDeposit"
-                :disabled="dog.status !== 'Đã duyệt'"
+                :disabled="dog.saleStatus !== 'Sẵn sàng bán'"
               >
-                <i class="fas" :class="dog.status === 'Đã duyệt' ? 'fa-hand-holding-usd' : 'fa-lock'"></i>
-                <span class="ml-2">{{ getDepositButtonText(dog.status) }}</span>
+                <i
+                  class="fas"
+                  :class="dog.saleStatus === 'Sẵn sàng bán' ? 'fa-hand-holding-usd' : 'fa-lock'"
+                ></i>
+                <span class="ml-2">{{ getDepositButtonText(dog.saleStatus) }}</span>
               </button>
 
               <a
@@ -235,83 +238,6 @@
       <p class="mt-3 text-muted">Đang tải thông tin...</p>
     </div>
 
-    <div v-if="showVaccineModal" class="custom-modal-backdrop" @click.self="showVaccineModal = false">
-      <div class="custom-modal-box shadow-lg bg-white rounded-lg overflow-hidden">
-        <div class="bg-light p-3 d-flex justify-content-between align-items-center border-bottom">
-          <h5 class="mb-0 font-weight-bold" style="color: #6a1b9a;">
-            <i class="fas fa-syringe mr-2 text-danger"></i> Lịch sử tiêm chủng
-          </h5>
-          <button
-            class="btn btn-sm btn-outline-secondary rounded-circle"
-            style="width: 32px; height: 32px;"
-            @click="showVaccineModal = false"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="p-4" style="max-height: 60vh; overflow-y: auto;">
-          <div v-if="dog.healthRecord && dog.healthRecord.length > 0">
-            <div
-              v-for="(v, i) in dog.healthRecord"
-              :key="i"
-              class="vaccine-badge shadow-sm bg-white mb-3"
-            >
-              <i class="fas fa-shield-alt text-success mr-3 fa-2x"></i>
-              <div class="d-flex flex-column">
-                <strong class="text-dark vaccine-name">
-                  {{ v.vaccineId?.name || "Đang cập nhật" }}
-                </strong>
-
-                <span class="vaccine-date mt-1">
-                  <i class="far fa-clock mr-1"></i>
-                  Ngày tiêm: {{ formatDate(v.dateInjected) }}
-                </span>
-
-                <span class="small text-muted mt-1">
-                  Ghi chú: {{ v.note || "Không có" }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="text-center text-muted py-4">
-            Chưa có dữ liệu lịch sử tiêm chủng cho bé chó này.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showDewormModal" class="custom-modal-backdrop" @click.self="showDewormModal = false">
-      <div class="custom-modal-box shadow-lg bg-white rounded-lg overflow-hidden" style="max-width: 400px;">
-        <div class="bg-light p-3 d-flex justify-content-between align-items-center border-bottom">
-          <h5 class="mb-0 font-weight-bold text-warning">
-            <i class="fas fa-capsules mr-2"></i> Thông tin tẩy giun
-          </h5>
-          <button
-            class="btn btn-sm btn-outline-secondary rounded-circle"
-            style="width: 32px; height: 32px;"
-            @click="showDewormModal = false"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="p-4 text-center">
-          <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
-          <h6 class="font-weight-bold mb-2">
-            {{ dog.lastDeworming ? "Đã hoàn thành tẩy giun" : "Chưa có dữ liệu tẩy giun" }}
-          </h6>
-          <p class="mb-0 text-dark">
-            Ngày tẩy giun gần nhất:<br />
-            <strong class="text-danger deworm-date">
-              {{ formatDate(dog.lastDeworming) }}
-            </strong>
-          </p>
-        </div>
-      </div>
-    </div>
-
     <div class="floating-contact">
       <a href="tel:0379889868" class="float-btn phone-btn shadow" title="Gọi Hotline">
         <i class="fas fa-phone-alt"></i>
@@ -329,8 +255,6 @@ export default {
   data() {
     return {
       dog: null,
-      showVaccineModal: false,
-      showDewormModal: false,
     };
   },
 
@@ -376,38 +300,28 @@ export default {
       return diffMonths > 0 ? `${diffMonths} tháng` : "< 1 tháng";
     },
 
-    getDepositButtonText(status) {
-      if (status === "Đã duyệt") return "ĐẶT CỌC ĐÓN BÉ";
-
-      if (
-        status === "Chờ thanh toán" ||
-        status === "Đã đặt cọc" ||
-        status === "Đang giao"
-      ) {
-        return "BÉ ĐANG ĐƯỢC GIỮ CHỖ";
-      }
-
-      if (status === "Đã bán") return "BÉ ĐÃ BÁN";
-      if (status === "Ngừng bán") return "NGỪNG BÁN";
-
-      return "KHÔNG KHẢ DỤNG";
+    getSaleStatusText(status) {
+      if (status === "Sẵn sàng bán") return "Sẵn sàng đón về";
+      if (status === "Chờ thanh toán") return "Đang chờ xác nhận cọc";
+      if (status === "Đã đặt cọc") return "Đang có khách giữ chỗ";
+      if (status === "Đang giao") return "Đang bàn giao";
+      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Ngừng bán") return "Ngừng bán";
+      return "Chưa mở bán";
     },
 
-    goToFarmPage() {
-      const farmId = this.dog?.farmId?._id || this.dog?.farmId?.id;
-      if (!farmId) return;
-
-      this.$router.push({
-        path: "/dogs",
-        query: {
-          view: "farm",
-          id: farmId,
-        },
-      });
+    getDepositButtonText(status) {
+      if (status === "Sẵn sàng bán") return "ĐẶT CỌC ĐÓN BÉ";
+      if (status === "Chờ thanh toán") return "ĐANG CHỜ XÁC NHẬN CỌC";
+      if (status === "Đã đặt cọc") return "BÉ ĐANG ĐƯỢC GIỮ CHỖ";
+      if (status === "Đang giao") return "BÉ ĐANG ĐƯỢC BÀN GIAO";
+      if (status === "Đã bán") return "BÉ ĐÃ CÓ CHỦ MỚI";
+      if (status === "Ngừng bán") return "TẠM NGỪNG BÁN";
+      return "CHƯA MỞ BÁN";
     },
 
     goToDeposit() {
-      if (!this.dog || this.dog.status !== "Đã duyệt") {
+      if (!this.dog || this.dog.saleStatus !== "Sẵn sàng bán") {
         alert("Bé chó này hiện chưa sẵn sàng để đặt cọc.");
         return;
       }
@@ -452,7 +366,7 @@ export default {
   max-width: 760px;
 }
 
-.farm-mini-box {
+.source-mini-box {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -460,12 +374,12 @@ export default {
   margin-bottom: 14px;
 }
 
-.farm-mini-label {
+.source-mini-label {
   color: #6b7280;
   font-weight: 600;
 }
 
-.farm-mini-name {
+.source-mini-name {
   color: #4a148c;
 }
 
@@ -542,32 +456,17 @@ export default {
   font-weight: 600;
 }
 
-.flex-nowrap {
-  flex-wrap: nowrap !important;
-  white-space: nowrap;
+.health-note-box {
+  max-width: 820px;
+  background: #faf7fd;
+  border: 1px solid #e7dcf5;
+  border-radius: 10px;
+  padding: 16px 18px;
 }
 
-.farm-link-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.btn-view-farm {
-  border: none;
-  background: #efe6fb;
+.health-note-title {
   color: #6a1b9a;
-  font-size: 0.85rem;
   font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 999px;
-  transition: all 0.2s ease;
-}
-
-.btn-view-farm:hover {
-  background: #dcc8f4;
-  color: #4a148c;
 }
 
 .availability-box {
@@ -592,62 +491,16 @@ export default {
   color: #1f2937;
 }
 
+.stop-box {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
 @media (min-width: 768px) {
   .border-right-md {
     border-right: 1px dashed #e1d5ed;
   }
-}
-
-.custom-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 1050;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.custom-modal-box {
-  width: 90%;
-  max-width: 500px;
-  animation: modalFadeIn 0.3s ease;
-}
-
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.vaccine-badge {
-  border: 1px solid #e1d5ed;
-  border-left: 5px solid #6a1b9a;
-  border-radius: 8px;
-  padding: 15px;
-  display: flex;
-  align-items: center;
-}
-
-.vaccine-name {
-  font-size: 1.1rem;
-}
-
-.vaccine-date {
-  color: #6b7280;
-  font-size: 0.85rem;
-}
-
-.deworm-date {
-  font-size: 1.2rem;
 }
 
 .btn-main,
@@ -734,10 +587,6 @@ export default {
 
   .info-label {
     width: 115px;
-  }
-
-  .flex-nowrap {
-    white-space: normal;
   }
 
   .pet-price {

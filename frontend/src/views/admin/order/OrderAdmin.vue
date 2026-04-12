@@ -85,7 +85,7 @@
                 <th class="py-3 border-bottom">Ngày đặt</th>
                 <th class="py-3 border-bottom">Khách hàng</th>
                 <th class="py-3 border-bottom text-left">Bé cún</th>
-                <th class="py-3 border-bottom">Trại</th>
+                <th class="py-3 border-bottom">Nguồn cung</th>
                 <th class="py-3 border-bottom">Tổng tiền</th>
                 <th class="py-3 border-bottom">Tiền cọc</th>
                 <th class="py-3 border-bottom">Còn lại</th>
@@ -170,7 +170,7 @@
                 </td>
 
                 <td>
-                  <span class="badge px-2 py-1 shadow-sm" :class="getStatusClass(order.status)">
+                  <span class="badge px-2 py-1 shadow-sm" :class="getOrderStatusClass(order.status)">
                     {{ order.status }}
                   </span>
                 </td>
@@ -178,9 +178,9 @@
                 <td>
                   <span
                     class="badge px-2 py-1 shadow-sm"
-                    :class="getDogStatusClass(order.dogId?.status)"
+                    :class="getDogSaleStatusClass(order.dogId?.saleStatus)"
                   >
-                    {{ order.dogId?.status || "---" }}
+                    {{ order.dogId?.saleStatus || "---" }}
                   </span>
                 </td>
 
@@ -324,15 +324,16 @@
                       <p class="mb-1"><strong>Tên:</strong> {{ selectedOrder.dogId.name }}</p>
                       <p class="mb-1"><strong>Mã chó:</strong> {{ selectedOrder.dogId.maCho || "---" }}</p>
                       <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedOrder.dogId.price) }}</p>
-                      <p class="mb-1"><strong>Trạng thái chó:</strong> {{ selectedOrder.dogId.status || "---" }}</p>
+                      <p class="mb-1"><strong>Trạng thái chó:</strong> {{ selectedOrder.dogId.saleStatus || "---" }}</p>
+                      <p class="mb-1"><strong>Duyệt hồ sơ:</strong> {{ selectedOrder.dogId.approvalStatus || "---" }}</p>
                     </div>
                   </div>
                 </div>
 
                 <div class="col-12 mt-3" v-if="selectedOrder.farmId">
                   <hr>
-                  <h6 class="font-weight-bold text-dark">Thông tin trang trại</h6>
-                  <p class="mb-1"><strong>Tên trại:</strong> {{ selectedOrder.farmId.name }}</p>
+                  <h6 class="font-weight-bold text-dark">Thông tin nguồn cung</h6>
+                  <p class="mb-1"><strong>Tên đối tác:</strong> {{ selectedOrder.farmId.name }}</p>
                 </div>
               </div>
             </div>
@@ -351,6 +352,8 @@
 import OrderService from "@/services/order.service";
 
 export default {
+  name: "AdminOrderPage",
+
   data() {
     return {
       orders: [],
@@ -468,7 +471,7 @@ export default {
       return "https://via.placeholder.com/80";
     },
 
-    getStatusClass(status) {
+    getOrderStatusClass(status) {
       if (status === "Chờ xác nhận cọc") return "badge-warning text-dark";
       if (status === "Đã nhận cọc") return "badge-info text-white";
       if (status === "Đang giao") return "badge-primary text-white";
@@ -477,14 +480,13 @@ export default {
       return "badge-secondary";
     },
 
-    getDogStatusClass(status) {
-      if (status === "Chờ duyệt") return "badge-warning text-dark";
-      if (status === "Đã duyệt") return "badge-success";
-      if (status === "Từ chối") return "badge-danger";
+    getDogSaleStatusClass(status) {
+      if (status === "Sẵn sàng bán") return "badge-success";
       if (status === "Chờ thanh toán") return "badge-info text-dark";
       if (status === "Đã đặt cọc") return "badge-primary";
       if (status === "Đang giao") return "badge-secondary";
       if (status === "Đã bán") return "badge-dark";
+      if (status === "Ngừng bán") return "badge-danger";
       return "badge-light border";
     },
 

@@ -4,7 +4,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 flex-wrap">
         <h4 class="font-weight-bold text-dark mb-2">
           <i class="fas fa-dog text-warning mr-2"></i>
-          DANH SÁCH CHÓ CỦA TRANG TRẠI
+          HỒ SƠ CHÓ ĐÃ CUNG CẤP
         </h4>
 
         <div>
@@ -12,7 +12,7 @@
             <i class="fas fa-sync-alt mr-1"></i> Làm mới
           </button>
           <router-link to="/farm/add-dog" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus mr-1"></i> Đăng chó mới
+            <i class="fas fa-plus mr-1"></i> Cung cấp hồ sơ chó
           </router-link>
         </div>
       </div>
@@ -40,62 +40,64 @@
               <div class="btn-group flex-wrap">
                 <button
                   class="btn btn-sm"
-                  :class="statusFilter === 'Tất cả' ? 'btn-dark' : 'btn-light'"
-                  @click="statusFilter = 'Tất cả'"
+                  :class="approvalFilter === 'Tất cả' ? 'btn-dark' : 'btn-light'"
+                  @click="approvalFilter = 'Tất cả'"
                 >
                   Tất cả
                 </button>
                 <button
                   class="btn btn-sm"
-                  :class="statusFilter === 'Chờ duyệt' ? 'btn-warning text-dark' : 'btn-light'"
-                  @click="statusFilter = 'Chờ duyệt'"
+                  :class="approvalFilter === 'Chờ duyệt' ? 'btn-warning text-dark' : 'btn-light'"
+                  @click="approvalFilter = 'Chờ duyệt'"
                 >
                   Chờ duyệt
                 </button>
                 <button
                   class="btn btn-sm"
-                  :class="statusFilter === 'Đã duyệt' ? 'btn-success text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đã duyệt'"
+                  :class="approvalFilter === 'Đã duyệt' ? 'btn-success text-white' : 'btn-light'"
+                  @click="approvalFilter = 'Đã duyệt'"
                 >
                   Đã duyệt
                 </button>
                 <button
                   class="btn btn-sm"
-                  :class="statusFilter === 'Từ chối' ? 'btn-danger text-white' : 'btn-light'"
-                  @click="statusFilter = 'Từ chối'"
+                  :class="approvalFilter === 'Từ chối' ? 'btn-danger text-white' : 'btn-light'"
+                  @click="approvalFilter = 'Từ chối'"
                 >
                   Từ chối
                 </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Chờ thanh toán' ? 'btn-info text-dark' : 'btn-light'"
-                  @click="statusFilter = 'Chờ thanh toán'"
-                >
-                  Chờ thanh toán
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đã đặt cọc' ? 'btn-primary text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đã đặt cọc'"
-                >
-                  Đã đặt cọc
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đang giao' ? 'btn-secondary text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đang giao'"
-                >
-                  Đang giao
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="statusFilter === 'Đã bán' ? 'btn-dark text-white' : 'btn-light'"
-                  @click="statusFilter = 'Đã bán'"
-                >
-                  Đã bán
-                </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <div class="card border-0 shadow-sm text-center py-3">
+            <div class="small text-muted">Chờ duyệt</div>
+            <h4 class="font-weight-bold text-warning mb-0">{{ stats.pending }}</h4>
+          </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+          <div class="card border-0 shadow-sm text-center py-3">
+            <div class="small text-muted">Đã duyệt</div>
+            <h4 class="font-weight-bold text-success mb-0">{{ stats.approved }}</h4>
+          </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+          <div class="card border-0 shadow-sm text-center py-3">
+            <div class="small text-muted">Đang được hệ thống hiển thị</div>
+            <h4 class="font-weight-bold text-primary mb-0">{{ stats.published }}</h4>
+          </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+          <div class="card border-0 shadow-sm text-center py-3">
+            <div class="small text-muted">Đã bán</div>
+            <h4 class="font-weight-bold text-dark mb-0">{{ stats.sold }}</h4>
           </div>
         </div>
       </div>
@@ -110,9 +112,9 @@
                 <th class="py-3">Tên</th>
                 <th class="py-3">Giống</th>
                 <th class="py-3">Giá</th>
-                <th class="py-3">Ngày đăng</th>
-                <th class="py-3">Trạng thái</th>
-                <th class="py-3">Giao dịch</th>
+                <th class="py-3">Ngày tạo</th>
+                <th class="py-3">Tình trạng hồ sơ</th>
+                <th class="py-3">Ghi nhận từ hệ thống</th>
                 <th class="py-3">Thao tác</th>
               </tr>
             </thead>
@@ -148,37 +150,38 @@
                 </td>
 
                 <td>
-                  <span class="badge px-3 py-2" :class="getStatusClass(dog.status)">
-                    {{ dog.status }}
+                  <span class="badge px-3 py-2" :class="getApprovalStatusClass(dog.approvalStatus)">
+                    {{ dog.approvalStatus }}
                   </span>
+
+                  <div
+                    v-if="dog.approvalStatus === 'Từ chối' && dog.rejectionReason"
+                    class="small text-danger mt-2 text-left"
+                  >
+                    <strong>Lý do:</strong> {{ dog.rejectionReason }}
+                  </div>
                 </td>
 
                 <td>
-                  <span
-                    v-if="dog.status === 'Chờ thanh toán'"
-                    class="badge badge-info text-dark px-2 py-1"
+                  <div v-if="dog.approvalStatus === 'Đã duyệt' && dog.saleStatus === 'Đã bán'" class="small text-success font-weight-bold">
+                    <i class="fas fa-check-circle mr-1"></i> Đã bán
+                  </div>
+
+                  <div
+                    v-else-if="dog.approvalStatus === 'Đã duyệt' && dog.isPublished"
+                    class="small text-primary font-weight-bold"
                   >
-                    Chờ cọc
-                  </span>
-                  <span
-                    v-else-if="dog.status === 'Đã đặt cọc'"
-                    class="badge badge-primary px-2 py-1"
+                    <i class="fas fa-store mr-1"></i> Đang được hệ thống hiển thị
+                  </div>
+
+                  <div
+                    v-else-if="dog.approvalStatus === 'Đã duyệt'"
+                    class="small text-muted font-weight-bold"
                   >
-                    Đã cọc
-                  </span>
-                  <span
-                    v-else-if="dog.status === 'Đang giao'"
-                    class="badge badge-secondary px-2 py-1"
-                  >
-                    Đang giao
-                  </span>
-                  <span
-                    v-else-if="dog.status === 'Đã bán'"
-                    class="badge badge-dark px-2 py-1"
-                  >
-                    Hoàn tất
-                  </span>
-                  <span v-else class="text-muted">---</span>
+                    <i class="fas fa-clock mr-1"></i> Đã duyệt, chờ hệ thống xử lý
+                  </div>
+
+                  <div v-else class="text-muted">---</div>
                 </td>
 
                 <td>
@@ -195,7 +198,7 @@
                       class="btn btn-sm btn-outline-primary mr-1 mb-1"
                       @click="openHealthEditModal(dog)"
                       :disabled="isLockedDog(dog)"
-                      title="Sửa hồ sơ sức khỏe"
+                      title="Sửa thông tin sức khỏe tóm tắt"
                     >
                       <i class="fas fa-notes-medical"></i>
                     </button>
@@ -208,13 +211,6 @@
                     >
                       <i class="fas fa-edit"></i>
                     </button>
-                  </div>
-
-                  <div
-                    v-if="dog.status === 'Từ chối' && dog.rejectionReason"
-                    class="small text-danger mt-2 text-left"
-                  >
-                    <strong>Lý do:</strong> {{ dog.rejectionReason }}
                   </div>
 
                   <div v-if="isLockedDog(dog)" class="small text-danger mt-2">
@@ -234,7 +230,6 @@
         </div>
       </div>
 
-      <!-- Modal xem chi tiết -->
       <div
         v-if="selectedDog"
         class="modal fade show d-block"
@@ -266,43 +261,46 @@
                 <div class="col-md-8">
                   <h5 class="font-weight-bold">{{ selectedDog.name }}</h5>
                   <p class="mb-1"><strong>Mã chó:</strong> {{ selectedDog.maCho || "---" }}</p>
-                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedDog.status }}</p>
+                  <p class="mb-1"><strong>Tình trạng hồ sơ:</strong> {{ selectedDog.approvalStatus || "---" }}</p>
                   <p class="mb-1"><strong>Giống:</strong> {{ selectedDog.breedId?.name || "---" }}</p>
                   <p class="mb-1"><strong>Giới tính:</strong> {{ selectedDog.gender || "---" }}</p>
                   <p class="mb-1"><strong>Ngày sinh:</strong> {{ formatDateOnly(selectedDog.birthDate) }}</p>
                   <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedDog.price) }}</p>
                   <p class="mb-1"><strong>Cân nặng:</strong> {{ selectedDog.weight ? selectedDog.weight + " kg" : "---" }}</p>
                   <p class="mb-1"><strong>Tình trạng sức khỏe:</strong> {{ selectedDog.healthStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày sổ giun:</strong> {{ formatDateOnly(selectedDog.lastDeworming) }}</p>
+                  <p class="mb-1"><strong>Ngày tẩy giun:</strong> {{ formatDateOnly(selectedDog.lastDeworming) }}</p>
+                  <p class="mb-1"><strong>Nguồn gốc:</strong> {{ selectedDog.sourceVerified ? "Đã xác minh" : "Đang cập nhật" }}</p>
+                  <p class="mb-1"><strong>Điều kiện bán:</strong> {{ selectedDog.eligibleForSale ? "Đủ điều kiện" : "Chưa đủ điều kiện" }}</p>
                   <p class="mb-1"><strong>Mô tả:</strong> {{ selectedDog.description || "---" }}</p>
 
                   <div
-                    v-if="selectedDog.status === 'Từ chối' && selectedDog.rejectionReason"
+                    v-if="selectedDog.approvalStatus === 'Từ chối' && selectedDog.rejectionReason"
                     class="alert alert-danger mt-3 py-2"
                   >
                     <strong>Lý do từ chối:</strong> {{ selectedDog.rejectionReason }}
                   </div>
+
+                  <div
+                    v-else-if="selectedDog.approvalStatus === 'Đã duyệt' && selectedDog.saleStatus === 'Đã bán'"
+                    class="alert alert-success mt-3 py-2"
+                  >
+                    <strong>Ghi nhận từ hệ thống:</strong> Bé chó này đã bán thành công.
+                  </div>
+
+                  <div
+                    v-else-if="selectedDog.approvalStatus === 'Đã duyệt' && selectedDog.isPublished"
+                    class="alert alert-info mt-3 py-2"
+                  >
+                    <strong>Ghi nhận từ hệ thống:</strong> Hồ sơ đang được hệ thống hiển thị.
+                  </div>
+
+                  <div
+                    v-else-if="selectedDog.approvalStatus === 'Đã duyệt'"
+                    class="alert alert-secondary mt-3 py-2"
+                  >
+                    <strong>Ghi nhận từ hệ thống:</strong> Hồ sơ đã được duyệt.
+                  </div>
                 </div>
-              </div>
-
-              <hr>
-
-              <h6 class="font-weight-bold text-primary mb-3">Lịch sử vaccine</h6>
-
-              <div v-if="selectedDog.healthRecord && selectedDog.healthRecord.length > 0">
-                <div
-                  class="border rounded p-2 mb-2 bg-light"
-                  v-for="(item, index) in selectedDog.healthRecord"
-                  :key="index"
-                >
-                  <p class="mb-1"><strong>Vaccine:</strong> {{ item.vaccineId?.name || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày tiêm:</strong> {{ formatDateOnly(item.dateInjected) }}</p>
-                  <p class="mb-0"><strong>Ghi chú:</strong> {{ item.note || "---" }}</p>
-                </div>
-              </div>
-
-              <div v-else class="text-muted">
-                Chưa có dữ liệu vaccine.
               </div>
             </div>
 
@@ -313,7 +311,6 @@
         </div>
       </div>
 
-      <!-- Modal sửa hồ sơ sức khỏe -->
       <div
         v-if="editingDog"
         class="modal fade show d-block"
@@ -324,7 +321,7 @@
           <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white">
               <h5 class="modal-title mb-0">
-                <i class="fas fa-notes-medical mr-2"></i>Cập nhật hồ sơ sức khỏe
+                <i class="fas fa-notes-medical mr-2"></i>Cập nhật thông tin sức khỏe tóm tắt
               </h5>
               <button type="button" class="close text-white" @click="closeEditModal">
                 <span>&times;</span>
@@ -333,87 +330,31 @@
 
             <div class="modal-body">
               <div class="form-row">
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
                   <label>Cân nặng (kg)</label>
                   <input type="number" step="0.1" class="form-control" v-model="editingDog.weight" />
                 </div>
 
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
                   <label>Tình trạng sức khỏe</label>
                   <input type="text" class="form-control" v-model="editingDog.healthStatus" />
                 </div>
 
-                <div class="form-group col-md-6">
-                  <label>Ngày sổ giun</label>
+                <div class="form-group col-md-4">
+                  <label>Ngày tẩy giun</label>
                   <input type="date" class="form-control" v-model="editingDog.lastDeworming" />
                 </div>
-              </div>
-
-              <hr>
-
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="font-weight-bold mb-0">Lịch sử vaccine</h6>
-                <button class="btn btn-sm btn-outline-success" @click="addHealthRecordRow">
-                  <i class="fas fa-plus mr-1"></i> Thêm mũi tiêm
-                </button>
-              </div>
-
-              <div
-                v-for="(item, index) in editingDog.healthRecord"
-                :key="index"
-                class="border rounded p-3 mb-3 bg-light"
-              >
-                <div class="form-row">
-                  <div class="form-group col-md-4">
-                    <label>Vaccine</label>
-                    <select class="form-control" v-model="item.vaccineId">
-                      <option value="">-- Chọn vaccine --</option>
-                      <option
-                        v-for="vac in vaccines"
-                        :key="vac._id || vac.id"
-                        :value="vac._id || vac.id"
-                      >
-                        {{ vac.name }}
-                      </option>
-                    </select>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label>Ngày tiêm</label>
-                    <input type="date" class="form-control" v-model="item.dateInjected" />
-                  </div>
-
-                  <div class="form-group col-md-3">
-                    <label>Ghi chú</label>
-                    <input type="text" class="form-control" v-model="item.note" />
-                  </div>
-
-                  <div class="form-group col-md-1 d-flex align-items-end">
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger btn-sm w-100"
-                      @click="removeHealthRecordRow(index)"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="!editingDog.healthRecord || editingDog.healthRecord.length === 0" class="text-muted">
-                Chưa có dữ liệu vaccine.
               </div>
             </div>
 
             <div class="modal-footer">
               <button class="btn btn-secondary" @click="closeEditModal">Hủy</button>
-              <button class="btn btn-primary" @click="saveHealthRecord">Lưu hồ sơ sức khỏe</button>
+              <button class="btn btn-primary" @click="saveHealthRecord">Lưu thông tin</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Modal sửa thông tin cơ bản -->
       <div
         v-if="editingBasicDog"
         class="modal fade show d-block"
@@ -433,7 +374,7 @@
 
             <div class="modal-body">
               <div class="alert alert-warning">
-                Khi sửa thông tin cơ bản, hồ sơ sẽ quay lại trạng thái <strong>Chờ duyệt</strong> để Admin kiểm tra lại.
+                Khi sửa thông tin cơ bản, hồ sơ sẽ quay lại trạng thái <strong>Chờ duyệt</strong> để hệ thống kiểm tra lại.
               </div>
 
               <div class="form-row">
@@ -495,18 +436,18 @@
 
 <script>
 import DogService from "@/services/dog.service";
-import VaccineService from "@/services/vaccine.service";
 import BreedService from "@/services/breed.service";
 
 export default {
+  name: "FarmDogList",
+
   data() {
     return {
       dogs: [],
-      vaccines: [],
       breeds: [],
       currentFarm: null,
       searchText: "",
-      statusFilter: "Tất cả",
+      approvalFilter: "Tất cả",
       selectedDog: null,
       editingDog: null,
       editingBasicDog: null,
@@ -521,10 +462,20 @@ export default {
         const dogCode = dog.maCho ? dog.maCho.toLowerCase() : "";
 
         const matchSearch = dogName.includes(keyword) || dogCode.includes(keyword);
-        const matchStatus = this.statusFilter === "Tất cả" || dog.status === this.statusFilter;
+        const matchApproval =
+          this.approvalFilter === "Tất cả" || dog.approvalStatus === this.approvalFilter;
 
-        return matchSearch && matchStatus;
+        return matchSearch && matchApproval;
       });
+    },
+
+    stats() {
+      return {
+        pending: this.dogs.filter((d) => d.approvalStatus === "Chờ duyệt").length,
+        approved: this.dogs.filter((d) => d.approvalStatus === "Đã duyệt").length,
+        published: this.dogs.filter((d) => d.approvalStatus === "Đã duyệt" && d.isPublished).length,
+        sold: this.dogs.filter((d) => d.saleStatus === "Đã bán").length,
+      };
     },
   },
 
@@ -552,7 +503,7 @@ export default {
         console.error("Lỗi tải danh sách chó:", error);
         alert(
           "Không thể tải danh sách chó của trang trại: " +
-          (error.response?.data?.message || error.message)
+            (error.response?.data?.message || error.message)
         );
       }
     },
@@ -562,14 +513,6 @@ export default {
         this.breeds = await BreedService.getAll();
       } catch (error) {
         console.error("Lỗi tải giống chó:", error);
-      }
-    },
-
-    async fetchVaccines() {
-      try {
-        this.vaccines = await VaccineService.getAll();
-      } catch (error) {
-        console.error("Lỗi tải vaccine:", error);
       }
     },
 
@@ -588,33 +531,28 @@ export default {
       return new Date(date).toLocaleDateString("vi-VN");
     },
 
-    getStatusClass(status) {
+    getApprovalStatusClass(status) {
       if (status === "Chờ duyệt") return "badge-warning text-dark";
       if (status === "Đã duyệt") return "badge-success";
       if (status === "Từ chối") return "badge-danger";
-      if (status === "Chờ thanh toán") return "badge-info text-dark";
-      if (status === "Đã đặt cọc") return "badge-primary";
-      if (status === "Đang giao") return "badge-secondary";
-      if (status === "Đã bán") return "badge-dark";
-      if (status === "Ngừng bán") return "badge-light border";
       return "badge-light border";
     },
 
     isLockedDog(dog) {
-      return ["Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(dog.status);
+      return ["Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(dog.saleStatus);
     },
 
     getLockReason(dog) {
-      if (dog.status === "Chờ thanh toán") {
-        return "Bé chó đang chờ admin xác nhận cọc, không thể chỉnh sửa.";
+      if (dog.saleStatus === "Chờ thanh toán") {
+        return "Hồ sơ đang trong quá trình xử lý giao dịch, không thể chỉnh sửa.";
       }
-      if (dog.status === "Đã đặt cọc") {
-        return "Bé chó đã có khách đặt cọc, không thể chỉnh sửa.";
+      if (dog.saleStatus === "Đã đặt cọc") {
+        return "Bé chó đã có khách giữ chỗ, không thể chỉnh sửa.";
       }
-      if (dog.status === "Đang giao") {
-        return "Bé chó đang trong quá trình giao, không thể chỉnh sửa.";
+      if (dog.saleStatus === "Đang giao") {
+        return "Bé chó đang trong quá trình bàn giao, không thể chỉnh sửa.";
       }
-      if (dog.status === "Đã bán") {
+      if (dog.saleStatus === "Đã bán") {
         return "Bé chó đã bán, không thể chỉnh sửa.";
       }
       return "";
@@ -635,17 +573,6 @@ export default {
       }
 
       this.editingDog = JSON.parse(JSON.stringify(dog));
-
-      if (!this.editingDog.healthRecord) {
-        this.editingDog.healthRecord = [];
-      }
-
-      this.editingDog.healthRecord = this.editingDog.healthRecord.map((item) => ({
-        vaccineId: item.vaccineId?._id || item.vaccineId?.id || item.vaccineId || "",
-        dateInjected: item.dateInjected ? this.formatDateForInput(item.dateInjected) : "",
-        note: item.note || "",
-      }));
-
       this.editingDog.lastDeworming = this.editingDog.lastDeworming
         ? this.formatDateForInput(this.editingDog.lastDeworming)
         : "";
@@ -684,31 +611,16 @@ export default {
       return `${year}-${month}-${day}`;
     },
 
-    addHealthRecordRow() {
-      if (!this.editingDog.healthRecord) this.editingDog.healthRecord = [];
-      this.editingDog.healthRecord.push({
-        vaccineId: "",
-        dateInjected: "",
-        note: "",
-      });
-    },
-
-    removeHealthRecordRow(index) {
-      this.editingDog.healthRecord.splice(index, 1);
-    },
-
     async saveHealthRecord() {
-      const totalVaccines = this.editingDog.healthRecord ? this.editingDog.healthRecord.length : 0;
       const confirmMessage =
         `Vui lòng kiểm tra kỹ lại thông tin của bé [${this.editingDog.name}] trước khi lưu:\n\n` +
         `⚖️ Cân nặng: ${this.editingDog.weight || "Chưa nhập"} kg\n` +
         `🩺 Tình trạng: ${this.editingDog.healthStatus || "Chưa nhập"}\n` +
-        `💊 Ngày sổ giun: ${
+        `💊 Ngày tẩy giun: ${
           this.editingDog.lastDeworming
             ? new Date(this.editingDog.lastDeworming).toLocaleDateString("vi-VN")
             : "Chưa cập nhật"
-        }\n` +
-        `💉 Số mũi tiêm: ${totalVaccines} mũi\n\n` +
+        }\n\n` +
         `👉 Bạn có chắc chắn toàn bộ dữ liệu trên đã chính xác chưa?`;
 
       if (!confirm(confirmMessage)) return;
@@ -718,11 +630,10 @@ export default {
           weight: this.editingDog.weight,
           healthStatus: this.editingDog.healthStatus,
           lastDeworming: this.editingDog.lastDeworming,
-          healthRecord: this.editingDog.healthRecord,
         };
 
         await DogService.update(this.editingDog._id || this.editingDog.id, updateData);
-        alert("✅ Đã cập nhật hồ sơ sức khỏe thành công!");
+        alert("✅ Đã cập nhật thông tin sức khỏe thành công!");
         this.closeEditModal();
         await this.fetchMyDogs();
       } catch (error) {
@@ -733,7 +644,7 @@ export default {
     async saveBasicInfo() {
       if (
         !confirm(
-          `Bạn có chắc chắn muốn lưu? Hành động này sẽ đưa hồ sơ về trạng thái "Chờ duyệt" để Admin kiểm tra lại.`
+          `Bạn có chắc chắn muốn lưu? Hành động này sẽ đưa hồ sơ về trạng thái "Chờ duyệt" để hệ thống kiểm tra lại.`
         )
       ) {
         return;
@@ -769,11 +680,7 @@ export default {
 
     this.currentFarm = JSON.parse(farmData);
 
-    await Promise.all([
-      this.fetchBreeds(),
-      this.fetchVaccines(),
-      this.fetchMyDogs(),
-    ]);
+    await Promise.all([this.fetchBreeds(), this.fetchMyDogs()]);
   },
 };
 </script>

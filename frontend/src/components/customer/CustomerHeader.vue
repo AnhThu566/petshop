@@ -41,6 +41,18 @@
               <i class="fas fa-shopping-cart"></i>
             </router-link>
 
+            <router-link
+              v-if="isLoggedIn && currentUser && currentUser.role === 'customer'"
+              to="/my-notifications"
+              class="top-notification text-decoration-none"
+              title="Thông báo của tôi"
+            >
+              <i class="fas fa-bell"></i>
+              <span v-if="unreadNotificationCount > 0" class="notification-badge">
+                {{ unreadNotificationCount > 99 ? "99+" : unreadNotificationCount }}
+              </span>
+            </router-link>
+
             <template v-if="!isLoggedIn || !currentUser">
               <router-link
                 to="/login"
@@ -93,6 +105,22 @@
                     @click="closeAllDropdowns"
                   >
                     <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/my-notifications"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-bell text-danger mr-2"></i> Thông báo của tôi
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/my-dog-reminders"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-notes-medical text-info mr-2"></i> Lịch nhắc chăm sóc chó
                   </router-link>
 
                   <router-link
@@ -157,7 +185,6 @@
               Trang chủ
             </router-link>
 
-            <!-- DROPDOWN CHÓ CẢNH -->
             <div
               class="menu-dropdown"
               @mouseenter="openDogMenu"
@@ -197,7 +224,6 @@
               </div>
             </div>
 
-            <!-- DROPDOWN PHỤ KIỆN -->
             <div
               class="menu-dropdown"
               @mouseenter="openAccessoryMenu"
@@ -261,6 +287,7 @@
 
 <script>
 import AccessoryCategoryService from "@/services/accessoryCategory.service";
+import NotificationService from "@/services/notification.service";
 
 export default {
   props: {
@@ -280,6 +307,7 @@ export default {
       isDogMenuOpen: false,
       isAccessoryMenuOpen: false,
       accessoryCategories: [],
+      unreadNotificationCount: 0,
     };
   },
 
@@ -298,6 +326,15 @@ export default {
   watch: {
     $route() {
       this.closeAllDropdowns();
+      this.fetchUnreadNotifications();
+    },
+
+    currentUser: {
+      handler() {
+        this.fetchUnreadNotifications();
+      },
+      deep: true,
+      immediate: true,
     },
   },
 
@@ -311,6 +348,21 @@ export default {
       } catch (error) {
         console.error("Lỗi tải loại phụ kiện:", error);
         this.accessoryCategories = [];
+      }
+    },
+
+    async fetchUnreadNotifications() {
+      try {
+        if (!this.isLoggedIn || !this.currentUser || this.currentUser.role !== "customer") {
+          this.unreadNotificationCount = 0;
+          return;
+        }
+
+        const data = await NotificationService.getCustomerNotifications();
+        this.unreadNotificationCount = (data || []).filter((item) => !item.isRead).length;
+      } catch (error) {
+        console.error("Lỗi tải thông báo:", error);
+        this.unreadNotificationCount = 0;
       }
     },
 
@@ -371,6 +423,7 @@ export default {
 
   async mounted() {
     await this.fetchAccessoryCategories();
+    await this.fetchUnreadNotifications();
   },
 };
 </script>
@@ -501,7 +554,8 @@ export default {
   flex: 0 0 auto;
 }
 
-.top-cart {
+.top-cart,
+.top-notification {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -513,11 +567,31 @@ export default {
   font-size: 1.08rem;
   transition: all 0.2s ease;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  position: relative;
 }
 
-.top-cart:hover {
+.top-cart:hover,
+.top-notification:hover {
   color: #4b1f73;
   background: #fff;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .top-auth-btn {
@@ -713,7 +787,7 @@ export default {
 .dropdown-menu {
   z-index: 9999 !important;
   border-radius: 14px;
-  min-width: 240px;
+  min-width: 260px;
   position: absolute;
   top: 100%;
   right: 0;

@@ -47,7 +47,7 @@
             </div>
 
             <div v-if="viewMode === 'farm'" class="group-subtext">
-              {{ group.address || "Thông tin trại đang cập nhật" }}
+              {{ group.address || "Thông tin nguồn cung đang cập nhật" }}
             </div>
           </button>
         </div>
@@ -94,20 +94,20 @@
             </div>
 
             <div class="farm-content">
-              <div class="farm-badge">TRẠI ĐĂNG BÁN</div>
+              <div class="farm-badge">ĐỐI TÁC CUNG CẤP</div>
               <h2 class="farm-title">{{ selectedGroup.name }}</h2>
 
               <p class="farm-desc mb-3">
                 {{
                   selectedGroup.description ||
-                  "Trang trại tham gia hệ thống với thông tin nguồn gốc rõ ràng, cung cấp các bé cún có hồ sơ minh bạch."
+                  "Đối tác cung cấp đã được hệ thống tiếp nhận thông tin nguồn gốc để hỗ trợ quản lý hồ sơ chó minh bạch hơn."
                 }}
               </p>
 
               <div class="farm-meta-grid">
                 <div class="farm-meta-item">
-                  <span class="farm-meta-label">Mã trại</span>
-                  <strong>{{ selectedGroup.maTrai || "Đang cập nhật" }}</strong>
+                  <span class="farm-meta-label">Nguồn cung</span>
+                  <strong>{{ selectedGroup.maTrai || "Đã xác minh trong hệ thống" }}</strong>
                 </div>
 
                 <div class="farm-meta-item">
@@ -116,8 +116,8 @@
                 </div>
 
                 <div class="farm-meta-item">
-                  <span class="farm-meta-label">Liên hệ</span>
-                  <strong>{{ selectedGroup.phone || "Đang cập nhật" }}</strong>
+                  <span class="farm-meta-label">Trạng thái</span>
+                  <strong>Đã được hệ thống quản lý</strong>
                 </div>
 
                 <div class="farm-meta-item">
@@ -158,8 +158,8 @@
                   <i class="fas fa-dog"></i>
                 </div>
 
-                <span class="dog-status-badge" :class="getDogStatusClass(dog.status)">
-                  {{ getDogStatusText(dog.status) }}
+                <span class="dog-status-badge" :class="getDogStatusClass(dog.saleStatus)">
+                  {{ getDogStatusText(dog.saleStatus) }}
                 </span>
               </div>
             </div>
@@ -207,16 +207,16 @@ export default {
     },
 
     catalogLabel() {
-      return this.viewMode === "farm" ? "Theo trang trại" : "Theo giống chó";
+      return this.viewMode === "farm" ? "Theo nguồn cung" : "Theo giống chó";
     },
 
     sectionTitle() {
-      return this.viewMode === "farm" ? "Các Trang Trại" : "Các Giống Chó";
+      return this.viewMode === "farm" ? "Các Nguồn Cung Cấp" : "Các Giống Chó";
     },
 
     sectionDesc() {
       return this.viewMode === "farm"
-        ? "Chọn trang trại để xem thông tin trang trại và các bé cún có nguồn gốc từ trại đó."
+        ? "Chọn nguồn cung cấp để xem các bé cún có thông tin nguồn gốc đã được hệ thống quản lý."
         : "Chọn giống chó để xem các bé cún thuộc giống đó.";
     },
 
@@ -233,12 +233,12 @@ export default {
     listTitle() {
       if (!this.selectedGroup) {
         return this.viewMode === "farm"
-          ? "Danh sách chó theo trang trại"
+          ? "Danh sách chó theo nguồn cung"
           : "Danh sách chó theo giống";
       }
 
       return this.viewMode === "farm"
-        ? `Các bé cún từ ${this.selectedGroup.name}`
+        ? `Các bé cún có nguồn cung từ ${this.selectedGroup.name}`
         : `Các bé cún giống ${this.selectedGroup.name}`;
     },
 
@@ -309,9 +309,7 @@ export default {
       this.loadingDogs = true;
       try {
         const data = await DogService.getPublic();
-        this.dogList = (data || []).filter((dog) =>
-          ["Đã duyệt", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(dog.status)
-        );
+        this.dogList = data || [];
       } catch (error) {
         console.error("Lỗi tải danh sách chó:", error);
         this.dogList = [];
@@ -355,16 +353,10 @@ export default {
     },
 
     getDogStatusText(status) {
-      if (status === "Đã bán") return "Đã bán";
-
-      if (
-        status === "Chờ thanh toán" ||
-        status === "Đã đặt cọc" ||
-        status === "Đang giao"
-      ) {
-        return "Đang có khách giữ chỗ";
-      }
-
+      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Đang giao") return "Đang bàn giao";
+      if (status === "Đã đặt cọc") return "Đang có khách giữ chỗ";
+      if (status === "Chờ thanh toán") return "Đang chờ xác nhận cọc";
       return "Sẵn sàng đón về";
     },
 

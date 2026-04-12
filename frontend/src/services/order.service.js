@@ -13,21 +13,21 @@ class OrderService {
     return (await this.api.get("/")).data;
   }
 
+  async getMyOrders() {
+    return (await this.api.get("/my-orders")).data;
+  }
+
   async updateStatus(id, status) {
     return (await this.api.put(`/${id}/status`, { status })).data;
   }
 
-  async findByPhone(phone) {
-    return (await this.api.get(`/phone/${phone}`)).data;
-  }
-
-  async findByUserId(userId) {
-    return (await this.api.get(`/user/${userId}`)).data;
-  }
-
   async cancelByCustomer(id) {
-  return (await this.api.put(`/${id}/cancel`)).data;
-}
+    return (await this.api.put(`/${id}/cancel`)).data;
+  }
+
+  async getHistory(id) {
+    return (await this.api.get(`/${id}/history`)).data;
+  }
 }
 
 export default new OrderService();

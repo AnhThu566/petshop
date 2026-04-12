@@ -2,7 +2,6 @@
   <div class="order-history-page">
     <div class="container-fluid order-page-container py-4">
       <div class="order-layout">
-        <!-- Sidebar trái -->
         <aside class="account-sidebar">
           <div class="account-card">
             <div class="account-top">
@@ -21,30 +20,59 @@
             </div>
 
             <div class="account-note">
-              Quản lý hồ sơ, lịch sử đặt cọc, đơn phụ kiện và lịch dịch vụ tại đây.
+              Quản lý hồ sơ, lịch sử đặt cọc, hồ sơ chó đã mua, lịch nhắc chăm sóc, đơn phụ kiện và lịch dịch vụ tại đây.
             </div>
           </div>
 
           <div class="sidebar-menu">
-            <div class="menu-item">
-              <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            <router-link to="/profile" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/profile' }">
+                <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
 
-            <div class="menu-item active">
-              <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            <router-link to="/tra-cuu-don" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/tra-cuu-don' }">
+                <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
 
-            <div class="menu-item">
-              <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            <router-link to="/my-dogs" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/my-dogs' }">
+                <span><i class="fas fa-dog mr-2"></i> Hồ sơ chó đã mua</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
 
-            <div class="menu-item">
-              <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
+            <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
+                <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
+
+            <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
+                <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
+
+            <router-link to="/accessory-orders" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/accessory-orders' }">
+                <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
+
+            <router-link to="/service-bookings" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/service-bookings' }">
+                <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
+            </router-link>
 
             <div class="menu-item">
               <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
@@ -58,7 +86,6 @@
           </div>
         </aside>
 
-        <!-- Nội dung phải -->
         <section class="order-content">
           <div class="content-head">
             <div>
@@ -229,7 +256,6 @@
         </section>
       </div>
 
-      <!-- Modal chi tiết -->
       <div
         v-if="selectedOrder"
         class="modal fade show d-block"
@@ -284,7 +310,7 @@
                       <p class="mb-1"><strong>Tên:</strong> {{ selectedOrder.dogId.name }}</p>
                       <p class="mb-1"><strong>Mã chó:</strong> {{ selectedOrder.dogId.maCho || "---" }}</p>
                       <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedOrder.dogId.price) }}</p>
-                      <p class="mb-1"><strong>Trạng thái chó:</strong> {{ selectedOrder.dogId.status || "---" }}</p>
+                      <p class="mb-1"><strong>Trạng thái chó:</strong> {{ selectedOrder.dogId.saleStatus || "---" }}</p>
                     </div>
                   </div>
                 </div>
@@ -359,8 +385,7 @@ export default {
         if (!this.currentUser) return;
 
         this.loading = true;
-        const userId = this.currentUser._id || this.currentUser.id;
-        this.orders = await OrderService.findByUserId(userId);
+        this.orders = await OrderService.getMyOrders();
       } catch (error) {
         console.error("Lỗi lấy lịch sử đơn hàng:", error);
         alert("Không thể tải lịch sử đơn hàng của bạn.");
@@ -398,7 +423,13 @@ export default {
           return;
         }
 
-        if (latestDog.status !== "Đã duyệt") {
+        if (
+          latestDog.approvalStatus !== "Đã duyệt" ||
+          latestDog.saleStatus !== "Sẵn sàng bán" ||
+          !latestDog.isPublished ||
+          !latestDog.sourceVerified ||
+          !latestDog.eligibleForSale
+        ) {
           alert("Bé cún này hiện không còn sẵn sàng để đặt cọc lại.");
           return;
         }
@@ -532,7 +563,6 @@ export default {
   box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
 }
 
-/* ===== SIDEBAR ===== */
 .account-card {
   padding: 20px;
   margin-bottom: 16px;
@@ -589,6 +619,11 @@ export default {
   overflow: hidden;
 }
 
+.menu-item-link {
+  display: block;
+  color: inherit;
+}
+
 .menu-item {
   padding: 16px 18px;
   display: flex;
@@ -637,7 +672,6 @@ export default {
   white-space: nowrap;
 }
 
-/* ===== CONTENT ===== */
 .order-content {
   padding: 22px;
   min-width: 0;
@@ -720,7 +754,6 @@ export default {
   box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
 }
 
-/* ===== TABS ===== */
 .status-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -750,7 +783,6 @@ export default {
   border-bottom-color: #6a1b9a;
 }
 
-/* ===== EMPTY ===== */
 .empty-panel {
   background: #fff;
   border: 1px solid #eee2f7;
@@ -769,7 +801,6 @@ export default {
   color: #cfbfdc;
 }
 
-/* ===== TABLE ===== */
 .table-card {
   overflow: hidden;
 }
@@ -881,7 +912,6 @@ export default {
   border-radius: 8px;
 }
 
-/* ===== STATUS BADGES ===== */
 .status-waiting {
   background: #fff3d8;
   color: #b7791f;
@@ -912,7 +942,6 @@ export default {
   color: #4b5563;
 }
 
-/* ===== MODAL ===== */
 .modal-head-custom {
   background: linear-gradient(135deg, #6a1b9a, #4a148c);
   color: #fff;
@@ -922,7 +951,6 @@ export default {
   overflow-y: auto;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 1199.98px) {
   .content-title {
     font-size: 1.5rem;

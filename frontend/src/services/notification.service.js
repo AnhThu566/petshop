@@ -9,8 +9,8 @@ class NotificationService {
     return (await this.api.post("/", data)).data;
   }
 
-  async getAll() {
-    return (await this.api.get("/")).data;
+  async getAll(params = {}) {
+    return (await this.api.get("/", { params })).data;
   }
 
   async getCustomerNotifications() {
@@ -21,8 +21,16 @@ class NotificationService {
     return (await this.api.get("/farm/me")).data;
   }
 
-  async markAsRead(id) {
-    return (await this.api.put(`/${id}/read`)).data;
+  async markCustomerNotificationAsRead(id) {
+    return (await this.api.put(`/customer/${id}/read`)).data;
+  }
+
+  async markFarmNotificationAsRead(id) {
+    return (await this.api.put(`/farm/${id}/read`)).data;
+  }
+
+  async markAdminNotificationAsRead(id) {
+    return (await this.api.put(`/admin/${id}/read`)).data;
   }
 
   async markAllAsReadForCustomer() {

@@ -1,6 +1,5 @@
 const express = require("express");
 const dogController = require("../controllers/dog.controller");
-const DogHistory = require("../models/dogHistory.model");
 const upload = require("../middlewares/upload.middleware");
 const {
   requireAdmin,
@@ -9,31 +8,45 @@ const {
 
 const router = express.Router();
 
+// ==============================
+// XEM DANH SÁCH / CHI TIẾT
+// ==============================
+
 // Public / nội bộ xem danh sách
 router.get("/", dogController.findAll);
 
-// Farm đăng chó mới
-router.post("/", requireFarm, upload.single("image"), dogController.create);
-
-// Admin duyệt / đổi trạng thái
-router.put("/:id/status", requireAdmin, dogController.updateStatus);
-
-// Xem chi tiết
+// Xem chi tiết 1 chó
 router.get("/:id", dogController.findOne);
 
-// Farm cập nhật hồ sơ chó
-router.put("/:id", requireFarm, dogController.update);
+// Xem lịch sử thay đổi hồ sơ chó
+router.get("/:id/history", dogController.getHistory);
 
-router.get("/:id/history", async (req, res, next) => {
-  try {
-    const histories = await DogHistory.find({ dogId: req.params.id }).sort({
-      createdAt: -1,
-    });
+// ==============================
+// FARM TẠO / CẬP NHẬT HỒ SƠ CHÓ
+// ==============================
 
-    res.send(histories);
-  } catch (error) {
-    next(error);
-  }
-});
+// Trại gửi hồ sơ chó mới
+router.post("/", requireFarm, upload.single("image"), dogController.create);
+
+// Trại cập nhật hồ sơ chó của trại mình
+router.put("/:id", requireFarm, upload.single("image"), dogController.update);
+
+// ==============================
+// ADMIN DUYỆT HỒ SƠ / MỞ BÁN
+// ==============================
+
+// Admin cập nhật trạng thái duyệt hồ sơ
+router.put(
+  "/:id/approval-status",
+  requireAdmin,
+  dogController.updateApprovalStatus
+);
+
+// Admin cập nhật trạng thái bán
+router.put(
+  "/:id/sale-status",
+  requireAdmin,
+  dogController.updateSaleStatus
+);
 
 module.exports = router;
