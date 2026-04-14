@@ -96,7 +96,8 @@
                     to="/profile"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-id-card-alt text-primary mr-2"></i> Hồ sơ của tôi
+                    <i class="fas fa-id-card-alt text-primary mr-2"></i>
+                    Hồ sơ của tôi
                   </router-link>
 
                   <router-link
@@ -104,7 +105,26 @@
                     to="/tra-cuu-don"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-history text-warning mr-2"></i> Lịch sử đặt cọc
+                    <i class="fas fa-history text-warning mr-2"></i>
+                    Lịch sử đặt cọc
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/my-dogs"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-dog text-secondary mr-2"></i>
+                    Hồ sơ chó đã mua
+                  </router-link>
+
+                  <router-link
+                    class="dropdown-item py-2 small font-weight-bold text-dark"
+                    to="/my-dog-care-records"
+                    @click="closeAllDropdowns"
+                  >
+                    <i class="fas fa-heartbeat text-success mr-2"></i>
+                    Theo dõi sau bán
                   </router-link>
 
                   <router-link
@@ -112,7 +132,8 @@
                     to="/my-notifications"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-bell text-danger mr-2"></i> Thông báo của tôi
+                    <i class="fas fa-bell text-danger mr-2"></i>
+                    Thông báo của tôi
                   </router-link>
 
                   <router-link
@@ -120,7 +141,8 @@
                     to="/my-dog-reminders"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-notes-medical text-info mr-2"></i> Lịch nhắc chăm sóc chó
+                    <i class="fas fa-notes-medical text-info mr-2"></i>
+                    Lịch nhắc chăm sóc chó
                   </router-link>
 
                   <router-link
@@ -128,7 +150,8 @@
                     to="/service-bookings"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-calendar-check text-success mr-2"></i> Lịch dịch vụ
+                    <i class="fas fa-calendar-check text-success mr-2"></i>
+                    Lịch dịch vụ
                   </router-link>
 
                   <router-link
@@ -136,7 +159,8 @@
                     to="/accessory-orders"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-box text-primary mr-2"></i> Đơn phụ kiện
+                    <i class="fas fa-box text-primary mr-2"></i>
+                    Đơn phụ kiện
                   </router-link>
                 </template>
 
@@ -146,7 +170,8 @@
                     to="/farm/dashboard"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-warehouse text-success mr-2"></i> Trang trại của tôi
+                    <i class="fas fa-warehouse text-success mr-2"></i>
+                    Trang trại của tôi
                   </router-link>
                 </template>
 
@@ -156,7 +181,8 @@
                     to="/admin/dashboard"
                     @click="closeAllDropdowns"
                   >
-                    <i class="fas fa-user-shield text-danger mr-2"></i> Trang quản trị
+                    <i class="fas fa-user-shield text-danger mr-2"></i>
+                    Trang quản trị
                   </router-link>
                 </template>
 
@@ -167,7 +193,8 @@
                   href="#"
                   @click.prevent="logout"
                 >
-                  <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
+                  <i class="fas fa-sign-out-alt mr-2"></i>
+                  Đăng xuất
                 </a>
               </div>
             </div>
@@ -343,7 +370,7 @@ export default {
       try {
         const data = await AccessoryCategoryService.getAll();
         this.accessoryCategories = (data || []).filter(
-          (item) => item.status === "active" || !item.status
+          (item) => item.status === "Hoạt động" || !item.status
         );
       } catch (error) {
         console.error("Lỗi tải loại phụ kiện:", error);
@@ -729,7 +756,6 @@ export default {
   background: #f4c842;
 }
 
-/* DROPDOWN MENU */
 .menu-dropdown {
   position: relative;
   display: flex;

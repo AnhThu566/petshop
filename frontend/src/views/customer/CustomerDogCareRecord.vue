@@ -1,5 +1,5 @@
 <template>
-  <div class="my-dogs-page">
+  <div class="customer-care-page">
     <div class="container-fluid page-container py-4">
       <div class="page-layout">
         <aside class="account-sidebar">
@@ -20,8 +20,7 @@
             </div>
 
             <div class="account-note">
-              Quản lý hồ sơ cá nhân, lịch sử đặt cọc, hồ sơ chó đã mua,
-              theo dõi sau bán, lịch nhắc chăm sóc, đơn phụ kiện và lịch dịch vụ tại đây.
+              Quản lý hồ sơ cá nhân, chó đã mua, lịch nhắc và theo dõi sau bán tại đây.
             </div>
           </div>
 
@@ -54,16 +53,16 @@
               </div>
             </router-link>
 
-            <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
-                <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
+            <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
+                <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
                 <i class="fas fa-chevron-right menu-arrow"></i>
               </div>
             </router-link>
 
-            <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
-                <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
+            <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
+              <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
+                <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
                 <i class="fas fa-chevron-right menu-arrow"></i>
               </div>
             </router-link>
@@ -81,25 +80,15 @@
                 <i class="fas fa-chevron-right menu-arrow"></i>
               </div>
             </router-link>
-
-            <div class="menu-item">
-              <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
-              <small>0379889868</small>
-            </div>
-
-            <div class="menu-item">
-              <span><i class="fas fa-globe mr-2"></i> Trang web</span>
-              <small>petshop.vn</small>
-            </div>
           </div>
         </aside>
 
         <section class="page-content">
           <div class="content-head">
             <div>
-              <h3 class="content-title">Hồ sơ chó đã mua</h3>
+              <h3 class="content-title">Theo dõi sau bán</h3>
               <p class="content-subtitle mb-0">
-                Theo dõi các bé chó bạn đã nhận thành công từ hệ thống
+                Theo dõi tình trạng chăm sóc và các lần follow-up của bé chó sau khi bàn giao
               </p>
             </div>
           </div>
@@ -108,103 +97,88 @@
             <div class="search-box">
               <i class="fas fa-search"></i>
               <input
-                type="text"
                 v-model="searchText"
+                type="text"
                 placeholder="Tìm theo tên chó hoặc mã chó"
               />
             </div>
 
-            <button class="refresh-btn" @click="fetchMyDogs">
+            <button class="refresh-btn" @click="fetchMyRecords">
               <i class="fas fa-sync-alt mr-1"></i> Làm mới
             </button>
           </div>
 
           <div v-if="loading" class="empty-panel">
             <i class="fas fa-spinner fa-spin empty-icon"></i>
-            <p>Đang tải hồ sơ chó đã mua...</p>
+            <p>Đang tải hồ sơ theo dõi sau bán...</p>
           </div>
 
-          <div v-else-if="filteredDogs.length === 0" class="empty-panel">
-            <i class="fas fa-dog empty-icon"></i>
-            <p>Bạn chưa có bé chó nào đã hoàn thành mua bán</p>
+          <div v-else-if="filteredRecords.length === 0" class="empty-panel">
+            <i class="fas fa-heartbeat empty-icon"></i>
+            <p>Hiện chưa có hồ sơ theo dõi sau bán nào</p>
           </div>
 
-          <div v-else class="dog-grid">
+          <div v-else class="record-grid">
             <div
-              v-for="item in filteredDogs"
-              :key="getDogId(item)"
-              class="dog-card"
+              v-for="item in filteredRecords"
+              :key="item._id || item.id"
+              class="record-card"
             >
-              <div class="dog-image-wrap">
-                <img :src="getDogImage(item)" alt="dog" class="dog-image" />
-                <span class="dog-badge">
-                  {{ item.saleStatus || "Đã bán" }}
+              <div class="record-image-wrap">
+                <img :src="getDogImage(item)" alt="dog" class="record-image" />
+                <span class="record-status" :class="getStatusClass(item.currentStatus)">
+                  {{ item.currentStatus || "---" }}
                 </span>
               </div>
 
-              <div class="dog-card-body">
-                <div class="dog-name">{{ item.name || "Bé cún" }}</div>
-                <div class="dog-code">{{ item.maCho || "---" }}</div>
+              <div class="record-body">
+                <div class="record-title">
+                  {{ item.dogId?.name || "Bé cún" }}
+                </div>
+                <div class="record-code">
+                  {{ item.dogId?.maCho || "---" }}
+                </div>
 
-                <div class="dog-info-list">
-                  <div class="dog-info-item">
-                    <span class="label">Giống chó</span>
-                    <span class="value">{{ item.breedName || "---" }}</span>
+                <div class="record-info-list">
+                  <div class="record-info-item">
+                    <span class="label">Ngày bàn giao</span>
+                    <span class="value">{{ formatDate(item.handoverDate) }}</span>
                   </div>
 
-                  <div class="dog-info-item">
-                    <span class="label">Giới tính</span>
-                    <span class="value">{{ item.gender || "---" }}</span>
+                  <div class="record-info-item">
+                    <span class="label">Tình trạng bàn giao</span>
+                    <span class="value">{{ item.handoverCondition || "---" }}</span>
                   </div>
 
-                  <div class="dog-info-item">
-                    <span class="label">Giá mua</span>
-                    <span class="value text-danger">{{ formatCurrency(item.price) }}</span>
+                  <div class="record-info-item">
+                    <span class="label">Ngày kiểm tra tiếp theo</span>
+                    <span class="value">{{ formatDate(item.nextCheckDate) }}</span>
                   </div>
 
-                  <div class="dog-info-item">
-                    <span class="label">Ngày hoàn tất</span>
-                    <span class="value">{{ formatDate(item.completedAt) }}</span>
-                  </div>
-
-                  <div class="dog-info-item">
-                    <span class="label">Sức khỏe tóm tắt</span>
-                    <span class="value">{{ item.healthStatus || "Tốt" }}</span>
-                  </div>
-
-                  <div class="dog-info-item">
-                    <span class="label">Tẩy giun gần nhất</span>
-                    <span class="value">{{ formatDateOnly(item.lastDeworming) }}</span>
+                  <div class="record-info-item">
+                    <span class="label">Số lần follow-up</span>
+                    <span class="value">{{ item.followUps?.length || 0 }}</span>
                   </div>
                 </div>
 
-                <div class="dog-card-actions">
+                <div class="record-note">
+                  <strong>Ghi chú ban đầu:</strong>
+                  {{ item.initialCareNote || "Không có" }}
+                </div>
+
+                <div class="record-actions">
                   <button
                     class="btn btn-outline-primary btn-sm"
                     @click="openDetail(item)"
                   >
-                    <i class="fas fa-eye mr-1"></i> Chi tiết
+                    <i class="fas fa-eye mr-1"></i> Xem chi tiết
                   </button>
-
-                  <router-link
-                    to="/my-dog-care-records"
-                    class="btn btn-outline-success btn-sm text-decoration-none"
-                  >
-                    <i class="fas fa-heartbeat mr-1"></i> Theo dõi sau bán
-                  </router-link>
 
                   <router-link
                     to="/my-dog-reminders"
                     class="btn btn-outline-info btn-sm text-decoration-none"
                   >
                     <i class="fas fa-bell mr-1"></i> Lịch nhắc
-                  </router-link>
-
-                  <router-link
-                    to="/my-notifications"
-                    class="btn btn-outline-warning btn-sm text-decoration-none"
-                  >
-                    <i class="fas fa-bullhorn mr-1"></i> Thông báo
                   </router-link>
                 </div>
               </div>
@@ -214,16 +188,16 @@
       </div>
 
       <div
-        v-if="selectedDog"
+        v-if="selectedRecord"
         class="modal fade show d-block"
         tabindex="-1"
         style="background: rgba(0, 0, 0, 0.45);"
       >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
           <div class="modal-content border-0 shadow">
             <div class="modal-header modal-head-custom">
               <h5 class="modal-title mb-0">
-                <i class="fas fa-dog mr-2"></i>Chi tiết hồ sơ chó đã mua
+                <i class="fas fa-heartbeat mr-2"></i>Chi tiết theo dõi sau bán
               </h5>
               <button type="button" class="close text-white" @click="closeDetail">
                 <span>&times;</span>
@@ -231,55 +205,40 @@
             </div>
 
             <div class="modal-body">
-              <div class="row">
-                <div class="col-md-4 mb-3 text-center">
-                  <img
-                    :src="getDogImage(selectedDog)"
-                    alt="dog"
-                    class="rounded shadow-sm"
-                    style="width: 100%; max-height: 260px; object-fit: cover;"
-                  />
-                </div>
+              <p><strong>Bé chó:</strong> {{ selectedRecord.dogId?.name || "---" }}</p>
+              <p><strong>Mã chó:</strong> {{ selectedRecord.dogId?.maCho || "---" }}</p>
+              <p><strong>Ngày bàn giao:</strong> {{ formatDate(selectedRecord.handoverDate) }}</p>
+              <p><strong>Tình trạng bàn giao:</strong> {{ selectedRecord.handoverCondition || "---" }}</p>
+              <p><strong>Ghi chú ban đầu:</strong> {{ selectedRecord.initialCareNote || "---" }}</p>
+              <p><strong>Trạng thái hiện tại:</strong> {{ selectedRecord.currentStatus || "---" }}</p>
+              <p><strong>Ngày kiểm tra tiếp theo:</strong> {{ formatDate(selectedRecord.nextCheckDate) }}</p>
+              <p><strong>Ghi chú quản trị:</strong> {{ selectedRecord.adminNote || "---" }}</p>
 
-                <div class="col-md-8 mb-3">
-                  <h5 class="font-weight-bold text-dark">{{ selectedDog.name }}</h5>
-                  <p class="mb-1"><strong>Mã chó:</strong> {{ selectedDog.maCho || "---" }}</p>
-                  <p class="mb-1"><strong>Giống chó:</strong> {{ selectedDog.breedName || "---" }}</p>
-                  <p class="mb-1"><strong>Giới tính:</strong> {{ selectedDog.gender || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày mua hoàn tất:</strong> {{ formatDate(selectedDog.completedAt) }}</p>
-                  <p class="mb-1"><strong>Giá mua:</strong> {{ formatCurrency(selectedDog.price) }}</p>
-                  <p class="mb-1"><strong>Trạng thái bán:</strong> {{ selectedDog.saleStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Sức khỏe tóm tắt:</strong> {{ selectedDog.healthStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày tẩy giun gần nhất:</strong> {{ formatDateOnly(selectedDog.lastDeworming) }}</p>
-                  <p class="mb-1"><strong>Mô tả:</strong> {{ selectedDog.description || "Không có mô tả" }}</p>
-                </div>
+              <hr />
+              <h6 class="font-weight-bold text-success">Lịch sử follow-up</h6>
 
-                <div class="col-12">
-                  <div class="alert alert-info mb-0">
-                    <strong>Gợi ý:</strong> Bạn có thể theo dõi thêm lịch chăm sóc,
-                    nhắc lịch và hồ sơ sau bán của bé tại các mục
-                    <strong>"Theo dõi sau bán"</strong> và
-                    <strong>"Lịch nhắc chăm sóc chó"</strong>.
-                  </div>
+              <div
+                v-if="selectedRecord.followUps && selectedRecord.followUps.length > 0"
+              >
+                <div
+                  v-for="(follow, index) in selectedRecord.followUps"
+                  :key="index"
+                  class="follow-item"
+                >
+                  <div><strong>Ngày theo dõi:</strong> {{ formatDate(follow.followUpDate) }}</div>
+                  <div><strong>Tình trạng:</strong> {{ follow.condition || "---" }}</div>
+                  <div><strong>Ăn uống:</strong> {{ follow.appetiteStatus || "---" }}</div>
+                  <div><strong>Vận động:</strong> {{ follow.activityStatus || "---" }}</div>
+                  <div><strong>Ghi chú:</strong> {{ follow.note || "---" }}</div>
                 </div>
+              </div>
+
+              <div v-else class="text-muted">
+                Chưa có lần follow-up nào.
               </div>
             </div>
 
-            <div class="modal-footer d-flex flex-wrap">
-              <router-link
-                to="/my-dog-care-records"
-                class="btn btn-success text-decoration-none"
-              >
-                Xem theo dõi sau bán
-              </router-link>
-
-              <router-link
-                to="/my-dog-reminders"
-                class="btn btn-info text-decoration-none"
-              >
-                Xem lịch nhắc
-              </router-link>
-
+            <div class="modal-footer">
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
@@ -290,29 +249,28 @@
 </template>
 
 <script>
-import OrderService from "@/services/order.service";
+import DogCareRecordService from "@/services/dogCareRecord.service";
 
 export default {
-  name: "CustomerMyDogs",
+  name: "CustomerDogCareRecord",
 
   data() {
     return {
       currentUser: null,
       loading: false,
       searchText: "",
-      dogs: [],
-      selectedDog: null,
+      records: [],
+      selectedRecord: null,
     };
   },
 
   computed: {
-    filteredDogs() {
-      return this.dogs.filter((item) => {
+    filteredRecords() {
+      return this.records.filter((item) => {
         const keyword = (this.searchText || "").toLowerCase();
-        const name = item.name ? item.name.toLowerCase() : "";
-        const code = item.maCho ? item.maCho.toLowerCase() : "";
-
-        return name.includes(keyword) || code.includes(keyword);
+        const dogName = item.dogId?.name ? item.dogId.name.toLowerCase() : "";
+        const dogCode = item.dogId?.maCho ? item.dogId.maCho.toLowerCase() : "";
+        return dogName.includes(keyword) || dogCode.includes(keyword);
       });
     },
   },
@@ -328,31 +286,14 @@ export default {
         .toUpperCase();
     },
 
-    async fetchMyDogs() {
+    async fetchMyRecords() {
       try {
-        if (!this.currentUser) return;
-
         this.loading = true;
-
-        const orders = await OrderService.getMyOrders();
-
-        const completedOrders = (orders || []).filter(
-          (order) => order.status === "Hoàn thành" && order.dogId
-        );
-
-        this.dogs = completedOrders.map((order) => {
-          const dog = order.dogId || {};
-          return {
-            ...dog,
-            completedAt: order.updatedAt || order.createdAt,
-            orderId: order._id || order.id,
-            breedName: dog.breedId?.name || dog.breedName || "---",
-          };
-        });
+        this.records = await DogCareRecordService.getMyRecords();
       } catch (error) {
-        console.error("Lỗi lấy hồ sơ chó đã mua:", error);
+        console.error("Lỗi tải hồ sơ theo dõi sau bán:", error);
         alert(
-          "Không thể tải hồ sơ chó đã mua: " +
+          "Không thể tải hồ sơ theo dõi sau bán: " +
             (error.response?.data?.message || error.message)
         );
       } finally {
@@ -360,20 +301,19 @@ export default {
       }
     },
 
-    getDogId(item) {
-      return item?._id || item?.id || item?.orderId || Math.random();
-    },
-
     getDogImage(item) {
-      if (item?.image) {
-        return "http://localhost:3000" + item.image;
+      if (item?.dogId?.image) {
+        return "http://localhost:3000" + item.dogId.image;
       }
       return "https://via.placeholder.com/500x320";
     },
 
-    formatCurrency(value) {
-      if (value === null || value === undefined) return "---";
-      return Number(value).toLocaleString("vi-VN") + " ₫";
+    getStatusClass(status) {
+      if (status === "Đang theo dõi") return "status-tracking";
+      if (status === "Ổn định") return "status-stable";
+      if (status === "Cần tái khám") return "status-warning";
+      if (status === "Đã kết thúc theo dõi") return "status-done";
+      return "status-default";
     },
 
     formatDate(date) {
@@ -387,17 +327,12 @@ export default {
       });
     },
 
-    formatDateOnly(date) {
-      if (!date) return "---";
-      return new Date(date).toLocaleDateString("vi-VN");
-    },
-
     openDetail(item) {
-      this.selectedDog = item;
+      this.selectedRecord = item;
     },
 
     closeDetail() {
-      this.selectedDog = null;
+      this.selectedRecord = null;
     },
   },
 
@@ -405,19 +340,19 @@ export default {
     const userData = localStorage.getItem("user");
 
     if (!userData) {
-      alert("Vui lòng đăng nhập để xem hồ sơ chó đã mua.");
+      alert("Vui lòng đăng nhập để xem theo dõi sau bán.");
       this.$router.push("/login");
       return;
     }
 
     this.currentUser = JSON.parse(userData);
-    await this.fetchMyDogs();
+    await this.fetchMyRecords();
   },
 };
 </script>
 
 <style scoped>
-.my-dogs-page {
+.customer-care-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
 }
@@ -438,7 +373,7 @@ export default {
 .account-card,
 .sidebar-menu,
 .page-content,
-.dog-card {
+.record-card {
   background: #ffffff;
   border: 1px solid #eee2f7;
   border-radius: 20px;
@@ -548,12 +483,6 @@ export default {
   color: #6a1b9a;
 }
 
-.menu-item small {
-  color: #8c7ea5;
-  font-size: 0.87rem;
-  white-space: nowrap;
-}
-
 .page-content {
   padding: 22px;
   min-width: 0;
@@ -611,10 +540,6 @@ export default {
   transition: all 0.2s ease;
 }
 
-.search-box input::placeholder {
-  color: #9b90ad;
-}
-
 .search-box input:focus {
   border-color: #7b3fc8;
   box-shadow: 0 0 0 3px rgba(123, 63, 200, 0.08);
@@ -629,11 +554,6 @@ export default {
   font-weight: 800;
   font-size: 0.92rem;
   transition: all 0.2s ease;
-}
-
-.refresh-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
 }
 
 .empty-panel {
@@ -654,34 +574,32 @@ export default {
   color: #cfbfdc;
 }
 
-.dog-grid {
+.record-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 
-.dog-card {
+.record-card {
   overflow: hidden;
 }
 
-.dog-image-wrap {
+.record-image-wrap {
   position: relative;
-  height: 230px;
+  height: 220px;
   background: #f8f4fc;
 }
 
-.dog-image {
+.record-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.dog-badge {
+.record-status {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: #e7f8ee;
-  color: #15803d;
   padding: 7px 12px;
   border-radius: 999px;
   font-size: 0.8rem;
@@ -689,46 +607,45 @@ export default {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.dog-card-body {
+.record-body {
   padding: 18px;
 }
 
-.dog-name {
+.record-title {
   font-size: 1.15rem;
   font-weight: 900;
   color: #2f1b44;
-  line-height: 1.2;
 }
 
-.dog-code {
+.record-code {
   margin-top: 4px;
   color: #8b7fa0;
   font-size: 0.88rem;
   font-weight: 700;
 }
 
-.dog-info-list {
+.record-info-list {
   margin-top: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.dog-info-item {
+.record-info-item {
   background: #faf7fd;
   border: 1px solid #efe6f7;
   border-radius: 14px;
   padding: 12px;
 }
 
-.dog-info-item .label {
+.record-info-item .label {
   display: block;
   color: #8a7da0;
   font-size: 0.82rem;
   margin-bottom: 5px;
 }
 
-.dog-info-item .value {
+.record-info-item .value {
   display: block;
   color: #2f1b44;
   font-size: 0.92rem;
@@ -736,26 +653,55 @@ export default {
   line-height: 1.35;
 }
 
-.dog-card-actions {
+.record-note {
+  margin-top: 16px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.record-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 18px;
 }
 
+.follow-item {
+  border: 1px solid #eee2f7;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #faf7fd;
+}
+
 .modal-head-custom {
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  background: linear-gradient(135deg, #198754, #157347);
   color: #fff;
 }
 
-.modal {
-  overflow-y: auto;
+.status-tracking {
+  background: #efe7ff;
+  color: #6a1b9a;
 }
 
-@media (max-width: 1199.98px) {
-  .content-title {
-    font-size: 1.5rem;
-  }
+.status-stable {
+  background: #e7f8ee;
+  color: #15803d;
+}
+
+.status-warning {
+  background: #fff3d8;
+  color: #b7791f;
+}
+
+.status-done {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.status-default {
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 @media (max-width: 991.98px) {
@@ -767,11 +713,7 @@ export default {
     grid-template-columns: 1fr;
   }
 
-  .refresh-btn {
-    width: 100%;
-  }
-
-  .dog-grid {
+  .record-grid {
     grid-template-columns: 1fr;
   }
 
@@ -779,18 +721,14 @@ export default {
     padding-left: 16px;
     padding-right: 16px;
   }
-
-  .content-title {
-    font-size: 1.35rem;
-  }
 }
 
 @media (max-width: 575.98px) {
-  .dog-info-list {
+  .record-info-list {
     grid-template-columns: 1fr;
   }
 
-  .dog-card-actions {
+  .record-actions {
     flex-direction: column;
   }
 }

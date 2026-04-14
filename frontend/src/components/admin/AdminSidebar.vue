@@ -42,6 +42,34 @@
 
       <li class="nav-item mb-2">
         <router-link
+          to="/admin/dog-health-records"
+          class="nav-link text-white rounded menu-item"
+          active-class="bg-warning"
+        >
+          <i
+            class="fas fa-notes-medical mr-2 w-20"
+            style="color: #ff9800;"
+          ></i>
+          <span>Hồ sơ sức khỏe chó</span>
+        </router-link>
+      </li>
+
+      <li class="nav-item mb-2">
+        <router-link
+          to="/admin/dog-care-records"
+          class="nav-link text-white rounded menu-item"
+          active-class="bg-success"
+        >
+          <i
+            class="fas fa-heartbeat mr-2 w-20"
+            style="color: #4caf50;"
+          ></i>
+          <span>Theo dõi sau bán</span>
+        </router-link>
+      </li>
+
+      <li class="nav-item mb-2">
+        <router-link
           :to="{ name: 'admin-customer' }"
           class="nav-link text-white rounded menu-item"
           active-class="bg-danger"
@@ -182,19 +210,33 @@
         </router-link>
       </li>
 
-        <li class="nav-item mb-2">
-          <router-link
-            to="/admin/dog-health-records"
-            class="nav-link text-white rounded menu-item"
-            active-class="bg-warning"
-          >
-            <i
-              class="fas fa-notes-medical mr-2 w-20"
-              style="color: #ff9800;"
-            ></i>
-            <span>Hồ sơ sức khỏe chó cưng</span>
-          </router-link>
-        </li>
+      <li class="nav-item mb-2">
+  <router-link
+    to="/admin/dog-reminders"
+    class="nav-link text-white rounded menu-item"
+    active-class="bg-info"
+  >
+    <i
+      class="fas fa-bell mr-2 w-20"
+      style="color: #29b6f6;"
+    ></i>
+    <span>Nhắc lịch chó</span>
+  </router-link>
+</li>
+
+<li class="nav-item mb-2">
+  <router-link
+    to="/admin/notifications"
+    class="nav-link text-white rounded menu-item"
+    active-class="bg-warning"
+  >
+    <i
+      class="fas fa-bell mr-2 w-20"
+      style="color: #ffca28;"
+    ></i>
+    <span>Quản lý Thông báo</span>
+  </router-link>
+</li>
     </ul>
   </div>
 </template>

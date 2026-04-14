@@ -6,6 +6,7 @@ const DogHistory = require("../models/dogHistory.model");
 const DogCareRecord = require("../models/dogCareRecord.model");
 const DogReminder = require("../models/dogReminder.model");
 const Notification = require("../models/notification.model");
+const DogHealthRecord = require("../models/dogHealthRecord.model");
 
 const getActorInfo = (req) => {
   const actorId = req.user?._id || req.user?.id || null;
@@ -65,31 +66,6 @@ const createDogHistory = async ({
   });
 };
 
-const createDogCareRecordAfterSale = async ({ order, dog, req }) => {
-  const actorId = req.user?._id || req.user?.id || null;
-
-  const existed = await DogCareRecord.findOne({
-    dogId: dog._id,
-    orderId: order._id,
-  });
-
-  if (existed) return existed;
-
-  return await DogCareRecord.create({
-    dogId: dog._id,
-    orderId: order._id,
-    customerId: order.userId,
-    handoverDate: new Date(),
-    handoverCondition: "Bàn giao ban đầu ổn định",
-    initialCareNote:
-      "Hệ thống tạo hồ sơ theo dõi sau bán sau khi đơn hàng hoàn thành.",
-    currentStatus: "Đang theo dõi",
-    nextCheckDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    adminNote: "Theo dõi sau bán đợt đầu",
-    createdBy: actorId,
-  });
-};
-
 const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
   const actorId = req.user?._id || req.user?.id || null;
 
@@ -99,14 +75,51 @@ const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
       title: `Tái khám sau bàn giao cho bé ${dog.name}`,
       description: "Nhắc khách đưa bé quay lại tái khám sau khi nhận chó.",
       reminderDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isRecurring: false,
+      repeatEveryDays: 0,
     },
-    {
+  ];
+
+  const latestHealthRecord = await DogHealthRecord.findOne({ dogId: dog._id }).sort({
+    checkedAt: -1,
+    createdAt: -1,
+  });
+
+  if (latestHealthRecord?.nextDewormingDate) {
+    reminders.push({
+      reminderType: "Tẩy giun",
+      title: `Nhắc tẩy giun cho bé ${dog.name}`,
+      description: "Nhắc khách tẩy giun định kỳ cho bé.",
+      reminderDate: latestHealthRecord.nextDewormingDate,
+      isRecurring: true,
+      repeatEveryDays: 30,
+    });
+  } else {
+    reminders.push({
       reminderType: "Tẩy giun",
       title: `Nhắc tẩy giun định kỳ cho bé ${dog.name}`,
       description: "Nhắc khách theo dõi lịch tẩy giun định kỳ sau bán.",
       reminderDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-  ];
+      isRecurring: true,
+      repeatEveryDays: 30,
+    });
+  }
+
+  if (latestHealthRecord?.vaccines?.length) {
+    for (const vaccine of latestHealthRecord.vaccines) {
+      if (vaccine?.needsReminder && vaccine?.nextDueDate) {
+        reminders.push({
+          reminderType: "Tiêm vaccine",
+          title: `Nhắc ${vaccine.vaccineName} cho bé ${dog.name}`,
+          description:
+            vaccine.note || `Nhắc lịch tiêm vaccine ${vaccine.vaccineName}.`,
+          reminderDate: vaccine.nextDueDate,
+          isRecurring: false,
+          repeatEveryDays: 0,
+        });
+      }
+    }
+  }
 
   const created = [];
 
@@ -116,6 +129,7 @@ const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
       customerId: order.userId,
       reminderType: item.reminderType,
       title: item.title,
+      reminderDate: item.reminderDate,
     });
 
     if (!existed) {
@@ -129,6 +143,8 @@ const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
         description: item.description,
         reminderDate: item.reminderDate,
         status: "Chờ nhắc",
+        isRecurring: item.isRecurring,
+        repeatEveryDays: item.repeatEveryDays,
         createdBy: actorId,
       });
 

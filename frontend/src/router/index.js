@@ -44,7 +44,7 @@ import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
 import DogList from "@/views/customer/DogList.vue";
 import CustomerNotification from "@/views/customer/CustomerNotification.vue";
 import CustomerDogReminder from "@/views/customer/CustomerDogReminder.vue";
-import CustomerMyDogs from "@/views/customer/CustomerMyDog.vue";
+import CustomerMyDogs from "@/views/customer/CustomerMyDogs.vue";
 
 const routes = [
   // ============================================================
@@ -280,6 +280,27 @@ const routes = [
   path: "dog-health-records",
   name: "admin-dog-health-records",
   component: () => import("@/views/admin/dog/DogHealthRecordPage.vue"),
+  meta: { requiresAdmin: true },
+},
+
+{
+  path: "dog-reminders",
+  name: "admin-dog-reminders",
+  component: () => import("@/views/admin/dog/DogReminderPage.vue"),
+  meta: { requiresAdmin: true },
+},
+
+{
+  path: "dog-care-records",
+  name: "admin-dog-care-records",
+  component: () => import("@/views/admin/dog/DogCareRecordPage.vue"),
+  meta: { requiresAdmin: true },
+},
+
+{
+  path: "notifications",
+  name: "admin-notifications",
+  component: () => import("@/views/admin/notification/NotificationPage.vue"),
   meta: { requiresAdmin: true },
 },
     ],

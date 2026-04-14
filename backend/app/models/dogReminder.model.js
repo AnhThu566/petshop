@@ -97,6 +97,38 @@ const dogReminderSchema = new mongoose.Schema(
       default: "",
     },
 
+    // =========================
+    // HỖ TRỢ NHẮC LẶP LẠI
+    // =========================
+    isRecurring: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    repeatEveryDays: {
+      type: Number,
+      default: 0,
+      min: [0, "Số ngày lặp lại không hợp lệ"],
+    },
+
+    lastCompletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    nextReminderDate: {
+      type: Date,
+      default: null,
+    },
+
+    parentReminderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DogReminder",
+      default: null,
+      index: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -121,8 +153,9 @@ dogReminderSchema.pre("validate", function (next) {
     if (!this.sentAt) this.sentAt = new Date();
   }
 
-  if (this.status === "Đã hoàn thành" && !this.completedAt) {
-    this.completedAt = new Date();
+  if (this.status === "Đã hoàn thành") {
+    if (!this.completedAt) this.completedAt = new Date();
+    if (!this.lastCompletedAt) this.lastCompletedAt = this.completedAt;
   }
 
   if (this.status === "Chờ nhắc") {
@@ -133,6 +166,17 @@ dogReminderSchema.pre("validate", function (next) {
 
   if (this.status === "Đã hủy") {
     this.completedAt = null;
+  }
+
+  if (!this.isRecurring) {
+    this.repeatEveryDays = 0;
+    this.nextReminderDate = null;
+  }
+
+  if (this.isRecurring && (!this.repeatEveryDays || this.repeatEveryDays <= 0)) {
+    return next(
+      new Error("Lịch lặp phải có số ngày lặp lại lớn hơn 0")
+    );
   }
 
   next();

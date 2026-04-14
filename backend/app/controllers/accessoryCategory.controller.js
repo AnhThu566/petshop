@@ -9,7 +9,10 @@ const generateNextCode = async () => {
   let nextCode = "LPK001";
 
   if (lastCategory && lastCategory.maLoaiPhuKien) {
-    const lastNumber = parseInt(lastCategory.maLoaiPhuKien.replace("LPK", ""), 10);
+    const lastNumber = parseInt(
+      String(lastCategory.maLoaiPhuKien).replace("LPK", ""),
+      10
+    );
     nextCode = "LPK" + (lastNumber + 1).toString().padStart(3, "0");
   }
 
@@ -39,7 +42,7 @@ exports.create = async (req, res, next) => {
       maLoaiPhuKien,
       name: name.trim(),
       description: description ? description.trim() : "",
-      status: status || "Hoạt động",
+      status: status || "active",
     });
 
     await category.save();
@@ -49,6 +52,7 @@ exports.create = async (req, res, next) => {
       category,
     });
   } catch (error) {
+    console.error("create accessory category error:", error);
     return next(new ApiError(500, "Lỗi khi thêm loại phụ kiện: " + error.message));
   }
 };
@@ -59,13 +63,14 @@ exports.findAll = async (req, res, next) => {
     const filter = {};
 
     if (req.query.active === "true") {
-      filter.status = "Hoạt động";
+      filter.status = "active";
     }
 
     const categories = await AccessoryCategory.find(filter).sort({ createdAt: -1 });
 
     return res.send(categories);
   } catch (error) {
+    console.error("findAll accessory category error:", error);
     return next(new ApiError(500, "Lỗi khi lấy danh sách loại phụ kiện: " + error.message));
   }
 };
@@ -81,6 +86,7 @@ exports.findOne = async (req, res, next) => {
 
     return res.send(category);
   } catch (error) {
+    console.error("findOne accessory category error:", error);
     return next(new ApiError(500, "Lỗi khi lấy chi tiết loại phụ kiện: " + error.message));
   }
 };
@@ -112,7 +118,7 @@ exports.update = async (req, res, next) => {
       category.description = description ? description.trim() : "";
     }
 
-    if (status) {
+    if (status !== undefined) {
       category.status = status;
     }
 
@@ -123,6 +129,7 @@ exports.update = async (req, res, next) => {
       category,
     });
   } catch (error) {
+    console.error("update accessory category error:", error);
     return next(new ApiError(500, "Lỗi khi cập nhật loại phụ kiện: " + error.message));
   }
 };
@@ -152,6 +159,7 @@ exports.delete = async (req, res, next) => {
       message: "Xóa loại phụ kiện thành công!",
     });
   } catch (error) {
+    console.error("delete accessory category error:", error);
     return next(new ApiError(500, "Lỗi khi xóa loại phụ kiện: " + error.message));
   }
 };

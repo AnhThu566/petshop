@@ -2,10 +2,11 @@ const Notification = require("../models/notification.model");
 const ApiError = require("../api-error");
 
 const normalizeRole = (role) => String(role || "").toLowerCase();
+const getCurrentUserId = (req) => req.user?.id || null;
 
 const canAccessNotification = (notification, req) => {
   const role = normalizeRole(req.user?.role);
-  const userId = req.user?._id || req.user?.id || null;
+  const userId = getCurrentUserId(req);
   const farmId = req.user?.farmId || null;
 
   if (notification.targetRole === "all") return true;
@@ -62,6 +63,7 @@ exports.create = async (req, res, next) => {
       notification,
     });
   } catch (error) {
+    console.error("create notification error:", error);
     return next(new ApiError(500, "Lỗi khi tạo thông báo: " + error.message));
   }
 };
@@ -86,6 +88,7 @@ exports.findAll = async (req, res, next) => {
 
     return res.send(notifications);
   } catch (error) {
+    console.error("findAll notification error:", error);
     return next(new ApiError(500, "Lỗi khi lấy danh sách thông báo: " + error.message));
   }
 };
@@ -97,7 +100,11 @@ exports.findMineForCustomer = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const currentUserId = req.user._id || req.user.id;
+    const currentUserId = getCurrentUserId(req);
+
+    if (!currentUserId) {
+      return next(new ApiError(401, "Không xác định được người dùng từ token"));
+    }
 
     const notifications = await Notification.find({
       $or: [{ userId: currentUserId }, { targetRole: "all" }],
@@ -105,6 +112,7 @@ exports.findMineForCustomer = async (req, res, next) => {
 
     return res.send(notifications);
   } catch (error) {
+    console.error("findMineForCustomer error:", error);
     return next(new ApiError(500, "Lỗi khi lấy thông báo của khách hàng: " + error.message));
   }
 };
@@ -128,6 +136,7 @@ exports.findMineForFarm = async (req, res, next) => {
 
     return res.send(notifications);
   } catch (error) {
+    console.error("findMineForFarm error:", error);
     return next(new ApiError(500, "Lỗi khi lấy thông báo của trang trại: " + error.message));
   }
 };
@@ -158,6 +167,7 @@ exports.markAsRead = async (req, res, next) => {
       notification,
     });
   } catch (error) {
+    console.error("markAsRead notification error:", error);
     return next(new ApiError(500, "Lỗi khi cập nhật thông báo: " + error.message));
   }
 };
@@ -169,7 +179,12 @@ exports.markAllAsReadForCustomer = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const currentUserId = req.user._id || req.user.id;
+    const currentUserId = getCurrentUserId(req);
+
+    if (!currentUserId) {
+      return next(new ApiError(401, "Không xác định được người dùng từ token"));
+    }
+
     const now = new Date();
 
     await Notification.updateMany(
@@ -184,6 +199,7 @@ exports.markAllAsReadForCustomer = async (req, res, next) => {
       message: "Đã đánh dấu tất cả thông báo của khách hàng là đã đọc",
     });
   } catch (error) {
+    console.error("markAllAsReadForCustomer error:", error);
     return next(new ApiError(500, "Lỗi khi cập nhật tất cả thông báo: " + error.message));
   }
 };
@@ -214,6 +230,7 @@ exports.markAllAsReadForFarm = async (req, res, next) => {
       message: "Đã đánh dấu tất cả thông báo của trang trại là đã đọc",
     });
   } catch (error) {
+    console.error("markAllAsReadForFarm error:", error);
     return next(new ApiError(500, "Lỗi khi cập nhật tất cả thông báo: " + error.message));
   }
 };
@@ -231,6 +248,7 @@ exports.delete = async (req, res, next) => {
       message: "Xóa thông báo thành công!",
     });
   } catch (error) {
+    console.error("delete notification error:", error);
     return next(new ApiError(500, "Lỗi khi xóa thông báo: " + error.message));
   }
 };

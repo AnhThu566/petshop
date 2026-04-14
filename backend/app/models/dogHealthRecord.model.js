@@ -21,6 +21,16 @@ const vaccineRecordSchema = new mongoose.Schema(
       },
     },
 
+    needsReminder: {
+      type: Boolean,
+      default: false,
+    },
+
+    nextDueDate: {
+      type: Date,
+      default: null,
+    },
+
     note: {
       type: String,
       trim: true,
@@ -126,6 +136,11 @@ const dogHealthRecordSchema = new mongoose.Schema(
         },
         message: "Ngày tẩy giun không được ở tương lai",
       },
+    },
+
+    nextDewormingDate: {
+      type: Date,
+      default: null,
     },
 
     vaccines: {
