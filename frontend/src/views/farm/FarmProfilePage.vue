@@ -63,6 +63,20 @@
             <div class="card-body pt-4">
               <div class="row">
                 <div class="col-md-6 mb-3">
+                  <label class="small text-muted font-weight-bold">Mã trang trại</label>
+                  <div class="border rounded bg-light px-3 py-2 font-weight-bold text-dark">
+                    {{ farmInfo.maTrai || "---" }}
+                  </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="small text-muted font-weight-bold">Người đại diện</label>
+                  <div class="border rounded bg-light px-3 py-2 font-weight-bold text-dark">
+                    {{ currentUser?.fullName || farmInfo.ownerId?.fullName || "---" }}
+                  </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
                   <label class="small text-muted font-weight-bold">Tên trang trại</label>
                   <div class="border rounded bg-light px-3 py-2 font-weight-bold text-dark">
                     {{ farmInfo.name || "---" }}
@@ -86,7 +100,7 @@
                 <div class="col-md-12 mb-3">
                   <label class="small text-muted font-weight-bold">Mô tả</label>
                   <div class="border rounded bg-light px-3 py-3 text-dark" style="min-height: 120px;">
-                    {{ farmInfo.description || "Chưa có mô tả cho trang trại này." }}
+                    {{ farmInfo.farmDescription || farmInfo.description || "Chưa có mô tả cho trang trại này." }}
                   </div>
                 </div>
               </div>
@@ -148,6 +162,8 @@ export default {
   methods: {
     getFarmStatusText(status) {
       if (status === "active" || !status) return "Đang hoạt động";
+      if (status === "paused") return "Tạm ngưng";
+      if (status === "stopped" || status === "inactive") return "Ngừng hoạt động";
       return "Đang cập nhật";
     },
 
@@ -166,25 +182,23 @@ export default {
           this.farmInfo = JSON.parse(farmData);
         }
 
-        if (!this.farmInfo?.name || !this.farmInfo?.address) {
-          const api = createApiClient("/api/farms");
-          const farms = await api.get("/");
+        const farmId =
+          this.currentUser?.farmId ||
+          this.farmInfo?._id ||
+          this.farmInfo?.id ||
+          null;
 
-          const farmList = farms.data || [];
-          const currentUserId = this.currentUser?._id || this.currentUser?.id;
+        if (!farmId) {
+          throw new Error("Không tìm thấy farmId của tài khoản trang trại.");
+        }
 
-          const myFarm = farmList.find((f) => {
-            const ownerId = f.ownerId?._id || f.ownerId?.id || f.ownerId;
-            const farmId = this.currentUser?.farmId;
-            return (
-              String(ownerId) === String(currentUserId) ||
-              String(f._id || f.id) === String(farmId)
-            );
-          });
+        const api = createApiClient("/api/farms");
+        const response = await api.get(`/${farmId}`);
+        const farm = response.data || response;
 
-          if (myFarm) {
-            this.farmInfo = myFarm;
-          }
+        if (farm) {
+          this.farmInfo = farm;
+          localStorage.setItem("farm", JSON.stringify(farm));
         }
 
         await this.loadFarmDogs();
@@ -205,11 +219,11 @@ export default {
 
         const allDogs = await DogService.getAll();
         const realFarmId =
-          this.farmInfo.farmId ||
           this.farmInfo._id ||
-          this.farmInfo.id;
+          this.farmInfo.id ||
+          this.farmInfo.farmId;
 
-        this.dogs = allDogs.filter((dog) => {
+        this.dogs = (allDogs || []).filter((dog) => {
           const dogFarmId =
             dog.farmId?._id ||
             dog.farmId?.id ||
@@ -219,6 +233,7 @@ export default {
         });
       } catch (error) {
         console.error("Lỗi tải chó của trại:", error);
+        this.dogs = [];
       }
     },
   },

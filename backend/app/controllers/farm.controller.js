@@ -5,14 +5,40 @@ const Dog = require("../models/dog.model");
 // 1. Lấy danh sách trại
 exports.findAll = async (req, res, next) => {
   try {
-    const farms = await Farm.find().populate("ownerId", "username email");
+    const farms = await Farm.find().populate("ownerId", "username email fullName phone");
     return res.send(farms);
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi lấy danh sách trại"));
   }
 };
 
-// 2. Tạo trại mới
+// 2. Lấy 1 trại theo ID
+exports.findOne = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || id === "undefined") {
+      return next(new ApiError(400, "ID trang trại không hợp lệ"));
+    }
+
+    const farm = await Farm.findById(id).populate(
+      "ownerId",
+      "username email fullName phone"
+    );
+
+    if (!farm) {
+      return next(new ApiError(404, "Không tìm thấy trang trại"));
+    }
+
+    return res.send(farm);
+  } catch (error) {
+    return next(
+      new ApiError(500, "Lỗi khi lấy thông tin trang trại: " + error.message)
+    );
+  }
+};
+
+// 3. Tạo trại mới
 exports.create = async (req, res, next) => {
   try {
     const { maTrai, name, address, phone, description, ownerId, status } = req.body;
@@ -45,7 +71,7 @@ exports.create = async (req, res, next) => {
   }
 };
 
-// 3. Cập nhật trại
+// 4. Cập nhật trại
 exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -64,7 +90,7 @@ exports.update = async (req, res, next) => {
       id,
       { $set: updateData },
       { new: true, runValidators: true }
-    ).populate("ownerId", "username email");
+    ).populate("ownerId", "username email fullName phone");
 
     if (!updatedFarm) {
       return next(new ApiError(404, "Không tìm thấy trại chó này"));
@@ -79,13 +105,13 @@ exports.update = async (req, res, next) => {
   }
 };
 
-// 4. Cập nhật trạng thái hợp tác
+// 5. Cập nhật trạng thái hợp tác
 exports.updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ["active", "inactive"];
+    const validStatuses = ["active", "inactive", "paused", "stopped"];
     if (!validStatuses.includes(status)) {
       return next(new ApiError(400, "Trạng thái trại không hợp lệ"));
     }
@@ -95,7 +121,7 @@ exports.updateStatus = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy trại chó"));
     }
 
-    if (status === "inactive") {
+    if (status === "inactive" || status === "stopped") {
       const linkedDogsCount = await Dog.countDocuments({
         farmId: id,
         saleStatus: { $in: ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao"] },
@@ -123,7 +149,7 @@ exports.updateStatus = async (req, res, next) => {
   }
 };
 
-// 5. Xóa trại
+// 6. Xóa trại
 exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -151,7 +177,7 @@ exports.delete = async (req, res, next) => {
   }
 };
 
-// 6. Tự động sinh mã trại
+// 7. Tự động sinh mã trại
 exports.getNextCode = async (req, res, next) => {
   try {
     const lastFarm = await Farm.findOne().sort({ maTrai: -1 });

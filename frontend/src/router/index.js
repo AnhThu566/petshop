@@ -24,7 +24,7 @@ import ServiceCategoryPage from "@/views/admin/service/ServiceCategoryPage.vue";
 import FarmDashboard from "@/views/farm/FarmDashboard.vue";
 import FarmDogList from "@/views/farm/FarmDogList.vue";
 import FarmDogForm from "@/views/farm/FarmDogForm.vue";
-import FarmProfilePage from "@/views/farm/FarmProfilePage.vue";
+
 
 // ==========================================
 // IMPORT CÁC TRANG CỦA KHÁCH HÀNG (CUSTOMER)
@@ -176,12 +176,18 @@ const routes = [
         meta: { requiresFarm: true },
       },
       
-      {
-        path: "profile",
-        name: "farm-profile",
-        component: FarmProfilePage,
-        meta: { requiresFarm: true },
-      },
+{
+  path: "/farm/account-profile",
+  name: "farm-account-profile",
+  component: () => import("@/views/farm/FarmAccountProfilePage.vue"),
+  meta: { requiresFarm: true },
+},
+{
+  path: "/farm/profile",
+  name: "farm-profile",
+  component: () => import("@/views/farm/FarmProfilePage.vue"),
+  meta: { requiresFarm: true },
+},
     ],
   },
 

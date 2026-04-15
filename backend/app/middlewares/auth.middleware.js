@@ -54,3 +54,4 @@ exports.requireLogin = [verifyToken];
 exports.requireAdmin = [verifyToken, checkRole(["admin"])];
 exports.requireFarm = [verifyToken, checkRole(["farm"])];
 exports.requireCustomer = [verifyToken, checkRole(["customer"])];
+exports.requireAdminOrFarm = [verifyToken, checkRole(["admin", "farm"])];

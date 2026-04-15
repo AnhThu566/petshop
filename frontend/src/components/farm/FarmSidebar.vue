@@ -43,16 +43,27 @@
         </router-link>
       </li>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/farm/profile"
-          class="nav-link text-white rounded menu-item"
-          active-class="active-menu"
-        >
-          <i class="fas fa-user-cog w-20px mr-2"></i>
-          Thông tin trang trại
-        </router-link>
-      </li>
+<li class="nav-item mb-2">
+  <router-link
+    to="/farm/account-profile"
+    class="nav-link text-white rounded menu-item"
+    active-class="active-menu"
+  >
+    <i class="fas fa-user-circle w-20px mr-2"></i>
+    Hồ sơ cá nhân
+  </router-link>
+</li>
+
+<li class="nav-item mb-2">
+  <router-link
+    to="/farm/profile"
+    class="nav-link text-white rounded menu-item"
+    active-class="active-menu"
+  >
+    <i class="fas fa-warehouse w-20px mr-2"></i>
+    Thông tin trang trại
+  </router-link>
+</li>
     </ul>
 
     <div class="mt-auto pt-4 border-top border-light">
