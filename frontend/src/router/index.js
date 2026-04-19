@@ -43,6 +43,7 @@ import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
 import CustomerNotification from "@/views/customer/CustomerNotification.vue";
 import CustomerDogReminder from "@/views/customer/CustomerDogReminder.vue";
 import CustomerMyDogs from "@/views/customer/CustomerMyDogs.vue";
+import PaymentResultZaloPay from "@/views/customer/PaymentResultZaloPay.vue";
 
 const routes = [
   // ============================================================
@@ -174,6 +175,13 @@ const routes = [
   name: "AccessoryCheckout",
   component: () => import("@/views/customer/AccessoryCheckout.vue"),
   meta: { requiresCustomer: true }
+},
+
+{
+  path: "/payment-result/zalopay",
+  name: "payment-result-zalopay",
+  component: PaymentResultZaloPay,
+  meta: { requiresCustomer: true },
 },
 
   // ============================================================

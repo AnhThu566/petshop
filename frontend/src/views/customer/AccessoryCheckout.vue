@@ -443,6 +443,48 @@ if (!Number.isFinite(Number(this.shippingFee)) || Number(this.shippingFee) < 0) 
       }
     },
 
+    async handleZaloPayPayment() {
+  this.isSubmitting = true;
+
+  try {
+    const response = await AccessoryOrderService.createZaloPayOrder({
+      customerName: this.form.customerName,
+      customerPhone: this.form.customerPhone,
+      shippingAddress: this.form.shippingAddress,
+      note: this.form.note,
+      paymentMethod: "ZALOPAY",
+      shippingFee: Number(this.shippingFee || 0),
+      items: this.checkoutItems.map((item) => ({
+        accessoryId: item.accessoryId,
+        quantity: item.quantity,
+      })),
+    });
+
+if (!response?.order_url) {
+  throw new Error("Không lấy được link thanh toán ZaloPay.");
+}
+
+sessionStorage.setItem(
+  "zalopay_pending_order",
+  JSON.stringify({
+    orderId: response.orderId,
+    maDonPhuKien: response.maDonPhuKien,
+    appTransId: response.appTransId,
+  })
+);
+
+window.location.href = response.order_url;
+  } catch (error) {
+    console.error("Lỗi tạo thanh toán ZaloPay:", error);
+    alert(
+      "Không thể tạo thanh toán ZaloPay: " +
+        (error.response?.data?.message || error.message)
+    );
+  } finally {
+    this.isSubmitting = false;
+  }
+},
+
     async submitOrder() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       if (!user) {
@@ -458,10 +500,10 @@ if (!Number.isFinite(Number(this.shippingFee)) || Number(this.shippingFee) < 0) 
         return;
       }
 
-      if (this.paymentMethod === "ZALOPAY") {
-        alert("Hiện tại bạn có thể làm giao diện chọn ZaloPay trước. Khi backend ZaloPay xong mới nối thanh toán thật.");
-        return;
-      }
+if (this.paymentMethod === "ZALOPAY") {
+  await this.handleZaloPayPayment();
+  return;
+}
 
       this.isSubmitting = true;
 

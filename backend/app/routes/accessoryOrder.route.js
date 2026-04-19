@@ -11,14 +11,35 @@ const router = express.Router();
 // KHÁCH HÀNG
 // ==============================
 
-// Khách tạo đơn phụ kiện
+// Khách tạo đơn phụ kiện COD
 router.post("/", requireCustomer, accessoryOrderController.create);
+
+// Khách tạo thanh toán ZaloPay
+router.post(
+  "/zalopay/create",
+  requireCustomer,
+  accessoryOrderController.createZaloPayOrder
+);
+
+// Khách kiểm tra lại trạng thái thanh toán ZaloPay
+router.get(
+  "/:id/zalopay-status",
+  requireCustomer,
+  accessoryOrderController.queryZaloPayStatus
+);
 
 // Khách xem lịch sử đơn của mình
 router.get("/my-orders", requireCustomer, accessoryOrderController.findMyOrders);
 
 // Khách hủy đơn của mình
 router.put("/:id/cancel", requireCustomer, accessoryOrderController.cancelByCustomer);
+
+// ==============================
+// CALLBACK ZALOPAY
+// ==============================
+
+// ZaloPay gọi server-to-server về backend
+router.post("/zalopay/callback", accessoryOrderController.zalopayCallback);
 
 // ==============================
 // QUẢN TRỊ VIÊN

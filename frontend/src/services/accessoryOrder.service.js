@@ -24,6 +24,14 @@ class AccessoryOrderService {
   async cancelByCustomer(id) {
     return (await this.api.put(`/${id}/cancel`)).data;
   }
+
+  async createZaloPayOrder(data) {
+  return (await this.api.post("/zalopay/create", data)).data;
+}
+
+async queryZaloPayStatus(id) {
+  return (await this.api.get(`/${id}/zalopay-status`)).data;
+}
 }
 
 export default new AccessoryOrderService();

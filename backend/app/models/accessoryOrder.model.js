@@ -26,34 +26,60 @@ const accessoryOrderSchema = new mongoose.Schema(
       trim: true,
     },
 
-shippingAddress: {
-  type: String,
-  required: true,
-  trim: true,
-},
+    shippingAddress: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-paymentMethod: {
-  type: String,
-  enum: ["COD", "ZALOPAY"],
-  default: "COD",
-  required: true,
-},
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "ZALOPAY"],
+      default: "COD",
+      required: true,
+    },
 
-shippingFee: {
-  type: Number,
-  default: 0,
-  min: 0,
-},
+    paymentStatus: {
+      type: String,
+      enum: ["Chưa thanh toán", "Đã thanh toán", "Thanh toán thất bại"],
+      default: "Chưa thanh toán",
+    },
 
-totalAmount: {
-  type: Number,
-  required: true,
-  min: 0,
-},
+    appTransId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+
+    zpTransId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    shippingFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
     status: {
       type: String,
-      enum: ["Chờ xác nhận", "Đã xác nhận", "Đang giao", "Giao thất bại", "Hoàn thành", "Đã hủy"],
+      enum: [
+        "Chờ xác nhận",
+        "Đã xác nhận",
+        "Đang giao",
+        "Giao thất bại",
+        "Hoàn thành",
+        "Đã hủy",
+      ],
       default: "Chờ xác nhận",
     },
 

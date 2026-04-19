@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const axios = require("axios");
+const crypto = require("crypto");
+
 const AccessoryOrder = require("../models/accessoryOrder.model");
 const AccessoryOrderItem = require("../models/accessoryOrderItem.model");
 const Accessory = require("../models/accessory.model");
@@ -12,7 +15,18 @@ const VALID_STATUSES = [
   "Hoàn thành",
   "Đã hủy",
 ];
+
 const VALID_PAYMENT_METHODS = ["COD", "ZALOPAY"];
+
+const ZP_APP_ID = process.env.ZALOPAY_APP_ID;
+const ZP_KEY1 = process.env.ZALOPAY_KEY1;
+const ZP_KEY2 = process.env.ZALOPAY_KEY2;
+const ZP_CREATE_URL =
+  process.env.ZALOPAY_CREATE_URL || "https://sb-openapi.zalopay.vn/v2/create";
+const ZP_QUERY_URL =
+  process.env.ZALOPAY_QUERY_URL || "https://sb-openapi.zalopay.vn/v2/query";
+const ZP_CALLBACK_URL = process.env.ZALOPAY_CALLBACK_URL || "";
+const ZP_REDIRECT_URL = process.env.ZALOPAY_REDIRECT_URL || "";
 
 const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 
@@ -38,6 +52,27 @@ const getCurrentUserId = (req) => req.user?._id || req.user?.id || null;
 const getCurrentUserRole = (req) => String(req.user?.role || "").toLowerCase();
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const normalizeText = (value) => String(value || "").trim();
+
+const createHmacSha256 = (data, key) =>
+  crypto.createHmac("sha256", key).update(data).digest("hex");
+
+const generateAppTransId = () => {
+  const now = new Date();
+  const vn = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })
+  );
+  const yy = String(vn.getFullYear()).slice(-2);
+  const mm = String(vn.getMonth() + 1).padStart(2, "0");
+  const dd = String(vn.getDate()).padStart(2, "0");
+  return `${yy}${mm}${dd}_${Date.now()}`;
+};
+
+const buildZaloPayEmbedData = (order) =>
+  JSON.stringify({
+    redirecturl: ZP_REDIRECT_URL,
+    orderId: String(order._id),
+    maDonPhuKien: order.maDonPhuKien,
+  });
 
 // =========================
 // HỖ TRỢ KHUYẾN MÃI
@@ -140,142 +175,412 @@ const restoreAccessoryStock = async (orderId) => {
   }
 };
 
-// Customer tạo đơn phụ kiện
-exports.create = async (req, res, next) => {
-  try {
-    const currentUserId = getCurrentUserId(req);
+const buildAccessoryOrderPayload = async (req) => {
+  const currentUserId = getCurrentUserId(req);
 
-    if (!currentUserId) {
-      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+  if (!currentUserId) {
+    throw new ApiError(401, "Bạn chưa đăng nhập");
+  }
+
+  const customerName = normalizeText(req.body.customerName);
+  const customerPhone = normalizeText(req.body.customerPhone);
+  const shippingAddress = normalizeText(req.body.shippingAddress);
+  const note = normalizeText(req.body.note);
+  const paymentMethod = normalizeText(req.body.paymentMethod || "COD").toUpperCase();
+  const shippingFee = Number(req.body.shippingFee || 0);
+  const items = req.body.items;
+
+  if (!customerName || !customerPhone || !shippingAddress) {
+    throw new ApiError(400, "Vui lòng nhập đầy đủ thông tin người nhận");
+  }
+
+  if (customerName.length < 2 || customerName.length > 100) {
+    throw new ApiError(400, "Tên người nhận không hợp lệ");
+  }
+
+  if (!PHONE_REGEX.test(customerPhone)) {
+    throw new ApiError(400, "Số điện thoại không hợp lệ");
+  }
+
+  if (shippingAddress.length < 5 || shippingAddress.length > 300) {
+    throw new ApiError(400, "Địa chỉ giao hàng không hợp lệ");
+  }
+
+  if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+    throw new ApiError(400, "Phương thức thanh toán không hợp lệ");
+  }
+
+  if (!Number.isFinite(shippingFee) || shippingFee < 0) {
+    throw new ApiError(400, "Phí vận chuyển không hợp lệ");
+  }
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new ApiError(400, "Đơn phụ kiện phải có ít nhất 1 sản phẩm");
+  }
+
+  const normalizedItems = [];
+  let subTotalAmount = 0;
+
+  for (const item of items) {
+    const accessoryId = item?.accessoryId;
+    const quantity = Number(item?.quantity);
+
+    if (!accessoryId || !isValidObjectId(accessoryId)) {
+      throw new ApiError(400, "Có phụ kiện không hợp lệ trong đơn hàng");
     }
 
-const customerName = normalizeText(req.body.customerName);
-const customerPhone = normalizeText(req.body.customerPhone);
-const shippingAddress = normalizeText(req.body.shippingAddress);
-const note = normalizeText(req.body.note);
-const paymentMethod = normalizeText(req.body.paymentMethod || "COD").toUpperCase();
-const shippingFee = Number(req.body.shippingFee || 0);
-const items = req.body.items;
-
-    if (!customerName || !customerPhone || !shippingAddress) {
-      return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin người nhận"));
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+      throw new ApiError(400, "Số lượng sản phẩm trong đơn không hợp lệ");
     }
 
-    if (customerName.length < 2 || customerName.length > 100) {
-      return next(new ApiError(400, "Tên người nhận không hợp lệ"));
+    const accessory = await Accessory.findById(accessoryId);
+
+    if (!accessory) {
+      throw new ApiError(404, "Có phụ kiện không tồn tại trong hệ thống");
     }
 
-    if (!PHONE_REGEX.test(customerPhone)) {
-      return next(new ApiError(400, "Số điện thoại không hợp lệ"));
+    if (accessory.status !== "Đang bán") {
+      throw new ApiError(400, `Phụ kiện [${accessory.name}] hiện không còn bán`);
     }
 
-    if (shippingAddress.length < 5 || shippingAddress.length > 300) {
-      return next(new ApiError(400, "Địa chỉ giao hàng không hợp lệ"));
+    if (Number(accessory.quantity) < quantity) {
+      throw new ApiError(
+        400,
+        `Phụ kiện [${accessory.name}] không đủ số lượng tồn kho`
+      );
     }
 
-    if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
-  return next(new ApiError(400, "Phương thức thanh toán không hợp lệ"));
-}
+    const effectivePrice = getAccessoryEffectivePrice(accessory);
+    const subTotal = Number(effectivePrice) * quantity;
+    subTotalAmount += subTotal;
 
-if (!Number.isFinite(shippingFee) || shippingFee < 0) {
-  return next(new ApiError(400, "Phí vận chuyển không hợp lệ"));
-}
+    normalizedItems.push({
+      accessory,
+      accessoryId: accessory._id,
+      accessoryName: accessory.name,
+      price: effectivePrice,
+      quantity,
+      subTotal,
+    });
+  }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return next(new ApiError(400, "Đơn phụ kiện phải có ít nhất 1 sản phẩm"));
-    }
+  const maDonPhuKien = await generateNextCode();
+  const totalAmount = Number(subTotalAmount) + Number(shippingFee);
 
-    const normalizedItems = [];
-    let subTotalAmount = 0;
+  return {
+    currentUserId,
+    customerName,
+    customerPhone,
+    shippingAddress,
+    note,
+    paymentMethod,
+    shippingFee,
+    normalizedItems,
+    subTotalAmount,
+    totalAmount,
+    maDonPhuKien,
+  };
+};
 
-    for (const item of items) {
-      const accessoryId = item?.accessoryId;
-      const quantity = Number(item?.quantity);
-
-      if (!accessoryId || !isValidObjectId(accessoryId)) {
-        return next(new ApiError(400, "Có phụ kiện không hợp lệ trong đơn hàng"));
-      }
-
-      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
-        return next(new ApiError(400, "Số lượng sản phẩm trong đơn không hợp lệ"));
-      }
-
-      const accessory = await Accessory.findById(accessoryId);
-
-      if (!accessory) {
-        return next(new ApiError(404, "Có phụ kiện không tồn tại trong hệ thống"));
-      }
-
-      if (accessory.status !== "Đang bán") {
-        return next(
-          new ApiError(400, `Phụ kiện [${accessory.name}] hiện không còn bán`)
-        );
-      }
-
-      if (Number(accessory.quantity) < quantity) {
-        return next(
-          new ApiError(400, `Phụ kiện [${accessory.name}] không đủ số lượng tồn kho`)
-        );
-      }
-
-      const effectivePrice = getAccessoryEffectivePrice(accessory);
-      const subTotal = Number(effectivePrice) * quantity;
-subTotalAmount += subTotal;
-
-      normalizedItems.push({
-        accessory,
-        accessoryId: accessory._id,
-        accessoryName: accessory.name,
-        price: effectivePrice,
-        quantity,
-        subTotal,
-      });
-    }
-
-    for (const item of normalizedItems) {
-      item.accessory.quantity =
-        Number(item.accessory.quantity) - Number(item.quantity);
-      await item.accessory.save();
-    }
-
-    const maDonPhuKien = await generateNextCode();
-const totalAmount = Number(subTotalAmount) + Number(shippingFee);
-const newOrder = new AccessoryOrder({
-  maDonPhuKien,
-  customerId: currentUserId,
+const saveAccessoryOrder = async ({
+  currentUserId,
   customerName,
   customerPhone,
   shippingAddress,
+  note,
   paymentMethod,
   shippingFee,
-  note: note || "",
+  normalizedItems,
   totalAmount,
-  status: "Chờ xác nhận",
-});
+  maDonPhuKien,
+  paymentStatus = "Chưa thanh toán",
+  appTransId = "",
+}) => {
+  for (const item of normalizedItems) {
+    item.accessory.quantity =
+      Number(item.accessory.quantity) - Number(item.quantity);
+    await item.accessory.save();
+  }
 
-    await newOrder.save();
+  const newOrder = new AccessoryOrder({
+    maDonPhuKien,
+    customerId: currentUserId,
+    customerName,
+    customerPhone,
+    shippingAddress,
+    paymentMethod,
+    paymentStatus,
+    appTransId,
+    shippingFee,
+    note: note || "",
+    totalAmount,
+    status: "Chờ xác nhận",
+  });
 
-    const finalItems = normalizedItems.map((item) => ({
-      orderId: newOrder._id,
-      accessoryId: item.accessoryId,
-      accessoryName: item.accessoryName,
-      price: item.price,
-      quantity: item.quantity,
-      subTotal: item.subTotal,
-    }));
+  await newOrder.save();
 
-    await AccessoryOrderItem.insertMany(finalItems);
+  const finalItems = normalizedItems.map((item) => ({
+    orderId: newOrder._id,
+    accessoryId: item.accessoryId,
+    accessoryName: item.accessoryName,
+    price: item.price,
+    quantity: item.quantity,
+    subTotal: item.subTotal,
+  }));
+
+  await AccessoryOrderItem.insertMany(finalItems);
+
+  return newOrder;
+};
+
+// Customer tạo đơn phụ kiện COD
+exports.create = async (req, res, next) => {
+  try {
+    const payload = await buildAccessoryOrderPayload(req);
+
+    if (payload.paymentMethod === "ZALOPAY") {
+      return next(
+        new ApiError(
+          400,
+          "Vui lòng dùng API tạo thanh toán ZaloPay riêng cho phương thức này"
+        )
+      );
+    }
+
+    const newOrder = await saveAccessoryOrder({
+      ...payload,
+      paymentStatus: "Chưa thanh toán",
+      appTransId: "",
+    });
 
     const { order, items: createdItems } = await populateOrderWithItems(newOrder._id);
 
-return res.send({
-  message: "Đặt đơn phụ kiện thành công!",
-  order,
-  items: createdItems,
-});
+    return res.send({
+      message: "Đặt đơn phụ kiện thành công!",
+      order,
+      items: createdItems,
+    });
   } catch (error) {
     console.error("Lỗi create accessory order:", error);
     return next(new ApiError(500, "Lỗi khi tạo đơn phụ kiện: " + error.message));
+  }
+};
+
+// Customer tạo thanh toán ZaloPay
+exports.createZaloPayOrder = async (req, res, next) => {
+  try {
+    if (!ZP_APP_ID || !ZP_KEY1 || !ZP_KEY2) {
+      return next(new ApiError(500, "Chưa cấu hình ZaloPay trong file .env"));
+    }
+
+    const payload = await buildAccessoryOrderPayload(req);
+
+    if (payload.paymentMethod !== "ZALOPAY") {
+      return next(new ApiError(400, "Phương thức thanh toán phải là ZALOPAY"));
+    }
+
+    const appTransId = generateAppTransId();
+
+    const newOrder = await saveAccessoryOrder({
+      ...payload,
+      paymentStatus: "Chưa thanh toán",
+      appTransId,
+    });
+
+    const embed_data = buildZaloPayEmbedData(newOrder);
+    const item = JSON.stringify(
+      payload.normalizedItems.map((it) => ({
+        itemid: String(it.accessoryId),
+        itemname: it.accessoryName,
+        itemprice: it.price,
+        itemquantity: it.quantity,
+      }))
+    );
+
+    const app_time = Date.now();
+    const amount = Number(payload.totalAmount);
+    const app_user = String(payload.currentUserId);
+    const description = `Thanh toán đơn phụ kiện ${payload.maDonPhuKien}`;
+    const bank_code = "";
+
+    const dataForMac = [
+      ZP_APP_ID,
+      appTransId,
+      app_user,
+      amount,
+      app_time,
+      embed_data,
+      item,
+    ].join("|");
+
+    const mac = createHmacSha256(dataForMac, ZP_KEY1);
+
+    const zaloPayload = {
+      app_id: ZP_APP_ID,
+      app_trans_id: appTransId,
+      app_user,
+      app_time,
+      amount,
+      item,
+      embed_data,
+      description,
+      bank_code,
+      callback_url: ZP_CALLBACK_URL,
+      mac,
+    };
+
+    const response = await axios.post(
+      ZP_CREATE_URL,
+      new URLSearchParams(zaloPayload).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const data = response.data || {};
+
+    if (Number(data.return_code) !== 1) {
+      return next(
+        new ApiError(
+          400,
+          data.return_message ||
+            data.sub_return_message ||
+            "Không tạo được thanh toán ZaloPay"
+        )
+      );
+    }
+
+    return res.send({
+      message: "Tạo thanh toán ZaloPay thành công",
+      orderId: newOrder._id,
+      maDonPhuKien: newOrder.maDonPhuKien,
+      paymentMethod: "ZALOPAY",
+      paymentStatus: newOrder.paymentStatus,
+      appTransId,
+      order_url: data.order_url || "",
+      qr_code: data.qr_code || "",
+      zp_trans_token: data.zp_trans_token || "",
+    });
+  } catch (error) {
+    console.error("Lỗi create ZaloPay order:", error);
+    return next(
+      new ApiError(
+        500,
+        "Lỗi khi tạo thanh toán ZaloPay: " +
+          (error.response?.data?.return_message || error.message)
+      )
+    );
+  }
+};
+
+// Callback từ ZaloPay
+exports.zalopayCallback = async (req, res) => {
+  try {
+    const { data, mac } = req.body || {};
+
+    if (!data || !mac) {
+      return res.send({ return_code: -1, return_message: "Missing data" });
+    }
+
+    const macCheck = createHmacSha256(data, ZP_KEY2);
+    if (macCheck !== mac) {
+      return res.send({ return_code: -1, return_message: "Invalid mac" });
+    }
+
+    const parsedData = JSON.parse(data);
+    const appTransId = parsedData.app_trans_id;
+    const zpTransId = parsedData.zp_trans_id || "";
+
+    const order = await AccessoryOrder.findOne({ appTransId });
+
+    if (!order) {
+      return res.send({
+        return_code: 1,
+        return_message: "Order not found but callback accepted",
+      });
+    }
+
+    order.paymentStatus = "Đã thanh toán";
+    order.zpTransId = String(zpTransId || "");
+    await order.save();
+
+    return res.send({ return_code: 1, return_message: "success" });
+  } catch (error) {
+    console.error("Lỗi callback ZaloPay:", error);
+    return res.send({ return_code: 0, return_message: "retry please" });
+  }
+};
+
+// Query lại trạng thái ZaloPay
+exports.queryZaloPayStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return next(new ApiError(400, "ID đơn phụ kiện không hợp lệ"));
+    }
+
+    const order = await AccessoryOrder.findById(id);
+    if (!order) {
+      return next(new ApiError(404, "Không tìm thấy đơn phụ kiện"));
+    }
+
+    if (order.paymentMethod !== "ZALOPAY") {
+      return next(new ApiError(400, "Đơn này không dùng ZaloPay"));
+    }
+
+    if (!order.appTransId) {
+      return next(new ApiError(400, "Đơn chưa có appTransId"));
+    }
+
+    const app_id = ZP_APP_ID;
+    const app_trans_id = order.appTransId;
+    const dataForMac = `${app_id}|${app_trans_id}|${ZP_KEY1}`;
+    const mac = createHmacSha256(dataForMac, ZP_KEY1);
+
+    const response = await axios.post(
+      ZP_QUERY_URL,
+      new URLSearchParams({
+        app_id,
+        app_trans_id,
+        mac,
+      }).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const data = response.data || {};
+
+    if (Number(data.return_code) === 1) {
+      order.paymentStatus = "Đã thanh toán";
+      if (data.zp_trans_id) {
+        order.zpTransId = String(data.zp_trans_id);
+      }
+      await order.save();
+    } else if (Number(data.return_code) !== 2) {
+      order.paymentStatus = "Thanh toán thất bại";
+      await order.save();
+    }
+
+    return res.send({
+      message: "Kiểm tra trạng thái ZaloPay thành công",
+      paymentStatus: order.paymentStatus,
+      zaloResponse: data,
+    });
+  } catch (error) {
+    console.error("Lỗi query ZaloPay status:", error);
+    return next(
+      new ApiError(
+        500,
+        "Lỗi kiểm tra trạng thái ZaloPay: " +
+          (error.response?.data?.return_message || error.message)
+      )
+    );
   }
 };
 
@@ -419,6 +724,11 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     order.status = status;
+
+    if (order.paymentMethod === "COD" && status === "Hoàn thành") {
+      order.paymentStatus = "Đã thanh toán";
+    }
+
     await order.save();
 
     const { order: updatedOrder, items } = await populateOrderWithItems(order._id);
@@ -513,6 +823,10 @@ exports.cancelByCustomer = async (req, res, next) => {
     await restoreAccessoryStock(order._id);
 
     order.status = "Đã hủy";
+    if (order.paymentMethod === "ZALOPAY" && order.paymentStatus !== "Đã thanh toán") {
+      order.paymentStatus = "Thanh toán thất bại";
+    }
+
     await order.save();
 
     const { order: updatedOrder, items } = await populateOrderWithItems(order._id);
