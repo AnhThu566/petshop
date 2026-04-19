@@ -26,12 +26,12 @@ class AccessoryOrderService {
   }
 
   async createZaloPayOrder(data) {
-  return (await this.api.post("/zalopay/create", data)).data;
-}
+    return (await this.api.post("/zalopay/create", data)).data;
+  }
 
-async queryZaloPayStatus(id) {
-  return (await this.api.get(`/${id}/zalopay-status`)).data;
-}
+  async queryZaloPayStatus(id) {
+    return (await this.api.get(`/${id}/zalopay-status`)).data;
+  }
 }
 
 export default new AccessoryOrderService();

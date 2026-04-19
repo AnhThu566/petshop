@@ -39,11 +39,16 @@ const accessoryOrderSchema = new mongoose.Schema(
       required: true,
     },
 
-    paymentStatus: {
-      type: String,
-      enum: ["Chưa thanh toán", "Đã thanh toán", "Thanh toán thất bại"],
-      default: "Chưa thanh toán",
-    },
+paymentStatus: {
+  type: String,
+  enum: [
+    "Chưa thanh toán",
+    "Đang thanh toán",
+    "Đã thanh toán",
+    "Thanh toán thất bại",
+  ],
+  default: "Chưa thanh toán",
+},
 
     appTransId: {
       type: String,

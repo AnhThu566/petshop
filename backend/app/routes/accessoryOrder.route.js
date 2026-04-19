@@ -8,6 +8,12 @@ const {
 const router = express.Router();
 
 // ==============================
+// CALLBACK ZALOPAY
+// ==============================
+// ZaloPay gọi server-to-server về backend
+router.post("/zalopay/callback", accessoryOrderController.zalopayCallback);
+
+// ==============================
 // KHÁCH HÀNG
 // ==============================
 
@@ -21,6 +27,9 @@ router.post(
   accessoryOrderController.createZaloPayOrder
 );
 
+// Khách xem lịch sử đơn của mình
+router.get("/my-orders", requireCustomer, accessoryOrderController.findMyOrders);
+
 // Khách kiểm tra lại trạng thái thanh toán ZaloPay
 router.get(
   "/:id/zalopay-status",
@@ -28,18 +37,8 @@ router.get(
   accessoryOrderController.queryZaloPayStatus
 );
 
-// Khách xem lịch sử đơn của mình
-router.get("/my-orders", requireCustomer, accessoryOrderController.findMyOrders);
-
 // Khách hủy đơn của mình
 router.put("/:id/cancel", requireCustomer, accessoryOrderController.cancelByCustomer);
-
-// ==============================
-// CALLBACK ZALOPAY
-// ==============================
-
-// ZaloPay gọi server-to-server về backend
-router.post("/zalopay/callback", accessoryOrderController.zalopayCallback);
 
 // ==============================
 // QUẢN TRỊ VIÊN

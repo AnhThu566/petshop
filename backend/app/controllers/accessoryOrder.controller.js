@@ -347,11 +347,11 @@ exports.create = async (req, res, next) => {
       );
     }
 
-    const newOrder = await saveAccessoryOrder({
-      ...payload,
-      paymentStatus: "Chưa thanh toán",
-      appTransId: "",
-    });
+const newOrder = await saveAccessoryOrder({
+  ...payload,
+  paymentStatus: "Đang thanh toán",
+  appTransId,
+});
 
     const { order, items: createdItems } = await populateOrderWithItems(newOrder._id);
 

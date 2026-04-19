@@ -165,6 +165,16 @@ export default {
       sessionStorage.removeItem("zalopay_pending_order");
     },
 
+    clearCheckoutTempData() {
+      sessionStorage.removeItem("buy_now_checkout");
+      sessionStorage.removeItem("cart_checkout_selection");
+      window.dispatchEvent(new Event("cart-updated"));
+    },
+
+    sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    },
+
     async checkPaymentStatus() {
       try {
         const info = this.getPendingPaymentInfo();
@@ -176,24 +186,36 @@ export default {
           return;
         }
 
-        const response = await AccessoryOrderService.queryZaloPayStatus(this.orderId);
-        this.paymentStatus = response?.paymentStatus || "";
+        let lastStatus = "";
 
-        if (this.paymentStatus === "Đã thanh toán") {
-          this.statusType = "success";
-          this.clearPendingPaymentInfo();
-          return;
-        }
+        for (let i = 0; i < 4; i++) {
+          const response = await AccessoryOrderService.queryZaloPayStatus(this.orderId);
+          this.paymentStatus = response?.paymentStatus || "";
+          lastStatus = this.paymentStatus;
 
-        if (this.paymentStatus === "Thanh toán thất bại") {
-          this.statusType = "failed";
-          this.errorMessage = "Thanh toán ZaloPay đã thất bại hoặc đã hết hiệu lực.";
-          this.clearPendingPaymentInfo();
-          return;
+          if (lastStatus === "Đã thanh toán") {
+            this.statusType = "success";
+            this.clearPendingPaymentInfo();
+            this.clearCheckoutTempData();
+            return;
+          }
+
+          if (lastStatus === "Thanh toán thất bại") {
+            this.statusType = "failed";
+            this.errorMessage =
+              "Thanh toán ZaloPay đã thất bại hoặc đã hết hiệu lực.";
+            this.clearPendingPaymentInfo();
+            return;
+          }
+
+          if (i < 3) {
+            await this.sleep(2000);
+          }
         }
 
         this.statusType = "failed";
-        this.errorMessage = "Thanh toán chưa được xác nhận. Vui lòng kiểm tra lại trong lịch sử đơn.";
+        this.errorMessage =
+          "Hệ thống chưa xác nhận thanh toán ngay lúc này. Vui lòng kiểm tra lại trong lịch sử đơn sau ít phút.";
       } catch (error) {
         console.error("Lỗi kiểm tra trạng thái ZaloPay:", error);
         this.statusType = "failed";
