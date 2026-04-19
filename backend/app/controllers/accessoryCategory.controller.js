@@ -4,7 +4,9 @@ const ApiError = require("../api-error");
 
 // Tạo mã loại phụ kiện tự động
 const generateNextCode = async () => {
-  const lastCategory = await AccessoryCategory.findOne().sort({ maLoaiPhuKien: -1 });
+  const lastCategory = await AccessoryCategory.findOne().sort({
+    maLoaiPhuKien: -1,
+  });
 
   let nextCode = "LPK001";
 
@@ -42,7 +44,7 @@ exports.create = async (req, res, next) => {
       maLoaiPhuKien,
       name: name.trim(),
       description: description ? description.trim() : "",
-      status: status || "active",
+      status: status || "Hoạt động",
     });
 
     await category.save();
@@ -53,7 +55,9 @@ exports.create = async (req, res, next) => {
     });
   } catch (error) {
     console.error("create accessory category error:", error);
-    return next(new ApiError(500, "Lỗi khi thêm loại phụ kiện: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi thêm loại phụ kiện: " + error.message)
+    );
   }
 };
 
@@ -63,15 +67,22 @@ exports.findAll = async (req, res, next) => {
     const filter = {};
 
     if (req.query.active === "true") {
-      filter.status = "active";
+      filter.status = "Hoạt động";
     }
 
-    const categories = await AccessoryCategory.find(filter).sort({ createdAt: -1 });
+    const categories = await AccessoryCategory.find(filter).sort({
+      createdAt: -1,
+    });
 
     return res.send(categories);
   } catch (error) {
     console.error("findAll accessory category error:", error);
-    return next(new ApiError(500, "Lỗi khi lấy danh sách loại phụ kiện: " + error.message));
+    return next(
+      new ApiError(
+        500,
+        "Lỗi khi lấy danh sách loại phụ kiện: " + error.message
+      )
+    );
   }
 };
 
@@ -87,7 +98,12 @@ exports.findOne = async (req, res, next) => {
     return res.send(category);
   } catch (error) {
     console.error("findOne accessory category error:", error);
-    return next(new ApiError(500, "Lỗi khi lấy chi tiết loại phụ kiện: " + error.message));
+    return next(
+      new ApiError(
+        500,
+        "Lỗi khi lấy chi tiết loại phụ kiện: " + error.message
+      )
+    );
   }
 };
 
@@ -98,7 +114,9 @@ exports.update = async (req, res, next) => {
 
     const category = await AccessoryCategory.findById(req.params.id);
     if (!category) {
-      return next(new ApiError(404, "Không tìm thấy loại phụ kiện để cập nhật"));
+      return next(
+        new ApiError(404, "Không tìm thấy loại phụ kiện để cập nhật")
+      );
     }
 
     if (name && name.trim()) {
@@ -118,8 +136,8 @@ exports.update = async (req, res, next) => {
       category.description = description ? description.trim() : "";
     }
 
-    if (status !== undefined) {
-      category.status = status;
+    if (status !== undefined && status !== null && String(status).trim()) {
+      category.status = String(status).trim();
     }
 
     await category.save();
@@ -130,7 +148,9 @@ exports.update = async (req, res, next) => {
     });
   } catch (error) {
     console.error("update accessory category error:", error);
-    return next(new ApiError(500, "Lỗi khi cập nhật loại phụ kiện: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi cập nhật loại phụ kiện: " + error.message)
+    );
   }
 };
 
@@ -143,7 +163,10 @@ exports.delete = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy loại phụ kiện để xóa"));
     }
 
-    const usedByAccessories = await Accessory.findOne({ categoryId: category._id });
+    const usedByAccessories = await Accessory.findOne({
+      categoryId: category._id,
+    });
+
     if (usedByAccessories) {
       return next(
         new ApiError(
@@ -160,6 +183,8 @@ exports.delete = async (req, res, next) => {
     });
   } catch (error) {
     console.error("delete accessory category error:", error);
-    return next(new ApiError(500, "Lỗi khi xóa loại phụ kiện: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi xóa loại phụ kiện: " + error.message)
+    );
   }
 };

@@ -80,7 +80,13 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["Chưa thanh toán", "Đã gửi minh chứng", "Đã xác nhận"],
+      enum: [
+        "Chưa thanh toán",
+        "Đã gửi minh chứng",
+        "Đã xác nhận",
+        "Đã hoàn tất",
+        "Đã hủy xác nhận",
+      ],
       default: "Chưa thanh toán",
       index: true,
     },
@@ -101,25 +107,26 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-orderSchema.pre("validate", function (next) {
-  if (this.totalPrice < this.depositAmount) {
-    return next(new Error("Tiền đặt cọc không được lớn hơn tổng tiền"));
+orderSchema.pre("validate", function () {
+  const totalPrice = Number(this.totalPrice || 0);
+  const depositAmount = Number(this.depositAmount || 0);
+
+  if (depositAmount > totalPrice) {
+    throw new Error("Tiền đặt cọc không được lớn hơn tổng tiền");
   }
 
-  const expectedRemaining = this.totalPrice - this.depositAmount;
-  if (this.remainingAmount !== expectedRemaining) {
+  const expectedRemaining = totalPrice - depositAmount;
+  if (Number(this.remainingAmount || 0) !== expectedRemaining) {
     this.remainingAmount = expectedRemaining;
   }
 
   if (
     this.paymentMethod === "Chuyển khoản" &&
     this.paymentStatus !== "Chưa thanh toán" &&
-    !this.paymentProof
+    !String(this.paymentProof || "").trim()
   ) {
-    return next(new Error("Đơn chuyển khoản phải có minh chứng thanh toán"));
+    throw new Error("Đơn chuyển khoản phải có minh chứng thanh toán");
   }
-
-  next();
 });
 
 orderSchema.method("toJSON", function () {

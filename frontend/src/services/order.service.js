@@ -9,8 +9,12 @@ class OrderService {
     return (await this.api.post("/deposit", data)).data;
   }
 
-  async getAll() {
-    return (await this.api.get("/")).data;
+  async getAll(params = {}) {
+    return (
+      await this.api.get("/", {
+        params,
+      })
+    ).data;
   }
 
   async getMyOrders() {

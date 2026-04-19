@@ -19,6 +19,14 @@
               </div>
 
               <div
+                v-if="redirectNotice"
+                class="alert alert-info text-center small font-weight-bold"
+              >
+                <i class="fas fa-info-circle mr-1"></i>
+                {{ redirectNotice }}
+              </div>
+
+              <div
                 v-if="errorMessage"
                 class="alert alert-danger text-center small font-weight-bold"
               >
@@ -36,7 +44,7 @@
                     <input
                       type="text"
                       class="form-control custom-input"
-                      v-model="credentials.username"
+                      v-model.trim="credentials.username"
                       placeholder="Nhập tên đăng nhập..."
                       required
                     />
@@ -98,6 +106,8 @@
 import AuthService from "@/services/auth.service";
 
 export default {
+  name: "LoginPage",
+
   data() {
     return {
       credentials: {
@@ -109,7 +119,34 @@ export default {
     };
   },
 
+  computed: {
+    redirectPath() {
+      return this.$route.query.redirect || "";
+    },
+
+    redirectNotice() {
+      if (!this.redirectPath) return "";
+      return "Vui lòng đăng nhập để tiếp tục thao tác bạn vừa chọn.";
+    },
+  },
+
   methods: {
+    normalizeRole(role) {
+      return String(role || "").toLowerCase();
+    },
+
+    getDefaultRouteByRole(role) {
+      const normalizedRole = this.normalizeRole(role);
+
+      if (normalizedRole === "admin") return "/admin/dashboard";
+      if (normalizedRole === "farm") return "/farm/dashboard";
+      return "/";
+    },
+
+    isSafeRedirectPath(path) {
+      return typeof path === "string" && path.startsWith("/");
+    },
+
     async handleLogin() {
       this.loading = true;
       this.errorMessage = "";
@@ -128,23 +165,25 @@ export default {
         localStorage.setItem("token", response.token);
         localStorage.setItem("user", JSON.stringify(response.user));
 
-        if (response.user.role === "farm") {
+        const role = this.normalizeRole(response.user.role);
+
+        if (role === "farm") {
           localStorage.setItem("farm", JSON.stringify(response.user));
         }
-        
+
         window.dispatchEvent(new Event("auth-changed"));
 
         alert("✅ " + (response.message || "Đăng nhập thành công"));
 
-        const role = response.user.role;
+        const redirect = this.redirectPath;
+        const defaultRoute = this.getDefaultRouteByRole(role);
 
-        if (role === "admin") {
-          this.$router.push("/admin/dashboard");
-        } else if (role === "farm") {
-          this.$router.push("/farm/dashboard");
-        } else {
-          this.$router.push("/");
+        if (this.isSafeRedirectPath(redirect)) {
+          this.$router.push(redirect);
+          return;
         }
+
+        this.$router.push(defaultRoute);
       } catch (error) {
         console.error(error);
         this.errorMessage =

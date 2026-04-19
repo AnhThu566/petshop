@@ -24,18 +24,18 @@
     components: {
         AdminSidebar, AdminHeader, AdminFooter
     },
-    created() {
-        // Bảo mật: Kiểm tra xem có phải Admin không mới cho vào Khung này
-        const userData = localStorage.getItem("user");
-        if (!userData) {
-        this.$router.push("/");
-        return;
-        }
-        const currentUser = JSON.parse(userData);
-        if (currentUser.role !== 'admin') {
-        alert("Bạn không có quyền truy cập trang này!");
-        this.$router.push("/");
-        }
-    }
+created() {
+  const userData = localStorage.getItem("user");
+  if (!userData) {
+    this.$router.push("/");
+    return;
+  }
+
+  const currentUser = JSON.parse(userData);
+  if (String(currentUser.role || "").toLowerCase() !== "admin") {
+    alert("Bạn không có quyền truy cập trang này!");
+    this.$router.push("/");
+  }
+}
     };
     </script>

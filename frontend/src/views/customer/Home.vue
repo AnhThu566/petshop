@@ -1,19 +1,21 @@
 <template>
   <div class="home-page">
-    <!-- BANNER -->
+    <!-- HERO -->
     <section class="hero-banner">
       <div
         class="hero-slide"
         :style="{
-          backgroundImage: `linear-gradient(to right, rgba(15, 5, 25, 0.8) 0%, rgba(28, 10, 43, 0.4) 50%, rgba(0,0,0,0) 100%), url('${heroSlides[currentSlide].image}')`
+          backgroundImage: `linear-gradient(90deg, rgba(34, 16, 58, 0.88) 0%, rgba(58, 30, 92, 0.62) 42%, rgba(18, 12, 28, 0.16) 100%), url('${heroSlides[currentSlide].image}')`
         }"
       >
+        <div class="hero-overlay"></div>
+
         <div class="container custom-container h-100 position-relative z-index-2">
           <div class="row align-items-center h-100">
-            <div class="col-lg-7 col-md-9">
+            <div class="col-xl-7 col-lg-8 col-md-10">
               <div class="hero-content text-left" :key="currentSlide">
-                <span class="hero-label mb-3 d-inline-block shadow-sm">
-                  <i class="fas fa-paw mr-2 text-warning"></i>
+                <span class="hero-label mb-3 d-inline-flex align-items-center">
+                  <i class="fas fa-shield-heart mr-2"></i>
                   {{ heroSlides[currentSlide].label }}
                 </span>
 
@@ -24,6 +26,21 @@
                 <p class="hero-desc mb-4">
                   {{ heroSlides[currentSlide].desc }}
                 </p>
+
+                <div class="hero-benefits mb-4">
+                  <div class="hero-benefit-chip">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Nguồn gốc rõ ràng
+                  </div>
+                  <div class="hero-benefit-chip">
+                    <i class="fas fa-heartbeat mr-2"></i>
+                    Sức khỏe minh bạch
+                  </div>
+                  <div class="hero-benefit-chip">
+                    <i class="fas fa-headset mr-2"></i>
+                    Hỗ trợ thuận tiện
+                  </div>
+                </div>
 
                 <div class="hero-action-group mb-4 justify-content-start">
                   <router-link
@@ -45,7 +62,7 @@
 
                 <div class="hero-tabs justify-content-start">
                   <router-link
-                    to="/dogs"
+                    to="/dogs/breeds"
                     class="hero-tab-btn glass-effect"
                     :class="{ active: heroSlides[currentSlide].activeTab === 'dogs' }"
                   >
@@ -93,37 +110,87 @@
       </div>
     </section>
 
+    <!-- TRUST -->
+    <section class="trust-section">
+      <div class="container custom-container">
+        <div class="trust-grid">
+          <div class="trust-card">
+            <div class="trust-icon">
+              <i class="fas fa-file-medical"></i>
+            </div>
+            <div>
+              <h4>Hồ sơ rõ ràng</h4>
+              <p>Xem thông tin bé cún và dữ liệu cần thiết trước khi quyết định.</p>
+            </div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-icon">
+              <i class="fas fa-paw"></i>
+            </div>
+            <div>
+              <h4>Dễ lựa chọn</h4>
+              <p>Tìm bé theo giống, nguồn cung và trạng thái mở bán trên cùng hệ thống.</p>
+            </div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-icon">
+              <i class="fas fa-hand-holding-heart"></i>
+            </div>
+            <div>
+              <h4>Đồng hành sau mua</h4>
+              <p>Kết hợp phụ kiện và dịch vụ để chăm sóc bé thuận tiện hơn.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- GIỚI THIỆU -->
     <section class="intro-section">
       <div class="container custom-container">
-        <div class="intro-section-header text-center mb-5">
-          <div class="intro-line"></div>
-          <h2 class="intro-title">
-            <i class="fas fa-paw mr-2"></i>
-            Giới thiệu về PetShop
-            <i class="fas fa-bone ml-2"></i>
-          </h2>
-          <div class="intro-line"></div>
+        <div class="section-heading text-center mb-5">
+          <span class="section-kicker">Về PetShop</span>
+          <h2 class="section-title">Nơi mua chó cảnh, phụ kiện và dịch vụ chăm sóc</h2>
+          <p class="section-desc">
+            Trải nghiệm minh bạch, đáng tin cậy và thuận tiện hơn cho người nuôi thú cưng.
+          </p>
         </div>
 
         <div class="row align-items-stretch intro-row">
           <div class="col-lg-6 mb-4 mb-lg-0">
             <div class="intro-card intro-text-card h-100">
               <div class="intro-card-inner">
+                <span class="mini-kicker mb-3">Giá trị nổi bật</span>
+
                 <h3 class="intro-card-title mb-3">
-                  PetShop – nơi kết nối chó cảnh, phụ kiện và dịch vụ chăm sóc thú cưng
+                  Chọn bé cún phù hợp với thông tin rõ ràng ngay từ đầu
                 </h3>
 
                 <p class="intro-text">
-                  PetShop được xây dựng với mục tiêu mang đến cho khách hàng một nơi
-                  mua chó cảnh có <strong>nguồn gốc rõ ràng</strong>, thông tin minh bạch
-                  và trải nghiệm thuận tiện trên cùng một hệ thống.
+                  PetShop giúp khách hàng lựa chọn chó cảnh với <strong>nguồn cung rõ ràng</strong>,
+                  thông tin minh bạch và trải nghiệm theo dõi thuận tiện hơn trước khi đặt giữ bé.
                 </p>
 
-                <p class="intro-text mb-0">
-                  Tại đây, khách hàng có thể xem thông tin từng bé cún, lựa chọn phụ kiện
-                  cần thiết và sử dụng các dịch vụ chăm sóc thú cưng một cách dễ dàng.
+                <p class="intro-text">
+                  Khách hàng có thể xem bé cún, mua phụ kiện và đặt dịch vụ chăm sóc trên cùng một nền tảng.
                 </p>
+
+                <div class="intro-feature-list mt-4">
+                  <div class="intro-feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Thông tin chó rõ ràng, dễ theo dõi</span>
+                  </div>
+                  <div class="intro-feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Đặt cọc trực tuyến nhanh và thuận tiện</span>
+                  </div>
+                  <div class="intro-feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Kết hợp phụ kiện và dịch vụ sau mua</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -134,9 +201,11 @@
                 <img :src="introImage" alt="Giới thiệu PetShop" class="intro-image" />
               </div>
 
-              <div class="intro-image-badge">
-                <i class="fas fa-heart mr-2"></i>
-                Chăm sóc tận tâm
+              <div class="intro-floating-card">
+                <div class="floating-title">Cam kết của hệ thống</div>
+                <div class="floating-text">
+                  Minh bạch hơn trong lựa chọn chó cảnh và tạo trải nghiệm đáng tin cậy hơn cho khách hàng.
+                </div>
               </div>
             </div>
           </div>
@@ -144,191 +213,267 @@
       </div>
     </section>
 
-    <!-- CÁC GIỐNG CHÓ -->
-<!-- CÁC GIỐNG CHÓ -->
-<section class="breed-section">
-  <div class="container custom-container">
-    <div class="breed-section-header text-center mb-5">
-      <div class="intro-line"></div>
-      <h2 class="intro-title">
-        <i class="fas fa-dog mr-2"></i>
-        Các giống chó nổi bật
-        <i class="fas fa-paw ml-2"></i>
-      </h2>
-      <div class="intro-line"></div>
-    </div>
+    <!-- GIỐNG CHÓ -->
+    <section class="breed-section">
+      <div class="container custom-container">
+        <div class="section-heading text-center mb-5">
+          <span class="section-kicker">Khám phá giống chó</span>
+          <h2 class="section-title">Các giống chó nổi bật</h2>
+          <p class="section-desc">
+            Bắt đầu từ giống chó yêu thích để tìm bé phù hợp hơn.
+          </p>
+        </div>
 
-    <div class="row justify-content-start" v-if="breedList.length > 0">
-      <div
-        class="col-lg-4 col-md-6 mb-4"
-        v-for="breed in breedList"
-        :key="breed._id || breed.id"
-      >
-        <div class="breed-simple-card">
-          <div class="breed-simple-image-wrap">
-            <img
-              v-if="breed.image"
-              :src="apiBase + breed.image"
-              :alt="breed.name"
-              class="breed-simple-image"
-            />
-            <div v-else class="breed-simple-no-image">
-              <i class="fas fa-dog mb-2"></i>
-              <span>Chưa có ảnh</span>
-            </div>
-          </div>
+        <div class="row justify-content-start" v-if="breedList.length > 0">
+          <div
+            class="col-lg-4 col-md-6 mb-4"
+            v-for="breed in breedList"
+            :key="breed._id || breed.id"
+          >
+            <router-link
+              :to="`/dogs/breeds/${breed._id || breed.id}`"
+              class="breed-simple-card text-decoration-none d-block"
+            >
+              <div class="breed-simple-image-wrap">
+                <img
+                  v-if="breed.image"
+                  :src="toImageUrl(breed.image)"
+                  :alt="breed.name"
+                  class="breed-simple-image"
+                />
+                <div v-else class="breed-simple-no-image">
+                  <i class="fas fa-dog mb-2"></i>
+                  <span>Chưa có ảnh</span>
+                </div>
+              </div>
 
-          <div class="breed-simple-body">
-            <h4 class="breed-simple-name mb-0">{{ breed.name }}</h4>
+              <div class="breed-simple-body">
+                <h4 class="breed-simple-name mb-2">{{ breed.name }}</h4>
+              </div>
+            </router-link>
           </div>
         </div>
+
+        <div v-else class="breed-empty text-center">
+          <i class="fas fa-dog mb-3"></i>
+          <h5 class="mb-2">Chưa có dữ liệu giống chó</h5>
+          <p class="text-muted mb-0">
+            Vui lòng thêm giống chó từ trang quản trị để hiển thị tại đây.
+          </p>
+        </div>
+
+        <div class="section-more text-center mt-2" v-if="breedList.length > 0">
+          <router-link to="/dogs/breeds" class="section-more-btn text-decoration-none">
+            Xem nhiều hơn
+            <i class="fas fa-arrow-right ml-2"></i>
+          </router-link>
+        </div>
       </div>
-    </div>
-
-    <div v-else class="breed-empty text-center">
-      <i class="fas fa-dog mb-3"></i>
-      <h5 class="mb-2">Chưa có dữ liệu giống chó</h5>
-      <p class="text-muted mb-0">
-        Vui lòng thêm giống chó từ trang quản trị để hiển thị tại đây.
-      </p>
-    </div>
-
-    <div class="section-more text-center mt-2" v-if="breedList.length > 0">
-      <router-link to="/dogs?view=breed" class="section-more-btn text-decoration-none">
-        Xem nhiều hơn
-        <i class="fas fa-arrow-right ml-2"></i>
-      </router-link>
-    </div>
-  </div>
-</section>
+    </section>
 
     <!-- CÁC BÉ CÚN NỔI BẬT -->
-<!-- CÁC BÉ CÚN NỔI BẬT -->
-<section class="featured-dog-section">
-  <div class="container custom-container">
-    <div class="featured-header text-center mb-5">
-      <div class="intro-line intro-line-light"></div>
-      <h2 class="featured-title">
-        <i class="fas fa-paw mr-2"></i>
-        Các bé cún sẵn sàng về nhà mới
-        <i class="fas fa-home ml-2"></i>
-      </h2>
-      <div class="intro-line intro-line-light"></div>
-    </div>
+    <section class="featured-dog-section">
+      <div class="container custom-container">
+        <div class="section-heading text-center mb-5">
+          <span class="section-kicker featured-kicker">Bé cún nổi bật</span>
+          <h2 class="section-title featured-title">Các bé cún sẵn sàng về nhà mới</h2>
+          <p class="section-desc featured-desc">
+            Những bé đang được mở bán công khai trên hệ thống.
+          </p>
+        </div>
 
-    <div class="row" v-if="featuredDogs.length > 0">
-      <div
-        class="col-lg-3 col-md-6 mb-4"
-        v-for="dog in featuredDogs"
-        :key="dog._id || dog.id"
-      >
-        <router-link
-          :to="dogDetailLink(dog)"
-          class="featured-dog-card d-block text-decoration-none"
-        >
-          <div class="featured-dog-image-wrap">
-            <img
-              v-if="dog.image"
-              :src="apiBase + dog.image"
-              :alt="dog.name"
-              class="featured-dog-image"
-            />
-            <div v-else class="featured-dog-no-image">
-              <i class="fas fa-dog mb-2"></i>
-              <span>Chưa có ảnh</span>
-            </div>
+        <div class="row" v-if="featuredDogs.length > 0">
+          <div
+            class="col-lg-3 col-md-6 mb-4"
+            v-for="dog in featuredDogs"
+            :key="dog._id || dog.id"
+          >
+            <router-link
+              :to="dogDetailLink(dog)"
+              class="featured-dog-card simple-dog-card d-block text-decoration-none"
+            >
+              <div class="featured-dog-image-wrap simple-dog-image-wrap">
+                <img
+                  v-if="dog.image"
+                  :src="toImageUrl(dog.image)"
+                  :alt="dog.name"
+                  class="featured-dog-image"
+                />
+
+                <div v-else class="featured-dog-no-image">
+                  <i class="fas fa-dog mb-2"></i>
+                  <span>Chưa có ảnh</span>
+                </div>
+              </div>
+
+              <div class="featured-dog-body simple-dog-body">
+                <h4 class="featured-dog-name simple-dog-name mb-2">{{ dog.name }}</h4>
+
+                <p class="featured-dog-price simple-dog-price mb-0">
+                  {{ formatCurrency(dog.price) }}
+                </p>
+              </div>
+            </router-link>
           </div>
+        </div>
 
-          <div class="featured-dog-body text-center">
-            <h4 class="featured-dog-name mb-2">{{ dog.name }}</h4>
+        <div v-else class="breed-empty text-center">
+          <i class="fas fa-dog mb-3"></i>
+          <h5 class="mb-2">Chưa có bé cún nào để hiển thị</h5>
+          <p class="text-muted mb-0">
+            Khi admin duyệt chó công khai, dữ liệu sẽ hiển thị tại đây.
+          </p>
+        </div>
 
-            <p class="featured-dog-price mb-0">
-              {{ Number(dog.price || 0).toLocaleString("vi-VN") }} VNĐ
-            </p>
-          </div>
-        </router-link>
+        <div class="section-more text-center mt-3" v-if="featuredDogs.length > 0">
+          <router-link to="/dogs/breeds" class="section-more-btn text-decoration-none">
+            Xem nhiều hơn
+            <i class="fas fa-arrow-right ml-2"></i>
+          </router-link>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div v-else class="breed-empty text-center">
-      <i class="fas fa-dog mb-3"></i>
-      <h5 class="mb-2">Chưa có bé cún nào để hiển thị</h5>
-      <p class="text-muted mb-0">
-        Khi admin duyệt chó công khai, dữ liệu sẽ hiển thị tại đây.
-      </p>
-    </div>
+    <!-- KHUYẾN MÃI -->
+    <section class="promotion-section" v-if="promotionAccessories.length > 0">
+      <div class="container custom-container">
+        <div class="section-heading text-center mb-5">
+          <span class="section-kicker promo-kicker">Ưu đãi nổi bật</span>
+          <h2 class="section-title">Phụ kiện đang khuyến mãi</h2>
+          <p class="section-desc">
+            Chuẩn bị cho bé đầy đủ hơn với chi phí tốt hơn.
+          </p>
+        </div>
 
-    <div class="section-more text-center mt-3" v-if="featuredDogs.length > 0">
-      <router-link to="/dogs" class="section-more-btn text-decoration-none">
-        Xem nhiều hơn
-        <i class="fas fa-arrow-right ml-2"></i>
-      </router-link>
-    </div>
-  </div>
-</section>
+        <div class="row">
+          <div
+            class="col-lg-3 col-md-6 mb-4"
+            v-for="item in promotionAccessories"
+            :key="item._id || item.id"
+          >
+            <router-link
+              :to="`/accessories/${item._id || item.id}`"
+              class="promo-accessory-card d-block text-decoration-none"
+            >
+              <div class="promo-accessory-image-wrap">
+                <img
+                  v-if="item.image"
+                  :src="toImageUrl(item.image)"
+                  :alt="item.name"
+                  class="promo-accessory-image"
+                />
+                <div v-else class="accessory-no-image">
+                  <i class="fas fa-box-open mb-2"></i>
+                  <span>Chưa có ảnh</span>
+                </div>
 
-<!-- PHỤ KIỆN NỔI BẬT -->
-<section class="accessory-section">
-  <div class="container custom-container">
-    <div class="featured-header text-center mb-5">
-      <div class="intro-line"></div>
-      <h2 class="intro-title">
-        <i class="fas fa-bone mr-2"></i>
-        Phụ kiện nổi bật
-        <i class="fas fa-paw ml-2"></i>
-      </h2>
-      <div class="intro-line"></div>
-    </div>
+                <span class="promo-discount-badge">
+                  {{ item.discountLabel }}
+                </span>
+              </div>
 
-    <div class="row" v-if="accessoryList.length > 0">
-      <div
-        class="col-lg-3 col-md-6 mb-4"
-        v-for="item in accessoryList"
-        :key="item._id || item.id"
-      >
-        <router-link
-          :to="`/accessories/${item._id || item.id}`"
-          class="accessory-card d-block text-decoration-none"
-        >
-          <div class="accessory-image-wrap">
-            <img
-              v-if="item.image"
-              :src="apiBase + item.image"
-              :alt="item.name"
-              class="accessory-image"
-            />
-            <div v-else class="accessory-no-image">
-              <i class="fas fa-box-open mb-2"></i>
-              <span>Chưa có ảnh</span>
-            </div>
+              <div class="promo-accessory-body">
+                <h4 class="promo-accessory-name mb-2">{{ item.name }}</h4>
+
+                <div class="promo-price-block mb-0">
+                  <div class="promo-old-price">
+                    {{ formatCurrency(item.originalPrice || item.price) }}
+                  </div>
+                  <div class="promo-new-price">
+                    {{ formatCurrency(item.finalPrice || item.price) }}
+                  </div>
+                  <div class="promo-save-text">
+                    Tiết kiệm {{ formatCurrency(item.discountAmount || 0) }}
+                  </div>
+                </div>
+              </div>
+            </router-link>
           </div>
+        </div>
 
-          <div class="accessory-body text-center">
-            <h4 class="accessory-name mb-2">{{ item.name }}</h4>
-            <p class="accessory-price mb-0">
-              {{ Number(item.price || 0).toLocaleString("vi-VN") }} VNĐ
-            </p>
-          </div>
-        </router-link>
+        <div class="section-more text-center mt-3">
+          <router-link to="/accessories" class="section-more-btn text-decoration-none">
+            Xem tất cả phụ kiện
+            <i class="fas fa-arrow-right ml-2"></i>
+          </router-link>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div v-else class="breed-empty text-center">
-      <i class="fas fa-box-open mb-3"></i>
-      <h5 class="mb-2">Chưa có phụ kiện nào để hiển thị</h5>
-      <p class="text-muted mb-0">
-        Khi admin thêm phụ kiện đang bán, dữ liệu sẽ hiển thị tại đây.
-      </p>
-    </div>
+    <!-- PHỤ KIỆN -->
+    <section class="accessory-section">
+      <div class="container custom-container">
+        <div class="section-heading text-center mb-5">
+          <span class="section-kicker">Phụ kiện cần thiết</span>
+          <h2 class="section-title">Phụ kiện nổi bật cho bé</h2>
+          <p class="section-desc">
+            Chuẩn bị những vật dụng cần thiết cho môi trường mới của bé.
+          </p>
+        </div>
 
-    <div class="section-more text-center mt-3" v-if="accessoryList.length > 0">
-      <router-link to="/accessories" class="section-more-btn text-decoration-none">
-        Xem nhiều hơn
-        <i class="fas fa-arrow-right ml-2"></i>
-      </router-link>
-    </div>
-  </div>
-</section>
+        <div class="row" v-if="accessoryList.length > 0">
+          <div
+            class="col-lg-3 col-md-6 mb-4"
+            v-for="item in accessoryList"
+            :key="item._id || item.id"
+          >
+            <router-link
+              :to="`/accessories/${item._id || item.id}`"
+              class="accessory-card d-block text-decoration-none"
+            >
+              <div class="accessory-image-wrap">
+                <img
+                  v-if="item.image"
+                  :src="toImageUrl(item.image)"
+                  :alt="item.name"
+                  class="accessory-image"
+                />
+                <div v-else class="accessory-no-image">
+                  <i class="fas fa-box-open mb-2"></i>
+                  <span>Chưa có ảnh</span>
+                </div>
+
+                <span v-if="item.hasPromotion" class="mini-discount-badge">
+                  {{ item.discountLabel }}
+                </span>
+              </div>
+
+              <div class="accessory-body">
+                <h4 class="accessory-name mb-2">{{ item.name }}</h4>
+
+                <div v-if="item.hasPromotion" class="home-price-block mb-0">
+                  <div class="home-old-price">
+                    {{ formatCurrency(item.originalPrice || item.price) }}
+                  </div>
+                  <div class="accessory-price">
+                    {{ formatCurrency(item.finalPrice || item.price) }}
+                  </div>
+                </div>
+
+                <p v-else class="accessory-price mb-0">
+                  {{ formatCurrency(item.price) }}
+                </p>
+              </div>
+            </router-link>
+          </div>
+        </div>
+
+        <div v-else class="breed-empty text-center">
+          <i class="fas fa-box-open mb-3"></i>
+          <h5 class="mb-2">Chưa có phụ kiện nào để hiển thị</h5>
+          <p class="text-muted mb-0">
+            Khi admin thêm phụ kiện đang bán, dữ liệu sẽ hiển thị tại đây.
+          </p>
+        </div>
+
+        <div class="section-more text-center mt-3" v-if="accessoryList.length > 0">
+          <router-link to="/accessories" class="section-more-btn text-decoration-none">
+            Xem nhiều hơn
+            <i class="fas fa-arrow-right ml-2"></i>
+          </router-link>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -342,6 +487,8 @@ import banner3 from "@/assets/images/banner3.jpg";
 import introImage from "@/assets/images/banner1.jpg";
 
 export default {
+  name: "HomePage",
+
   data() {
     return {
       currentSlide: 0,
@@ -350,38 +497,39 @@ export default {
       breedList: [],
       featuredDogs: [],
       accessoryList: [],
+      promotionAccessories: [],
       apiBase: "http://localhost:3000",
       heroSlides: [
         {
-          label: "Thuần chủng 100%",
-          title: "LỰA CHỌN BÉ CÚN KHỎE MẠNH VÀ ĐÁNG TIN CẬY",
-          desc: "Xem thông tin từng bé, tình trạng sức khỏe và chọn người bạn phù hợp cho gia đình bạn.",
+          label: "Nguồn gốc minh bạch",
+          title: "Chọn bé cún phù hợp cho gia đình bạn",
+          desc: "Xem hồ sơ, trạng thái mở bán và thông tin cần thiết trước khi đặt giữ bé.",
           image: banner1,
           primaryText: "Xem chó cảnh",
-          primaryLink: "/dogs",
-          secondaryText: "Tìm hiểu thêm",
-          secondaryLink: "/",
+          primaryLink: "/dogs/breeds",
+          secondaryText: "Xem nguồn cung",
+          secondaryLink: "/dogs/farms",
           activeTab: "dogs",
         },
         {
-          label: "Phụ kiện thiết yếu",
-          title: "CHUẨN BỊ ĐẦY ĐỦ PHỤ KIỆN CHO BÉ NGAY TỪ NGÀY ĐẦU",
-          desc: "Mua sắm bát ăn, dây dắt, đồ chơi và các vật dụng chăm sóc giúp bé thích nghi tốt hơn.",
+          label: "Chuẩn bị đầy đủ",
+          title: "Mua sắm phụ kiện cần thiết cho bé",
+          desc: "Lựa chọn những vật dụng phù hợp để bé thích nghi tốt hơn trong những ngày đầu.",
           image: banner2,
           primaryText: "Xem phụ kiện",
           primaryLink: "/accessories",
           secondaryText: "Xem chó cảnh",
-          secondaryLink: "/dogs",
+          secondaryLink: "/dogs/breeds",
           activeTab: "accessories",
         },
         {
-          label: "Dịch vụ chuyên nghiệp",
-          title: "ĐẶT LỊCH DỊCH VỤ CHĂM SÓC THÚ CƯNG NHANH CHÓNG",
-          desc: "Theo dõi lịch đặt, trạng thái xử lý và chăm sóc bé dễ dàng ngay trên hệ thống.",
+          label: "Chăm sóc thuận tiện",
+          title: "Đặt lịch dịch vụ nhanh chóng hơn",
+          desc: "Theo dõi quá trình chăm sóc thú cưng dễ dàng trên cùng một hệ thống.",
           image: banner3,
           primaryText: "Xem dịch vụ",
           primaryLink: "/services",
-          secondaryText: "Đơn hàng của tôi",
+          secondaryText: "Lịch sử đơn của tôi",
           secondaryLink: "/tra-cuu-don",
           activeTab: "services",
         },
@@ -391,9 +539,11 @@ export default {
 
   async mounted() {
     this.startSlide();
-    await this.fetchBreeds();
-    await this.fetchFeaturedDogs();
-    await this.fetchAccessories();
+    await Promise.all([
+      this.fetchBreeds(),
+      this.fetchFeaturedDogs(),
+      this.fetchAccessories(),
+    ]);
   },
 
   beforeUnmount() {
@@ -401,44 +551,64 @@ export default {
   },
 
   methods: {
-async fetchBreeds() {
-  try {
-    const response = await BreedService.getAll();
+    async fetchBreeds() {
+      try {
+        const response = await BreedService.getAll();
 
-    this.breedList = (response || [])
-      .filter((item) => item.status === "active" || !item.status)
-      .sort((a, b) => (a.maGiong || "").localeCompare(b.maGiong || ""))
-      .slice(0, 6);
-  } catch (error) {
-    console.error("Lỗi khi lấy danh sách giống chó:", error);
-    this.breedList = [];
-  }
-},
+        this.breedList = (response || [])
+          .filter((item) => item.status === "active" || !item.status)
+          .sort((a, b) => (a.maGiong || "").localeCompare(b.maGiong || ""))
+          .slice(0, 6);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách giống chó:", error);
+        this.breedList = [];
+      }
+    },
 
-async fetchFeaturedDogs() {
-  try {
-    const response = await DogService.getPublic();
-    this.featuredDogs = (response || [])
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 8);
-  } catch (error) {
-    console.error("Lỗi khi lấy danh sách chó nổi bật:", error);
-    this.featuredDogs = [];
-  }
-},
+    async fetchFeaturedDogs() {
+      try {
+        const response = await DogService.getPublic();
+        this.featuredDogs = (response || [])
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 8);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách chó nổi bật:", error);
+        this.featuredDogs = [];
+      }
+    },
 
-async fetchAccessories() {
-  try {
-    const response = await AccessoryService.getPublic();
-    this.accessoryList = (response || []).slice(0, 8);
-  } catch (error) {
-    console.error("Lỗi khi lấy danh sách phụ kiện nổi bật:", error);
-    this.accessoryList = [];
-  }
-},
+    async fetchAccessories() {
+      try {
+        const response = await AccessoryService.getPublic();
+        const list = response || [];
+
+        this.promotionAccessories = list
+          .filter((item) => item.hasPromotion)
+          .sort((a, b) => Number(b.discountAmount || 0) - Number(a.discountAmount || 0))
+          .slice(0, 4);
+
+        this.accessoryList = list.slice(0, 8);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phụ kiện nổi bật:", error);
+        this.accessoryList = [];
+        this.promotionAccessories = [];
+      }
+    },
+
     dogDetailLink(dog) {
       const id = dog._id || dog.id;
       return `/dog/${id}`;
+    },
+
+    toImageUrl(path) {
+      if (!path) return "";
+      if (String(path).startsWith("http")) return path;
+      return `${this.apiBase}${path}`;
+    },
+
+    formatCurrency(value) {
+      if (value === null || value === undefined || value === "") return "Liên hệ";
+      return Number(value).toLocaleString("vi-VN") + " VND";
     },
 
     startSlide() {
@@ -487,7 +657,9 @@ async fetchAccessories() {
 }
 
 .home-page {
-  background: linear-gradient(180deg, #fbf8fd 0%, #ffffff 100%);
+  background:
+    radial-gradient(circle at top left, rgba(177, 145, 211, 0.14), transparent 28%),
+    linear-gradient(180deg, #fcf9ff 0%, #ffffff 100%);
   min-height: 100vh;
 }
 
@@ -504,22 +676,30 @@ async fetchAccessories() {
 /* HERO */
 .hero-banner {
   padding: 0;
-  margin: 0;
+  margin: 0 0 24px;
 }
 
 .hero-slide {
   position: relative;
-  min-height: 560px;
-  border-radius: 0;
+  min-height: 620px;
   overflow: hidden;
   background-size: cover;
   background-position: center 35%;
   transition: background-image 0.8s ease-in-out;
 }
 
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 210, 112, 0.12), transparent 26%),
+    radial-gradient(circle at 78% 20%, rgba(255, 255, 255, 0.08), transparent 24%);
+  z-index: 1;
+}
+
 .hero-content {
   color: white;
-  padding: 40px 0;
+  padding: 52px 0;
   animation: slideInLeft 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
@@ -529,40 +709,56 @@ async fetchAccessories() {
 
 .glass-effect {
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .hero-label {
-  padding: 7px 18px;
+  padding: 9px 18px;
   border-radius: 999px;
   color: #fff;
-  font-size: 0.83rem;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .hero-heading {
-  font-size: 2.7rem;
-  line-height: 1.3;
+  font-size: 2.6rem;
+  line-height: 1.24;
   color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
-  max-width: 720px;
+  letter-spacing: 0.2px;
+  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.45);
+  max-width: 760px;
 }
 
 .hero-desc {
-  font-size: 1.04rem;
-  line-height: 1.75;
+  font-size: 1rem;
+  line-height: 1.8;
   color: rgba(255, 255, 255, 0.96);
   max-width: 620px;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.hero-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-benefit-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .hero-action-group {
@@ -574,29 +770,29 @@ async fetchAccessories() {
 
 .hero-main-btn,
 .hero-sub-btn {
-  min-width: 180px;
-  height: 48px;
+  min-width: 190px;
+  height: 50px;
   padding: 0 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.95rem;
   transition: all 0.3s ease;
   border-radius: 999px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .hero-main-btn {
-  background: linear-gradient(135deg, #f4c842, #ffb300);
+  background: linear-gradient(135deg, #ffd972, #ffbe33);
   color: #31114d;
   border: none;
 }
 
 .hero-main-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(244, 200, 66, 0.45) !important;
+  box-shadow: 0 12px 28px rgba(255, 190, 51, 0.38) !important;
   color: #31114d;
   text-decoration: none;
 }
@@ -624,14 +820,14 @@ async fetchAccessories() {
   height: 42px;
   padding: 0 20px;
   border-radius: 999px;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.9);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.84rem;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.35px;
   transition: all 0.3s ease;
 }
 
@@ -657,18 +853,18 @@ async fetchAccessories() {
   border-radius: 50%;
   color: white;
   z-index: 5;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   cursor: pointer;
   border: none;
 }
 
 .hero-nav:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: translateY(-50%) scale(1.08);
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.06);
 }
 
 .hero-nav.prev {
@@ -682,12 +878,12 @@ async fetchAccessories() {
 .hero-dots {
   position: absolute;
   left: 50%;
-  bottom: 25px;
+  bottom: 26px;
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
   z-index: 5;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.2);
   padding: 8px 12px;
   border-radius: 999px;
   backdrop-filter: blur(4px);
@@ -703,37 +899,131 @@ async fetchAccessories() {
 }
 
 .hero-dot.active {
-  background: #f4c842;
+  background: #ffd972;
   width: 28px;
   border-radius: 10px;
 }
 
-/* INTRO */
-.intro-section {
-  padding: 58px 0 24px;
+/* TRUST */
+.trust-section {
+  margin-top: -52px;
+  position: relative;
+  z-index: 6;
+  padding-bottom: 28px;
 }
 
-.intro-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
-.intro-line {
-  flex: 1;
-  max-width: 260px;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #b79bd3, transparent);
-  border-radius: 999px;
+.trust-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(233, 223, 245, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 16px 36px rgba(67, 35, 102, 0.08);
+  padding: 22px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  backdrop-filter: blur(10px);
 }
 
-.intro-title {
-  margin: 0;
-  color: #76529f;
-  font-size: 2.1rem;
+.trust-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f3e8ff, #ede9fe);
+  color: #6b4ca1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.trust-card h4 {
+  margin: 0 0 8px;
+  color: #2f1b44;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.2px;
+}
+
+.trust-card p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+/* SECTION COMMON */
+.section-heading {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-kicker {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #f5edfd;
+  color: #7a4db3;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  margin-bottom: 14px;
+}
+
+.promo-kicker {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.featured-kicker {
+  background: #efe5fb;
+  color: #6f42a4;
+}
+
+.section-title {
+  color: #5a2d91;
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1.3;
+  margin-bottom: 12px;
+}
+
+.featured-title {
+  color: #5a2d91;
+}
+
+.section-desc {
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.8;
+  margin-bottom: 0;
+}
+
+.featured-desc {
+  color: #7a6d8f;
+}
+
+.mini-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #6b4ca1;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+/* INTRO */
+.intro-section {
+  padding: 42px 0 26px;
 }
 
 .intro-row {
@@ -742,37 +1032,55 @@ async fetchAccessories() {
 
 .intro-card {
   height: 100%;
-  border-radius: 28px;
+  border-radius: 30px;
   overflow: hidden;
-  box-shadow: 0 14px 30px rgba(75, 31, 115, 0.08);
+  box-shadow: 0 16px 34px rgba(75, 31, 115, 0.08);
 }
 
 .intro-text-card {
-  background: linear-gradient(180deg, #faf5ff 0%, #f5edfd 100%);
+  background: linear-gradient(180deg, #faf5ff 0%, #f7f0fd 100%);
   border: 1px solid #eadcf6;
-  padding: 0;
 }
 
 .intro-card-inner {
   height: 100%;
-  padding: 34px 34px 32px;
+  padding: 38px 36px 34px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .intro-card-title {
-  color: #4b1f73;
-  font-size: 1.45rem;
+  color: #31114d;
+  font-size: 1.55rem;
   line-height: 1.45;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .intro-text {
   color: #5d4d6f;
-  font-size: 1.02rem;
+  font-size: 1rem;
   line-height: 1.85;
   margin-bottom: 16px;
+}
+
+.intro-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intro-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.intro-feature-item i {
+  color: #16a34a;
+  margin-top: 3px;
 }
 
 .intro-image-card {
@@ -785,17 +1093,16 @@ async fetchAccessories() {
 .intro-image-wrap {
   width: 100%;
   height: 100%;
-  min-height: 420px;
-  border-radius: 22px;
+  min-height: 440px;
+  border-radius: 24px;
   overflow: hidden;
   background: white;
-  box-shadow: inset 0 0 0 1px rgba(123, 88, 160, 0.08);
 }
 
 .intro-image {
   width: 100%;
   height: 100%;
-  min-height: 420px;
+  min-height: 440px;
   object-fit: cover;
   display: block;
   transition: transform 0.4s ease;
@@ -805,46 +1112,63 @@ async fetchAccessories() {
   transform: scale(1.04);
 }
 
-.intro-image-badge {
+.intro-floating-card {
   position: absolute;
-  left: 34px;
+  right: 36px;
   bottom: 34px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  background: rgba(75, 31, 115, 0.88);
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 700;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  width: 280px;
+  max-width: calc(100% - 72px);
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(49, 17, 77, 0.88);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
 }
 
-/* BREED SECTION - SIMPLE STYLE */
-.breed-section {
-  padding: 26px 0 26px;
+.floating-title {
+  font-size: 0.96rem;
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
-.breed-simple-card {
-  background: transparent;
-  border-radius: 18px;
+.floating-text {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* CARD CHUNG */
+.breed-simple-card,
+.featured-dog-card,
+.promo-accessory-card,
+.accessory-card {
+  background: #fff;
+  border-radius: 24px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.28s ease;
 }
 
-.breed-simple-card:hover {
-  transform: translateY(-5px);
+.breed-simple-card:hover,
+.featured-dog-card:hover,
+.promo-accessory-card:hover,
+.accessory-card:hover {
+  transform: translateY(-6px);
 }
 
-.breed-simple-image-wrap {
+.breed-simple-image-wrap,
+.featured-dog-image-wrap,
+.promo-accessory-image-wrap,
+.accessory-image-wrap {
   width: 100%;
-  height: 460px;
-  border-radius: 18px;
   overflow: hidden;
-  background: #f3eef8;
-  box-shadow: 0 8px 20px rgba(75, 31, 115, 0.08);
+  background: #f7f2fc;
 }
 
-.breed-simple-image {
+.breed-simple-image,
+.featured-dog-image,
+.promo-accessory-image,
+.accessory-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -852,160 +1176,15 @@ async fetchAccessories() {
   transition: transform 0.35s ease;
 }
 
-.breed-simple-card:hover .breed-simple-image {
-  transform: scale(1.04);
-}
-
-.breed-simple-no-image {
-  width: 100%;
-  height: 100%;
-  color: #8d77a7;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-}
-
-.breed-simple-no-image i {
-  font-size: 2rem;
-}
-
-.breed-simple-body {
-  padding-top: 14px;
-  text-align: center;
-}
-
-.breed-simple-name {
-  color: #5d5466;
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-/* FEATURED DOG SECTION */
-/* FEATURED DOG SECTION */
-/* FEATURED DOG SECTION */
-.featured-dog-section {
-  padding: 55px 0 60px;
-  background: linear-gradient(180deg, #efe6fb 0%, #eadcf8 100%);
-}
-
-.featured-title {
-  margin: 0;
-  color: #6b4ca1;
-  font-size: 2.1rem;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-}
-
-.intro-line-light {
-  background: linear-gradient(90deg, transparent, #bfa7de, transparent);
-}
-
-.featured-dog-card {
-  background: transparent;
-  border: none;
-  border-radius: 18px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.featured-dog-card:hover {
-  transform: translateY(-5px);
-}
-
-.featured-dog-image-wrap {
-  position: relative;
-  width: 100%;
-  height: 320px;
-  overflow: hidden;
-  border-radius: 14px;
-  background: #f7f2fc;
-  box-shadow: 0 10px 24px rgba(75, 31, 115, 0.08);
-}
-
-.featured-dog-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
-}
-
-.featured-dog-card:hover .featured-dog-image {
-  transform: scale(1.04);
-}
-
-.featured-dog-no-image {
-  color: #8d77a7;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 0.95rem;
-}
-
-.featured-dog-no-image i {
-  font-size: 2rem;
-}
-
-.featured-dog-body {
-  padding: 14px 8px 0;
-}
-
-.featured-dog-name {
-  color: #5c5270;
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.featured-dog-price {
-  color: #6b4ca1;
-  font-size: 1.18rem;
-  font-weight: 800;
-}
-
-/* ACCESSORY SECTION */
-/* ACCESSORY SECTION */
-.accessory-section {
-  padding: 48px 0 56px;
-  background: #fff;
-}
-
-.accessory-card {
-  background: transparent;
-  border: none;
-  border-radius: 18px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.accessory-card:hover {
-  transform: translateY(-5px);
-}
-
-.accessory-image-wrap {
-  width: 100%;
-  height: 260px;
-  overflow: hidden;
-  border-radius: 14px;
-  background: #f7f2fc;
-  box-shadow: 0 10px 24px rgba(75, 31, 115, 0.08);
-}
-
-.accessory-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
-}
-
+.breed-simple-card:hover .breed-simple-image,
+.featured-dog-card:hover .featured-dog-image,
+.promo-accessory-card:hover .promo-accessory-image,
 .accessory-card:hover .accessory-image {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
+.breed-simple-no-image,
+.featured-dog-no-image,
 .accessory-no-image {
   color: #8d77a7;
   display: flex;
@@ -1016,25 +1195,226 @@ async fetchAccessories() {
   font-size: 0.95rem;
 }
 
+.breed-simple-no-image i,
+.featured-dog-no-image i,
 .accessory-no-image i {
   font-size: 2rem;
 }
 
+/* BREED */
+.breed-section {
+  padding: 34px 0 34px;
+}
+
+.breed-simple-card {
+  border: 1px solid #eee6f6;
+  box-shadow: 0 12px 24px rgba(75, 31, 115, 0.05);
+}
+
+.breed-simple-card:hover {
+  box-shadow: 0 18px 34px rgba(75, 31, 115, 0.1);
+}
+
+.breed-simple-image-wrap {
+  height: 360px;
+}
+
+.breed-simple-body {
+  padding: 18px 18px 20px;
+  text-align: left;
+}
+
+.breed-simple-name {
+  color: #5a2d91;
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+/* FEATURED DOG */
+.featured-dog-section {
+  padding: 58px 0 62px;
+  background: linear-gradient(180deg, #f7f1fd 0%, #f2e9fb 100%);
+}
+
+.featured-dog-card {
+  border: 1px solid #eadcf6;
+  box-shadow: 0 14px 28px rgba(75, 31, 115, 0.08);
+}
+
+.featured-dog-card:hover {
+  box-shadow: 0 20px 38px rgba(75, 31, 115, 0.14);
+}
+
+.simple-dog-image-wrap {
+  height: 320px;
+}
+
+.simple-dog-body {
+  padding: 14px 16px 18px;
+  text-align: left;
+}
+
+.simple-dog-name {
+  color: #5a2d91;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.simple-dog-price {
+  color: #6f42a4;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+/* PROMOTION */
+.promotion-section {
+  padding: 56px 0 28px;
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+}
+
+.promo-accessory-card {
+  border: 1px solid #f7d7d7;
+  box-shadow: 0 14px 28px rgba(220, 38, 38, 0.06);
+}
+
+.promo-accessory-card:hover {
+  box-shadow: 0 18px 34px rgba(220, 38, 38, 0.12);
+}
+
+.promo-accessory-image-wrap {
+  position: relative;
+  height: 260px;
+  background: #fdf2f2;
+}
+
+.promo-accessory-image {
+  height: 100%;
+}
+
+.promo-discount-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.24);
+}
+
+.promo-accessory-body {
+  padding: 18px 18px 20px;
+  text-align: left;
+}
+
+.promo-accessory-name {
+  color: #5a2d91;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.promo-price-block {
+  min-height: 64px;
+}
+
+.promo-old-price {
+  color: #9b90ad;
+  font-size: 0.9rem;
+  text-decoration: line-through;
+  margin-bottom: 3px;
+}
+
+.promo-new-price {
+  color: #dc2626;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.promo-save-text {
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* ACCESSORY */
+.accessory-section {
+  padding: 56px 0 62px;
+  background: #fff;
+}
+
+.accessory-card {
+  border: 1px solid #eee6f6;
+  box-shadow: 0 12px 24px rgba(75, 31, 115, 0.05);
+}
+
+.accessory-card:hover {
+  box-shadow: 0 18px 34px rgba(75, 31, 115, 0.1);
+}
+
+.accessory-image-wrap {
+  position: relative;
+  height: 260px;
+}
+
+.accessory-image {
+  height: 100%;
+}
+
+.mini-discount-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.2);
+}
+
 .accessory-body {
-  padding: 14px 8px 0;
+  padding: 18px 18px 20px;
+  text-align: left;
 }
 
 .accessory-name {
-  color: #5c5270;
-  font-size: 1.18rem;
-  font-weight: 700;
-  line-height: 1.35;
+  color: #5a2d91;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.home-price-block {
+  min-height: 52px;
+}
+
+.home-old-price {
+  color: #9b90ad;
+  font-size: 0.86rem;
+  text-decoration: line-through;
+  margin-bottom: 2px;
 }
 
 .accessory-price {
   color: #6b4ca1;
-  font-size: 1.08rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 900;
 }
 
 .breed-empty {
@@ -1049,175 +1429,11 @@ async fetchAccessories() {
   font-size: 2rem;
 }
 
-@media (max-width: 992px) {
-  .hero-slide {
-    min-height: 500px;
-  }
-
-  .hero-heading {
-    font-size: 2.15rem;
-    max-width: 100%;
-  }
-
-  .hero-desc {
-    font-size: 0.98rem;
-    max-width: 100%;
-  }
-
-  .intro-title {
-    font-size: 1.8rem;
-  }
-
-  .intro-line {
-    max-width: 120px;
-  }
-
-  .intro-card-title {
-    font-size: 1.25rem;
-  }
-
-  .intro-image-wrap,
-  .intro-image {
-    min-height: 320px;
-  }
-
-.breed-simple-image-wrap {
-  height: 260px;
-}
-
-.featured-dog-image-wrap {
-  height: 240px;
-}
-
-.breed-simple-name,
-.featured-dog-name {
-  font-size: 1.12rem;
-}
-
-.featured-title {
-  font-size: 1.35rem;
-}
-}
-
-@media (max-width: 768px) {
-  .accessory-image-wrap {
-  height: 220px;
-}
-
-.accessory-name {
-  font-size: 1.05rem;
-}
-
-  .section-more-btn {
-  min-width: 180px;
-  height: 44px;
-  font-size: 0.92rem;
-}
-  .hero-slide {
-    min-height: 440px;
-  }
-
-  .hero-heading {
-    font-size: 1.6rem;
-    line-height: 1.4;
-  }
-
-  .hero-desc {
-    font-size: 0.9rem;
-    line-height: 1.65;
-  }
-
-  .hero-content {
-    text-align: center !important;
-  }
-
-  .hero-action-group,
-  .hero-tabs {
-    justify-content: center !important;
-  }
-
-  .hero-main-btn,
-  .hero-sub-btn {
-    min-width: 160px;
-    height: 44px;
-    font-size: 0.88rem;
-  }
-
-  .hero-tab-btn {
-    min-width: 135px;
-    height: 40px;
-    font-size: 0.8rem;
-  }
-
-  .hero-nav {
-    width: 40px;
-    height: 40px;
-  }
-
-  .hero-nav.prev {
-    left: 12px;
-  }
-
-  .hero-nav.next {
-    right: 12px;
-  }
-
-  .intro-section {
-    padding-top: 42px;
-  }
-
-  .intro-section-header {
-    gap: 10px;
-  }
-
-  .intro-line {
-    max-width: 60px;
-  }
-
-  .intro-title {
-    font-size: 1.3rem;
-  }
-
-  .intro-card-inner {
-    padding: 24px 20px;
-  }
-
-  .intro-card-title {
-    font-size: 1.12rem;
-  }
-
-  .intro-text {
-    font-size: 0.95rem;
-  }
-
-  .intro-image-wrap,
-  .intro-image {
-    min-height: 260px;
-  }
-
-  .intro-image-badge {
-    left: 26px;
-    bottom: 26px;
-    font-size: 0.82rem;
-    padding: 8px 14px;
-  }
-
-  .breed-simple-image-wrap,
-  .featured-dog-image-wrap {
-    height: 260px;
-  }
-
-  .breed-simple-name,
-  .featured-dog-name {
-    font-size: 1.12rem;
-  }
-
 .section-more {
   display: flex;
   justify-content: center;
 }
 
-/* XEM NHIỀU HƠN BUTTON */
 .section-more-btn {
   min-width: 220px;
   height: 50px;
@@ -1244,6 +1460,151 @@ async fetchAccessories() {
   transform: translateY(-2px);
 }
 
+@media (max-width: 992px) {
+  .hero-slide {
+    min-height: 560px;
+  }
 
+  .hero-heading {
+    font-size: 2.1rem;
+    max-width: 100%;
+  }
+
+  .hero-desc {
+    font-size: 0.96rem;
+    max-width: 100%;
+  }
+
+  .trust-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-title {
+    font-size: 1.85rem;
+  }
+
+  .intro-card-title {
+    font-size: 1.28rem;
+  }
+
+  .intro-image-wrap,
+  .intro-image {
+    min-height: 340px;
+  }
+
+  .breed-simple-image-wrap {
+    height: 280px;
+  }
+
+  .simple-dog-image-wrap {
+    height: 270px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-slide {
+    min-height: 500px;
+  }
+
+  .hero-heading {
+    font-size: 1.65rem;
+    line-height: 1.4;
+  }
+
+  .hero-desc {
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .hero-content {
+    text-align: center !important;
+  }
+
+  .hero-action-group,
+  .hero-tabs,
+  .hero-benefits {
+    justify-content: center !important;
+  }
+
+  .hero-main-btn,
+  .hero-sub-btn {
+    min-width: 160px;
+    height: 44px;
+    font-size: 0.88rem;
+  }
+
+  .hero-tab-btn {
+    min-width: 128px;
+    height: 40px;
+    font-size: 0.79rem;
+  }
+
+  .hero-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .hero-nav.prev {
+    left: 12px;
+  }
+
+  .hero-nav.next {
+    right: 12px;
+  }
+
+  .trust-section {
+    margin-top: -36px;
+  }
+
+  .trust-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+  }
+
+  .section-desc {
+    font-size: 0.94rem;
+  }
+
+  .intro-card-inner {
+    padding: 26px 20px;
+  }
+
+  .intro-card-title {
+    font-size: 1.12rem;
+  }
+
+  .intro-text {
+    font-size: 0.95rem;
+  }
+
+  .intro-image-wrap,
+  .intro-image {
+    min-height: 270px;
+  }
+
+  .intro-floating-card {
+    right: 22px;
+    bottom: 22px;
+    max-width: calc(100% - 44px);
+  }
+
+  .breed-simple-image-wrap,
+  .simple-dog-image-wrap {
+    height: 260px;
+  }
+
+  .accessory-image-wrap,
+  .promo-accessory-image-wrap {
+    height: 220px;
+  }
+
+  .section-more-btn {
+    min-width: 180px;
+    height: 44px;
+    font-size: 0.92rem;
+  }
 }
 </style>

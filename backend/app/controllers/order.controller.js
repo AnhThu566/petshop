@@ -66,6 +66,54 @@ const createDogHistory = async ({
   });
 };
 
+const ACTIVE_ORDER_STATUSES = ["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"];
+const VALID_ORDER_STATUSES = [
+  "Chờ xác nhận cọc",
+  "Đã nhận cọc",
+  "Đang giao",
+  "Hoàn thành",
+  "Đã hủy",
+];
+
+const normalizePhone = (value) => String(value || "").trim();
+const normalizeText = (value) => String(value || "").trim();
+
+const isDogReservable = (dog) => {
+  return (
+    dog &&
+    dog.approvalStatus === "Đã duyệt" &&
+    dog.saleStatus === "Sẵn sàng bán" &&
+    dog.isPublished === true
+  );
+};
+
+const createDogCareRecordAfterSale = async ({ order, dog, req }) => {
+  const actorId = req.user?._id || req.user?.id || null;
+
+  const existed = await DogCareRecord.findOne({
+    dogId: dog._id,
+    customerId: order.userId,
+    orderId: order._id,
+  });
+
+  if (existed) {
+    return existed;
+  }
+
+  const careRecord = await DogCareRecord.create({
+    dogId: dog._id,
+    customerId: order.userId,
+    orderId: order._id,
+    farmId: order.farmId,
+    title: `Hồ sơ chăm sóc sau bán - ${dog.name}`,
+    description: `Hồ sơ theo dõi chăm sóc sau bán cho bé ${dog.name}`,
+    status: "Đang theo dõi",
+    createdBy: actorId,
+  });
+
+  return careRecord;
+};
+
 const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
   const actorId = req.user?._id || req.user?.id || null;
 
@@ -127,9 +175,9 @@ const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
     const existed = await DogReminder.findOne({
       dogId: dog._id,
       customerId: order.userId,
+      orderId: order._id,
       reminderType: item.reminderType,
       title: item.title,
-      reminderDate: item.reminderDate,
     });
 
     if (!existed) {
@@ -169,15 +217,6 @@ const createCustomerNotificationAfterSale = async ({ order, dog }) => {
   });
 };
 
-const ACTIVE_ORDER_STATUSES = ["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao"];
-const VALID_ORDER_STATUSES = [
-  "Chờ xác nhận cọc",
-  "Đã nhận cọc",
-  "Đang giao",
-  "Hoàn thành",
-  "Đã hủy",
-];
-
 // 1. Khách tạo đơn đặt cọc
 exports.createDeposit = async (req, res, next) => {
   try {
@@ -192,83 +231,47 @@ exports.createDeposit = async (req, res, next) => {
       customerPhone,
       customerAddress,
       dogId,
-      farmId,
       note,
       paymentMethod,
       paymentProof,
     } = req.body;
 
-    if (
-      !customerName ||
-      !customerPhone ||
-      !customerAddress ||
-      !dogId ||
-      !farmId
-    ) {
+    console.log("STEP 0: vao createDeposit");
+
+    if (!customerName || !customerPhone || !customerAddress || !dogId) {
       return next(new ApiError(400, "Thiếu thông tin tạo đơn đặt cọc"));
     }
 
     const dog = await Dog.findById(dogId);
+    console.log("STEP 1: tim thay dog", !!dog);
+
     if (!dog) {
       return next(new ApiError(404, "Không tìm thấy bé chó cần đặt cọc"));
     }
 
-    if (dog.approvalStatus !== "Đã duyệt") {
-      return next(new ApiError(400, "Bé chó này chưa được duyệt để mở bán"));
-    }
-
-    if (dog.saleStatus !== "Sẵn sàng bán") {
+    if (!isDogReservable(dog)) {
       return next(
         new ApiError(
           400,
-          "Bé chó này hiện không còn ở trạng thái sẵn sàng đặt cọc. Vui lòng tải lại trang."
+          "Bé chó này hiện không còn đủ điều kiện đặt cọc. Vui lòng tải lại trang."
         )
       );
     }
 
-    if (!dog.isPublished || !dog.sourceVerified || !dog.eligibleForSale) {
-      return next(
-        new ApiError(400, "Bé chó này hiện chưa đủ điều kiện giao dịch")
-      );
-    }
-
     const realFarmId = dog.farmId?._id || dog.farmId;
-    if (String(realFarmId) !== String(farmId)) {
-      return next(
-        new ApiError(400, "Thông tin trang trại không khớp với bé chó này")
-      );
-    }
 
     const activeOrder = await Order.findOne({
       dogId,
       status: { $in: ACTIVE_ORDER_STATUSES },
     });
+    console.log("STEP 2: check active order");
 
     if (activeOrder) {
       return next(new ApiError(400, "Bé chó này đang có người đặt trước"));
     }
 
     const parsedTotalPrice = Number(dog.price);
-    if (!parsedTotalPrice || parsedTotalPrice <= 0) {
-      return next(new ApiError(400, "Giá bé chó không hợp lệ"));
-    }
-
     const finalPaymentMethod = paymentMethod || "Chuyển khoản";
-    if (!["Chuyển khoản", "Tiền mặt"].includes(finalPaymentMethod)) {
-      return next(new ApiError(400, "Phương thức thanh toán cọc không hợp lệ"));
-    }
-
-    if (
-      finalPaymentMethod === "Chuyển khoản" &&
-      (!paymentProof || !String(paymentProof).trim())
-    ) {
-      return next(
-        new ApiError(
-          400,
-          "Vui lòng cung cấp minh chứng chuyển khoản để gửi yêu cầu đặt cọc"
-        )
-      );
-    }
 
     const depositAmount =
       dog.depositAmount && Number(dog.depositAmount) > 0
@@ -284,28 +287,34 @@ exports.createDeposit = async (req, res, next) => {
 
     const newOrder = new Order({
       userId,
-      customerName: String(customerName).trim(),
-      customerPhone: String(customerPhone).trim(),
-      customerAddress: String(customerAddress).trim(),
+      customerName: normalizeText(customerName),
+      customerPhone: normalizePhone(customerPhone),
+      customerAddress: normalizeText(customerAddress),
       dogId,
       farmId: realFarmId,
       totalPrice: parsedTotalPrice,
       depositAmount,
       remainingAmount,
       paymentMethod: finalPaymentMethod,
-      paymentProof: paymentProof ? String(paymentProof).trim() : "",
+      paymentProof: paymentProof ? normalizeText(paymentProof) : "",
       paymentStatus,
-      note: note ? String(note).trim() : "",
+      note: note ? normalizeText(note) : "",
       status: "Chờ xác nhận cọc",
     });
 
+    console.log("STEP 3: truoc save order");
     await newOrder.save();
+    console.log("STEP 4: save order xong");
 
     const oldDogSaleStatus = dog.saleStatus;
     dog.saleStatus = "Chờ thanh toán";
     dog.isPublished = true;
-    await dog.save();
 
+    console.log("STEP 5: truoc save dog");
+    await dog.save();
+    console.log("STEP 6: save dog xong");
+
+    console.log("STEP 7: truoc create order history");
     await createOrderHistory({
       orderId: newOrder._id,
       oldStatus: "",
@@ -315,7 +324,9 @@ exports.createDeposit = async (req, res, next) => {
       req,
       note: "Khách hàng tạo đơn đặt cọc mới",
     });
+    console.log("STEP 8: create order history xong");
 
+    console.log("STEP 9: truoc create dog history");
     await createDogHistory({
       dogId: dog._id,
       oldStatus: oldDogSaleStatus,
@@ -323,6 +334,7 @@ exports.createDeposit = async (req, res, next) => {
       req,
       note: "Khách hàng tạo yêu cầu đặt cọc",
     });
+    console.log("STEP 10: create dog history xong");
 
     return res.send({
       message:
@@ -330,6 +342,8 @@ exports.createDeposit = async (req, res, next) => {
       order: newOrder,
     });
   } catch (error) {
+    console.error("CREATE_DEPOSIT_ERROR =", error);
+    console.error("CREATE_DEPOSIT_STACK =", error.stack);
     return next(new ApiError(500, "Lỗi khi tạo đơn cọc: " + error.message));
   }
 };
@@ -340,10 +354,10 @@ exports.findAll = async (req, res, next) => {
     const orders = await Order.find()
       .populate(
         "dogId",
-        "name image maCho price approvalStatus saleStatus isPublished"
+        "name image maCho price depositAmount approvalStatus saleStatus isPublished"
       )
       .populate("farmId", "name")
-      .populate("userId", "username fullName phone")
+      .populate("userId", "username fullName phone email")
       .sort({ createdAt: -1 });
 
     return res.send(orders);
@@ -457,6 +471,8 @@ exports.updateStatus = async (req, res, next) => {
 
       dog.saleStatus = "Đã bán";
       dog.isPublished = true;
+      order.paymentStatus = "Đã hoàn tất";
+      order.remainingAmount = Number(order.remainingAmount || 0);
     }
 
     if (status === "Đã hủy") {
@@ -466,8 +482,28 @@ exports.updateStatus = async (req, res, next) => {
         );
       }
 
+      const anotherActiveOrder = await Order.findOne({
+        _id: { $ne: order._id },
+        dogId: order.dogId,
+        status: { $in: ACTIVE_ORDER_STATUSES },
+      });
+
+      if (anotherActiveOrder) {
+        return next(
+          new ApiError(
+            400,
+            "Không thể hủy đơn vì bé chó đang được ràng buộc với một đơn active khác"
+          )
+        );
+      }
+
       dog.saleStatus = "Sẵn sàng bán";
       dog.isPublished = true;
+
+      if (oldStatus === "Chờ xác nhận cọc") {
+        order.paymentStatus =
+          order.paymentMethod === "Chuyển khoản" ? "Đã hủy xác nhận" : "Chưa thanh toán";
+      }
     }
 
     order.status = status;
@@ -558,12 +594,23 @@ exports.cancelByCustomer = async (req, res, next) => {
 
     if (dog) {
       oldDogSaleStatus = dog.saleStatus;
-      dog.saleStatus = "Sẵn sàng bán";
-      dog.isPublished = true;
-      await dog.save();
+
+      const anotherActiveOrder = await Order.findOne({
+        _id: { $ne: order._id },
+        dogId: order.dogId,
+        status: { $in: ACTIVE_ORDER_STATUSES },
+      });
+
+      if (!anotherActiveOrder) {
+        dog.saleStatus = "Sẵn sàng bán";
+        dog.isPublished = true;
+        await dog.save();
+      }
     }
 
     order.status = "Đã hủy";
+    order.paymentStatus =
+      order.paymentMethod === "Chuyển khoản" ? "Đã hủy xác nhận" : oldPaymentStatus;
     await order.save();
 
     await createOrderHistory({
@@ -577,7 +624,7 @@ exports.cancelByCustomer = async (req, res, next) => {
       note: "Hủy đơn khi đang chờ xác nhận cọc",
     });
 
-    if (dog) {
+    if (dog && oldDogSaleStatus !== dog.saleStatus) {
       await createDogHistory({
         dogId: dog._id,
         oldStatus: oldDogSaleStatus,
@@ -610,7 +657,7 @@ exports.findMyOrders = async (req, res, next) => {
     const orders = await Order.find({ userId: currentUserId })
       .populate(
         "dogId",
-        "name image maCho price approvalStatus saleStatus isPublished"
+        "name image maCho price depositAmount approvalStatus saleStatus isPublished"
       )
       .populate("farmId", "name")
       .sort({ createdAt: -1 });
@@ -623,6 +670,7 @@ exports.findMyOrders = async (req, res, next) => {
   }
 };
 
+// 6. Admin xem lịch sử đơn
 exports.getHistory = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -1,11 +1,11 @@
 <template>
-  <div class="d-flex" style="min-height: 100vh; overflow-x: hidden;">
+  <div class="farm-dashboard-layout">
     <FarmSidebar />
 
-    <div class="flex-grow-1 bg-light d-flex flex-column">
+    <div class="farm-dashboard-main">
       <FarmHeader />
 
-      <div class="p-4 flex-grow-1">
+      <div class="farm-dashboard-content">
         <router-view />
       </div>
 
@@ -29,12 +29,50 @@ export default {
   },
 
   created() {
-    const user = localStorage.getItem("user");
-    const farm = localStorage.getItem("farm");
+    const userData = localStorage.getItem("user");
+    const farmData = localStorage.getItem("farm");
 
-    if (!user || !farm) {
+    if (!userData || !farmData) {
       this.$router.push("/login");
+      return;
+    }
+
+    const currentUser = JSON.parse(userData);
+    if (String(currentUser.role || "").toLowerCase() !== "farm") {
+      alert("Bạn không có quyền truy cập khu vực trang trại!");
+      this.$router.push("/");
     }
   },
 };
 </script>
+
+<style scoped>
+.farm-dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: #f8f9fa;
+}
+
+.farm-dashboard-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+}
+
+.farm-dashboard-content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+@media (max-width: 991.98px) {
+  .farm-dashboard-content {
+    padding: 16px;
+  }
+}
+</style>

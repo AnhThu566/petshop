@@ -2,89 +2,7 @@
   <div class="order-history-page">
     <div class="container-fluid order-page-container py-4">
       <div class="order-layout">
-        <aside class="account-sidebar">
-          <div class="account-card">
-            <div class="account-top">
-              <div class="account-info">
-                <h5 class="account-name mb-1">
-                  {{ currentUser?.fullName || currentUser?.username || "Khách hàng" }}
-                </h5>
-                <div class="account-email">
-                  {{ currentUser?.email || "Chưa cập nhật email" }}
-                </div>
-              </div>
-
-              <div class="account-avatar">
-                {{ getAvatarText() }}
-              </div>
-            </div>
-
-            <div class="account-note">
-              Quản lý hồ sơ, lịch sử đặt cọc, hồ sơ chó đã mua, lịch nhắc chăm sóc, đơn phụ kiện và lịch dịch vụ tại đây.
-            </div>
-          </div>
-
-          <div class="sidebar-menu">
-            <router-link to="/profile" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/profile' }">
-                <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/tra-cuu-don" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/tra-cuu-don' }">
-                <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-dogs" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dogs' }">
-                <span><i class="fas fa-dog mr-2"></i> Hồ sơ chó đã mua</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
-                <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
-                <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/accessory-orders" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/accessory-orders' }">
-                <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/service-bookings" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/service-bookings' }">
-                <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <div class="menu-item">
-              <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
-              <small>0379889868</small>
-            </div>
-
-            <div class="menu-item">
-              <span><i class="fas fa-globe mr-2"></i> Trang web</span>
-              <small>petshop.vn</small>
-            </div>
-          </div>
-        </aside>
+        <CustomerAccountSidebar :current-user="currentUser" />
 
         <section class="order-content">
           <div class="content-head">
@@ -106,8 +24,9 @@
               />
             </div>
 
-            <button class="refresh-btn" @click="fetchOrders">
-              <i class="fas fa-sync-alt mr-1"></i> Làm mới
+            <button class="refresh-btn" @click="fetchOrders" :disabled="loading">
+              <i class="fas fa-sync-alt mr-1"></i>
+              <span>Làm mới</span>
             </button>
           </div>
 
@@ -166,9 +85,14 @@
             <p>Đang tải lịch sử đặt cọc...</p>
           </div>
 
-          <div v-else-if="filteredOrders.length === 0" class="empty-panel">
+          <div v-else-if="orders.length === 0" class="empty-panel">
             <i class="fas fa-box-open empty-icon"></i>
             <p>Bạn chưa có đơn đặt cọc nào</p>
+          </div>
+
+          <div v-else-if="filteredOrders.length === 0" class="empty-panel">
+            <i class="fas fa-search empty-icon"></i>
+            <p>Không có đơn nào phù hợp với bộ lọc hiện tại</p>
           </div>
 
           <div v-else class="table-card">
@@ -182,7 +106,8 @@
                     <th>Tổng tiền</th>
                     <th>Tiền cọc</th>
                     <th>Còn lại</th>
-                    <th>Trạng thái</th>
+                    <th>Trạng thái đơn</th>
+                    <th>Thanh toán</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -199,22 +124,17 @@
                     <td>
                       <div class="dog-cell" v-if="order.dogId">
                         <img :src="getDogImage(order)" alt="dog" class="dog-thumb" />
-                        <div>
+                        <div class="dog-info">
                           <div class="dog-name">{{ order.dogId.name || "Bé cún" }}</div>
-                          <div class="dog-sub">{{ order.dogId.maCho || "---" }}</div>
                         </div>
                       </div>
                       <span v-else class="text-danger">Không còn dữ liệu</span>
                     </td>
 
-                    <td>{{ formatDate(order.createdAt) }}</td>
+                    <td class="td-date">{{ formatDate(order.createdAt) }}</td>
                     <td>{{ formatCurrency(order.totalPrice) }}</td>
-                    <td class="money-deposit">
-                      {{ formatCurrency(order.depositAmount) }}
-                    </td>
-                    <td class="money-remaining">
-                      {{ formatCurrency(getRemainingAmount(order)) }}
-                    </td>
+                    <td class="money-deposit">{{ formatCurrency(order.depositAmount) }}</td>
+                    <td class="money-remaining">{{ formatCurrency(getRemainingAmount(order)) }}</td>
 
                     <td>
                       <span class="order-badge" :class="getStatusClass(order.status)">
@@ -223,6 +143,15 @@
                     </td>
 
                     <td>
+                      <span
+                        class="payment-badge"
+                        :class="getPaymentStatusClass(order.paymentStatus)"
+                      >
+                        {{ order.paymentStatus || "---" }}
+                      </span>
+                    </td>
+
+                    <td class="td-actions">
                       <div class="table-actions">
                         <button
                           v-if="order.status === 'Chờ xác nhận cọc'"
@@ -277,40 +206,67 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
-                  <p class="mb-1"><strong>Mã đơn:</strong> #{{ getShortOrderCode(getOrderId(selectedOrder)) }}</p>
-                  <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}</p>
-                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
-                  <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}</p>
-                  <p class="mb-1"><strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}</p>
-                  <p class="mb-1"><strong>Tiền còn lại:</strong> {{ formatCurrency(getRemainingAmount(selectedOrder)) }}</p>
-                  <p class="mb-1"><strong>Phương thức cọc:</strong> {{ selectedOrder.paymentMethod || "Chuyển khoản" }}</p>
-                  <p class="mb-1"><strong>Trạng thái thanh toán:</strong> {{ selectedOrder.paymentStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Minh chứng cọc:</strong> {{ selectedOrder.paymentProof || "Không có" }}</p>
+                  <p class="mb-1">
+                    <strong>Mã đơn:</strong>
+                    #{{ getShortOrderCode(getOrderId(selectedOrder)) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Trạng thái đơn:</strong> {{ selectedOrder.status }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Trạng thái thanh toán:</strong>
+                    {{ selectedOrder.paymentStatus || "---" }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Tiền còn lại:</strong>
+                    {{ formatCurrency(getRemainingAmount(selectedOrder)) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Phương thức cọc:</strong>
+                    {{ selectedOrder.paymentMethod || "Chuyển khoản" }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Minh chứng cọc:</strong>
+                    {{ selectedOrder.paymentProof || "Không có" }}
+                  </p>
                 </div>
 
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-success">Thông tin nhận bé</h6>
                   <p class="mb-1"><strong>Khách hàng:</strong> {{ selectedOrder.customerName }}</p>
                   <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
-                  <p class="mb-1"><strong>Địa chỉ:</strong> {{ selectedOrder.customerAddress || "---" }}</p>
+                  <p class="mb-1">
+                    <strong>Địa chỉ:</strong> {{ selectedOrder.customerAddress || "---" }}
+                  </p>
                   <p class="mb-1"><strong>Ghi chú:</strong> {{ selectedOrder.note || "Không có" }}</p>
                 </div>
 
                 <div class="col-12" v-if="selectedOrder.dogId">
                   <hr />
                   <h6 class="font-weight-bold text-danger">Thông tin bé cún</h6>
-                  <div class="d-flex align-items-center">
+                  <div class="d-flex align-items-center flex-wrap">
                     <img
                       :src="getDogImage(selectedOrder)"
                       alt="dog"
-                      class="rounded shadow-sm mr-3"
+                      class="rounded shadow-sm mr-3 mb-2"
                       style="width: 100px; height: 100px; object-fit: cover;"
                     />
                     <div>
                       <p class="mb-1"><strong>Tên:</strong> {{ selectedOrder.dogId.name }}</p>
-                      <p class="mb-1"><strong>Mã chó:</strong> {{ selectedOrder.dogId.maCho || "---" }}</p>
                       <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedOrder.dogId.price) }}</p>
-                      <p class="mb-1"><strong>Trạng thái chó:</strong> {{ selectedOrder.dogId.saleStatus || "---" }}</p>
+                      <p class="mb-1">
+                        <strong>Trạng thái chó:</strong>
+                        {{ getDogSaleStatusText(selectedOrder.dogId.saleStatus) }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -337,9 +293,14 @@
 <script>
 import OrderService from "@/services/order.service";
 import DogService from "@/services/dog.service";
+import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
 
 export default {
   name: "OrderHistoryPage",
+
+  components: {
+    CustomerAccountSidebar,
+  },
 
   data() {
     return {
@@ -355,12 +316,18 @@ export default {
   computed: {
     filteredOrders() {
       return this.orders.filter((order) => {
-        const keyword = (this.searchText || "").toLowerCase();
+        const keyword = (this.searchText || "").toLowerCase().trim();
 
         const dogName = order.dogId?.name ? order.dogId.name.toLowerCase() : "";
         const shortCode = this.getShortOrderCode(this.getOrderId(order)).toLowerCase();
+        const paymentStatus = (order.paymentStatus || "").toLowerCase();
 
-        const matchSearch = dogName.includes(keyword) || shortCode.includes(keyword);
+        const matchSearch =
+          !keyword ||
+          dogName.includes(keyword) ||
+          shortCode.includes(keyword) ||
+          paymentStatus.includes(keyword);
+
         const matchStatus =
           this.statusFilter === "Tất cả" || order.status === this.statusFilter;
 
@@ -370,22 +337,13 @@ export default {
   },
 
   methods: {
-    getAvatarText() {
-      const name = this.currentUser?.fullName || this.currentUser?.username || "KH";
-      return name
-        .split(" ")
-        .map((item) => item[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase();
-    },
-
     async fetchOrders() {
       try {
         if (!this.currentUser) return;
 
         this.loading = true;
-        this.orders = await OrderService.getMyOrders();
+        const data = await OrderService.getMyOrders();
+        this.orders = Array.isArray(data) ? data : [];
       } catch (error) {
         console.error("Lỗi lấy lịch sử đơn hàng:", error);
         alert("Không thể tải lịch sử đơn hàng của bạn.");
@@ -399,7 +357,7 @@ export default {
     },
 
     canBuyAgain(order) {
-      if (!order) return false;
+      if (!order || !order.dogId) return false;
       return order.status === "Đã hủy" || order.status === "Hoàn thành";
     },
 
@@ -416,7 +374,7 @@ export default {
           return;
         }
 
-        const latestDog = await DogService.get(dogId);
+        const latestDog = await DogService.getPublicById(dogId);
 
         if (!latestDog) {
           alert("Không tìm thấy thông tin bé cún.");
@@ -426,9 +384,7 @@ export default {
         if (
           latestDog.approvalStatus !== "Đã duyệt" ||
           latestDog.saleStatus !== "Sẵn sàng bán" ||
-          !latestDog.isPublished ||
-          !latestDog.sourceVerified ||
-          !latestDog.eligibleForSale
+          !latestDog.isPublished
         ) {
           alert("Bé cún này hiện không còn sẵn sàng để đặt cọc lại.");
           return;
@@ -436,7 +392,10 @@ export default {
 
         localStorage.setItem("checkoutDog", JSON.stringify(latestDog));
         this.closeDetail();
-        this.$router.push("/deposit");
+        this.$router.push({
+          path: "/deposit",
+          query: { dogId },
+        });
       } catch (error) {
         alert(
           "Không thể mua lại lúc này: " +
@@ -482,10 +441,20 @@ export default {
     },
 
     getDogImage(order) {
-      if (order?.dogId?.image) {
-        return "http://localhost:3000" + order.dogId.image;
-      }
-      return "https://via.placeholder.com/100";
+      const image = order?.dogId?.image;
+      if (!image) return "https://via.placeholder.com/100";
+      if (String(image).startsWith("http")) return image;
+      return `http://localhost:3000${image}`;
+    },
+
+    getDogSaleStatusText(status) {
+      if (status === "Sẵn sàng bán") return "Sẵn sàng đón về";
+      if (status === "Chờ thanh toán") return "Chờ xác nhận cọc";
+      if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
+      if (status === "Đang giao") return "Đang bàn giao";
+      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Ngừng bán") return "Tạm ngừng mở bán";
+      return "Chưa mở bán";
     },
 
     getStatusClass(status) {
@@ -495,6 +464,15 @@ export default {
       if (status === "Hoàn thành") return "status-completed";
       if (status === "Đã hủy") return "status-cancelled";
       return "status-default";
+    },
+
+    getPaymentStatusClass(status) {
+      if (status === "Đã xác nhận") return "payment-confirmed";
+      if (status === "Đã gửi minh chứng") return "payment-pending";
+      if (status === "Đã hoàn tất") return "payment-completed";
+      if (status === "Đã hủy xác nhận") return "payment-cancelled";
+      if (status === "Chưa thanh toán") return "payment-default";
+      return "payment-default";
     },
 
     async cancelOrder(order) {
@@ -507,7 +485,10 @@ export default {
         alert("✅ Hủy đơn đặt cọc thành công!");
         await this.fetchOrders();
 
-        if (this.selectedOrder && this.getOrderId(this.selectedOrder) === this.getOrderId(order)) {
+        if (
+          this.selectedOrder &&
+          this.getOrderId(this.selectedOrder) === this.getOrderId(order)
+        ) {
           this.selectedOrder = null;
         }
       } catch (error) {
@@ -553,8 +534,6 @@ export default {
   align-items: start;
 }
 
-.account-card,
-.sidebar-menu,
 .order-content,
 .table-card {
   background: #ffffff;
@@ -563,127 +542,18 @@ export default {
   box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
 }
 
-.account-card {
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.account-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.account-info {
-  min-width: 0;
-}
-
-.account-name {
-  margin: 0;
-  font-weight: 800;
-  color: #2f1b44;
-  font-size: 1.05rem;
-  line-height: 1.35;
-}
-
-.account-email {
-  color: #7b7287;
-  font-size: 0.9rem;
-  margin-top: 4px;
-  word-break: break-word;
-}
-
-.account-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.95rem;
-  flex-shrink: 0;
-}
-
-.account-note {
-  margin-top: 14px;
-  color: #746a80;
-  font-size: 0.91rem;
-  line-height: 1.7;
-}
-
-.sidebar-menu {
-  overflow: hidden;
-}
-
-.menu-item-link {
-  display: block;
-  color: inherit;
-}
-
-.menu-item {
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #3e3550;
-  border-bottom: 1px solid #f2ebf8;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-item:hover {
-  background: #fbf8fe;
-}
-
-.menu-item span {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.menu-arrow {
-  color: #8c7ea5;
-  font-size: 0.82rem;
-}
-
-.menu-item.active {
-  background: #f3e8ff;
-  color: #6a1b9a;
-  font-weight: 800;
-}
-
-.menu-item.active .menu-arrow {
-  color: #6a1b9a;
-}
-
-.menu-item small {
-  color: #8c7ea5;
-  font-size: 0.87rem;
-  white-space: nowrap;
-}
-
 .order-content {
   padding: 22px;
   min-width: 0;
 }
 
 .content-head {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .content-title {
   margin: 0 0 4px;
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   font-weight: 900;
   color: #2f1b44;
   line-height: 1.15;
@@ -691,12 +561,12 @@ export default {
 
 .content-subtitle {
   color: #7b7287;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
 }
 
 .toolbar-box {
   display: grid;
-  grid-template-columns: 1fr 120px;
+  grid-template-columns: minmax(0, 1fr) 124px;
   gap: 12px;
   align-items: center;
   margin-bottom: 14px;
@@ -704,6 +574,7 @@ export default {
 
 .search-box {
   position: relative;
+  min-width: 0;
 }
 
 .search-box i {
@@ -746,12 +617,22 @@ export default {
   border-radius: 12px;
   font-weight: 800;
   font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 
 .refresh-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
 }
 
 .status-tabs {
@@ -812,13 +693,13 @@ export default {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 820px;
+  min-width: 920px;
 }
 
 .order-table thead th {
   background: #f8f3fc;
   color: #514564;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 800;
   padding: 14px 12px;
   border-bottom: 1px solid #ece3f4;
@@ -827,10 +708,10 @@ export default {
 }
 
 .order-table tbody td {
-  padding: 15px 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid #f2ebf8;
   vertical-align: middle;
-  font-size: 0.92rem;
+  font-size: 0.91rem;
   color: #3d3450;
 }
 
@@ -848,11 +729,19 @@ export default {
   white-space: nowrap;
 }
 
+.td-date {
+  white-space: nowrap;
+}
+
 .dog-cell {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 170px;
+  min-width: 150px;
+}
+
+.dog-info {
+  min-width: 0;
 }
 
 .dog-thumb {
@@ -871,12 +760,6 @@ export default {
   line-height: 1.35;
 }
 
-.dog-sub {
-  color: #8b7fa0;
-  font-size: 0.82rem;
-  margin-top: 2px;
-}
-
 .money-deposit {
   color: #dc2626;
   font-weight: 800;
@@ -889,15 +772,20 @@ export default {
   white-space: nowrap;
 }
 
-.order-badge {
+.order-badge,
+.payment-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 7px 12px;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 0.79rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.td-actions {
+  min-width: 170px;
 }
 
 .table-actions {
@@ -907,7 +795,7 @@ export default {
 }
 
 .table-actions .btn {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   padding: 5px 10px;
   border-radius: 8px;
 }
@@ -942,6 +830,31 @@ export default {
   color: #4b5563;
 }
 
+.payment-confirmed {
+  background: #efe7ff;
+  color: #6a1b9a;
+}
+
+.payment-pending {
+  background: #fff3d8;
+  color: #b7791f;
+}
+
+.payment-completed {
+  background: #e7f8ee;
+  color: #15803d;
+}
+
+.payment-cancelled {
+  background: #fdeaea;
+  color: #dc2626;
+}
+
+.payment-default {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
 .modal-head-custom {
   background: linear-gradient(135deg, #6a1b9a, #4a148c);
   color: #fff;
@@ -953,7 +866,7 @@ export default {
 
 @media (max-width: 1199.98px) {
   .content-title {
-    font-size: 1.5rem;
+    font-size: 1.55rem;
   }
 }
 

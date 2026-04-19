@@ -35,18 +35,40 @@
           <div class="gallery-panel">
             <div class="main-image-box">
               <img :src="currentImage" alt="accessory" class="main-image" />
+              <span v-if="accessory.hasPromotion" class="discount-badge-detail">
+                {{ accessory.discountLabel }}
+              </span>
             </div>
           </div>
 
           <div class="info-panel">
+            <span class="product-kicker">
+              {{ accessory.categoryId?.name || "Phụ kiện thú cưng" }}
+            </span>
+
             <h1 class="accessory-title">
               {{ accessory.name || "---" }}
             </h1>
 
+            <p class="intro-text">
+              Sản phẩm được chọn lọc để hỗ trợ quá trình chăm sóc thú cưng thuận tiện hơn,
+              phù hợp cho khách hàng đang chuẩn bị đón bé về nhà hoặc cần bổ sung vật dụng cần thiết.
+            </p>
+
             <div class="price-box">
               <div class="price-label">Giá bán</div>
+
+              <div v-if="accessory.hasPromotion" class="old-price-detail">
+                {{ formatCurrency(accessory.originalPrice) }}
+              </div>
+
               <div class="accessory-price">
-                {{ formatCurrency(accessory.price) }}
+                {{ formatCurrency(accessory.finalPrice || accessory.price) }}
+              </div>
+
+              <div v-if="accessory.hasPromotion" class="discount-save-text">
+                {{ accessory.discountLabel }} · Tiết kiệm
+                {{ formatCurrency(accessory.discountAmount) }}
               </div>
             </div>
 
@@ -57,6 +79,18 @@
 
               <span class="stock-text">
                 Tồn kho: <strong>{{ safeStock }}</strong>
+              </span>
+            </div>
+
+            <div class="trust-tags">
+              <span class="trust-tag">
+                <i class="fas fa-check-circle mr-1"></i>Sản phẩm rõ thông tin
+              </span>
+              <span class="trust-tag">
+                <i class="fas fa-shipping-fast mr-1"></i>Đặt nhanh trên hệ thống
+              </span>
+              <span class="trust-tag">
+                <i class="fas fa-box mr-1"></i>Kiểm soát tồn kho
               </span>
             </div>
 
@@ -101,7 +135,10 @@
                   @click="addToCart"
                   :disabled="!canBuy || isSubmitting"
                 >
-                  <i class="fas fa-shopping-cart mr-1"></i>
+                  <i
+                    class="fas mr-1"
+                    :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-shopping-cart'"
+                  ></i>
                   {{ isSubmitting ? "Đang xử lý..." : "Thêm vào giỏ hàng" }}
                 </button>
 
@@ -118,17 +155,30 @@
             <div class="short-note">
               {{
                 canBuy
-                  ? "Sản phẩm hiện đang có sẵn."
-                  : "Sản phẩm hiện không khả dụng."
+                  ? "Sản phẩm hiện đang có sẵn và có thể thêm ngay vào giỏ hàng."
+                  : "Sản phẩm hiện không khả dụng trên hệ thống."
               }}
+            </div>
+
+            <div class="support-box">
+              <div class="support-title">
+                <i class="fas fa-headset mr-2"></i>Gợi ý cho khách hàng
+              </div>
+              <div class="support-text">
+                Bạn có thể kết hợp mua thêm cùng các phụ kiện liên quan để chuẩn bị đầy đủ vật dụng cần thiết cho thú cưng.
+              </div>
             </div>
           </div>
         </div>
 
         <div class="description-section">
-          <h3 class="description-title">
-            <i class="fas fa-file-alt mr-2"></i>Mô tả sản phẩm
-          </h3>
+          <div class="section-head">
+            <h3 class="description-title">
+              <i class="fas fa-file-alt mr-2"></i>Mô tả sản phẩm
+            </h3>
+            <div class="section-line"></div>
+          </div>
+
           <p class="description-text">
             {{ accessory.description || "Chưa có mô tả cho phụ kiện này." }}
           </p>
@@ -138,6 +188,9 @@
       <div v-if="relatedAccessories.length > 0" class="related-section">
         <div class="related-head">
           <h3 class="related-title">Phụ kiện liên quan</h3>
+          <p class="related-subtitle mb-0">
+            Một số sản phẩm khác có thể phù hợp với nhu cầu chăm sóc thú cưng của bạn.
+          </p>
         </div>
 
         <div class="related-grid">
@@ -153,9 +206,26 @@
                 alt="related"
                 class="related-image"
               />
+              <span v-if="item.hasPromotion" class="related-discount-badge">
+                {{ item.discountLabel }}
+              </span>
             </div>
+
             <div class="related-name">{{ item.name }}</div>
-            <div class="related-price">{{ formatCurrency(item.price) }}</div>
+
+            <div class="related-price-block">
+              <div v-if="item.hasPromotion" class="related-old-price">
+                {{ formatCurrency(item.originalPrice) }}
+              </div>
+              <div class="related-price">
+                {{ formatCurrency(item.finalPrice || item.price) }}
+              </div>
+            </div>
+
+            <div class="related-link">
+              Xem chi tiết
+              <i class="fas fa-arrow-right ml-1"></i>
+            </div>
           </div>
         </div>
       </div>
@@ -363,7 +433,7 @@ export default {
     },
 
     getAccessoryImage(item) {
-      if (!item?.image) return "";
+      if (!item?.image) return "https://via.placeholder.com/500x350?text=Accessory";
       if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
         return item.image;
       }
@@ -404,7 +474,9 @@ export default {
 <style scoped>
 .accessory-detail-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+  background:
+    radial-gradient(circle at top left, rgba(177, 145, 211, 0.12), transparent 28%),
+    linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
 }
 
 .accessory-detail-container {
@@ -455,8 +527,8 @@ export default {
 .related-section {
   background: #fff;
   border: 1px solid #eee2f7;
-  border-radius: 22px;
-  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
+  border-radius: 24px;
+  box-shadow: 0 12px 24px rgba(106, 27, 154, 0.06);
 }
 
 .state-card {
@@ -482,8 +554,8 @@ export default {
 .detail-grid {
   display: grid;
   grid-template-columns: 480px minmax(0, 1fr);
-  gap: 28px;
-  padding: 24px;
+  gap: 30px;
+  padding: 26px;
 }
 
 .gallery-panel {
@@ -491,10 +563,11 @@ export default {
 }
 
 .main-image-box {
+  position: relative;
   border: 1px solid #e7dff1;
   background: #fff;
-  border-radius: 18px;
-  padding: 16px;
+  border-radius: 22px;
+  padding: 18px;
   height: 560px;
   display: flex;
   align-items: center;
@@ -508,22 +581,56 @@ export default {
   object-fit: contain;
 }
 
+.discount-badge-detail {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: 0 10px 18px rgba(220, 38, 38, 0.18);
+}
+
 .info-panel {
   min-width: 0;
 }
 
+.product-kicker {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #f1e7fb;
+  color: #7a4db3;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  margin-bottom: 14px;
+}
+
 .accessory-title {
   color: #2f1b44;
-  font-size: 2rem;
+  font-size: 2.15rem;
   line-height: 1.3;
   font-weight: 900;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.intro-text {
+  color: #746a80;
+  line-height: 1.75;
+  margin-bottom: 18px;
+  max-width: 760px;
 }
 
 .price-box {
   border: 1px solid #f0d8ea;
   background: #fffafc;
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 18px 22px;
   margin-bottom: 16px;
 }
@@ -536,11 +643,25 @@ export default {
   text-transform: uppercase;
 }
 
+.old-price-detail {
+  color: #9b90ad;
+  font-size: 1rem;
+  text-decoration: line-through;
+  margin-bottom: 4px;
+}
+
 .accessory-price {
   color: #b42318;
-  font-size: 1.8rem;
+  font-size: 1.95rem;
   font-weight: 900;
   line-height: 1.2;
+}
+
+.discount-save-text {
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 6px;
 }
 
 .stock-row {
@@ -582,9 +703,27 @@ export default {
   border: 1px solid #ece3f4;
 }
 
+.trust-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.trust-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #f5ecfb;
+  color: #6a1b9a;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .purchase-box {
   border: 1px solid #d9d8f0;
-  border-radius: 22px;
+  border-radius: 24px;
   padding: 20px 22px;
   margin-bottom: 18px;
   background: linear-gradient(180deg, #ffffff 0%, #fbf8fe 100%);
@@ -681,24 +820,58 @@ export default {
 .short-note {
   color: #746a80;
   font-size: 0.92rem;
+  margin-bottom: 16px;
+}
+
+.support-box {
+  background: #f7fbff;
+  border: 1px solid #d7e8fb;
+  border-radius: 18px;
+  padding: 16px 18px;
+}
+
+.support-title {
+  color: #2563eb;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.support-text {
+  color: #475569;
+  line-height: 1.7;
 }
 
 .description-section {
   border-top: 1px solid #f0e9f6;
-  padding: 24px;
+  padding: 24px 26px 26px;
   margin-top: 4px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .description-title {
   color: #2f1b44;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 900;
-  margin-bottom: 12px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.section-line {
+  flex: 1;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eadcf7, transparent);
 }
 
 .description-text {
   color: #746a80;
-  line-height: 1.8;
+  line-height: 1.85;
   margin: 0;
 }
 
@@ -712,10 +885,15 @@ export default {
 }
 
 .related-title {
-  margin: 0;
+  margin: 0 0 6px;
   color: #2f1b44;
   font-size: 1.2rem;
   font-weight: 900;
+}
+
+.related-subtitle {
+  color: #7b7287;
+  line-height: 1.7;
 }
 
 .related-grid {
@@ -726,10 +904,11 @@ export default {
 
 .related-item {
   border: 1px solid #eee2f7;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: #fff;
 }
 
 .related-item:hover {
@@ -738,9 +917,10 @@ export default {
 }
 
 .related-image-wrap {
-  height: 150px;
+  position: relative;
+  height: 160px;
   background: #f7f1fd;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   margin-bottom: 10px;
 }
@@ -751,19 +931,51 @@ export default {
   object-fit: cover;
 }
 
+.related-discount-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.16);
+}
+
 .related-name {
   color: #2f1b44;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 800;
   line-height: 1.45;
   min-height: 40px;
   margin-bottom: 6px;
 }
 
+.related-price-block {
+  margin-bottom: 8px;
+}
+
+.related-old-price {
+  color: #9b90ad;
+  font-size: 0.8rem;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
 .related-price {
   color: #b42318;
   font-weight: 800;
   font-size: 0.92rem;
+}
+
+.related-link {
+  color: #7a4db3;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 @media (max-width: 1199.98px) {
@@ -778,7 +990,7 @@ export default {
 
 @media (max-width: 991.98px) {
   .accessory-title {
-    font-size: 1.7rem;
+    font-size: 1.8rem;
   }
 
   .main-image-box {
@@ -808,19 +1020,28 @@ export default {
   .related-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-line {
+    width: 100%;
+  }
 }
 
 @media (max-width: 575.98px) {
   .related-grid {
     grid-template-columns: 1fr;
-  }
+  }z
 
   .accessory-title {
-    font-size: 1.45rem;
+    font-size: 1.5rem;
   }
 
   .accessory-price {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
   }
 }
 </style>

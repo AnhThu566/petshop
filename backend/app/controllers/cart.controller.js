@@ -28,10 +28,85 @@ const normalizeUpdateQuantity = (value) => {
   return Math.floor(qty);
 };
 
+// =========================
+// HỖ TRỢ KHUYẾN MÃI
+// =========================
+const isPromotionValid = (promotion = {}) => {
+  if (!promotion?.isActive) return false;
+
+  const now = new Date();
+
+  if (promotion.startDate && new Date(promotion.startDate) > now) {
+    return false;
+  }
+
+  if (promotion.endDate && new Date(promotion.endDate) < now) {
+    return false;
+  }
+
+  if (!promotion.discountValue || Number(promotion.discountValue) <= 0) {
+    return false;
+  }
+
+  return true;
+};
+
+const calculatePromotionPrice = (price, promotion = {}) => {
+  const originalPrice = Number(price || 0);
+
+  if (!isPromotionValid(promotion)) {
+    return {
+      originalPrice,
+      finalPrice: originalPrice,
+      discountAmount: 0,
+      discountLabel: "",
+      hasPromotion: false,
+    };
+  }
+
+  let discountAmount = 0;
+
+  if (promotion.discountType === "percent") {
+    discountAmount = Math.round(
+      (originalPrice * Number(promotion.discountValue || 0)) / 100
+    );
+  } else if (promotion.discountType === "fixed") {
+    discountAmount = Number(promotion.discountValue || 0);
+  }
+
+  if (discountAmount < 0) discountAmount = 0;
+  if (discountAmount > originalPrice) discountAmount = originalPrice;
+
+  const finalPrice = originalPrice - discountAmount;
+
+  const discountLabel =
+    promotion.discountType === "percent"
+      ? `Giảm ${promotion.discountValue}%`
+      : `Giảm ${Number(promotion.discountValue || 0).toLocaleString("vi-VN")}đ`;
+
+  return {
+    originalPrice,
+    finalPrice,
+    discountAmount,
+    discountLabel,
+    hasPromotion: discountAmount > 0,
+  };
+};
+
+const getAccessoryEffectivePrice = (accessory) => {
+  const promo = calculatePromotionPrice(accessory.price, accessory.promotion || {});
+  return promo.finalPrice;
+};
+
 const calculateCartSummary = (items) => {
-  const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const totalQuantity = items.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0
+  );
+
   const totalAmount = items.reduce(
-    (sum, item) => sum + Number(item.quantity || 0) * Number(item.priceAtTime || 0),
+    (sum, item) =>
+      sum + Number(item.quantity || 0) * Number(item.priceAtTime || 0),
     0
   );
 
@@ -39,6 +114,27 @@ const calculateCartSummary = (items) => {
     totalQuantity,
     totalAmount,
   };
+};
+
+const sanitizeCartItems = async (cartId) => {
+  const items = await CartItem.find({ cartId }).populate("accessoryId");
+  const validItems = [];
+  const invalidItemIds = [];
+
+  for (const item of items) {
+    if (!item.accessoryId) {
+      invalidItemIds.push(item._id);
+      continue;
+    }
+
+    validItems.push(item);
+  }
+
+  if (invalidItemIds.length) {
+    await CartItem.deleteMany({ _id: { $in: invalidItemIds } });
+  }
+
+  return validItems;
 };
 
 exports.getMyCart = async (req, res, next) => {
@@ -49,14 +145,12 @@ exports.getMyCart = async (req, res, next) => {
     }
 
     const cart = await getOrCreateActiveCart(userId);
-    const items = await CartItem.find({ cartId: cart._id }).populate("accessoryId");
-
-    const validItems = items.filter((item) => item.accessoryId);
-    const summary = calculateCartSummary(validItems);
+    const items = await sanitizeCartItems(cart._id);
+    const summary = calculateCartSummary(items);
 
     return res.send({
       cart,
-      items: validItems,
+      items,
       summary,
     });
   } catch (error) {
@@ -114,24 +208,29 @@ exports.addItem = async (req, res, next) => {
       );
     }
 
+    const effectivePrice = getAccessoryEffectivePrice(accessory);
+
     if (item) {
       item.quantity = nextQty;
-      item.priceAtTime = accessory.price;
+      item.priceAtTime = effectivePrice;
       await item.save();
     } else {
       item = await CartItem.create({
         cartId: cart._id,
         accessoryId,
         quantity: qty,
-        priceAtTime: accessory.price,
+        priceAtTime: effectivePrice,
       });
     }
 
     const populatedItem = await CartItem.findById(item._id).populate("accessoryId");
+    const items = await sanitizeCartItems(cart._id);
+    const summary = calculateCartSummary(items);
 
     return res.send({
       message: "Đã thêm vào giỏ hàng",
       item: populatedItem,
+      summary,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi thêm giỏ hàng: " + error.message));
@@ -164,7 +263,8 @@ exports.updateItem = async (req, res, next) => {
 
     const accessory = await Accessory.findById(item.accessoryId);
     if (!accessory) {
-      return next(new ApiError(404, "Không tìm thấy phụ kiện"));
+      await CartItem.findByIdAndDelete(id);
+      return next(new ApiError(404, "Phụ kiện không còn tồn tại, đã xóa khỏi giỏ"));
     }
 
     if (accessory.status !== "Đang bán") {
@@ -179,8 +279,13 @@ exports.updateItem = async (req, res, next) => {
 
     if (newQty <= 0) {
       await CartItem.findByIdAndDelete(id);
+
+      const items = await sanitizeCartItems(cart._id);
+      const summary = calculateCartSummary(items);
+
       return res.send({
         message: "Đã xóa sản phẩm khỏi giỏ hàng",
+        summary,
       });
     }
 
@@ -193,15 +298,20 @@ exports.updateItem = async (req, res, next) => {
       );
     }
 
+    const effectivePrice = getAccessoryEffectivePrice(accessory);
+
     item.quantity = newQty;
-    item.priceAtTime = accessory.price;
+    item.priceAtTime = effectivePrice;
     await item.save();
 
     const populatedItem = await CartItem.findById(item._id).populate("accessoryId");
+    const items = await sanitizeCartItems(cart._id);
+    const summary = calculateCartSummary(items);
 
     return res.send({
       message: "Cập nhật giỏ hàng thành công",
       item: populatedItem,
+      summary,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi cập nhật giỏ hàng: " + error.message));
@@ -233,7 +343,13 @@ exports.removeItem = async (req, res, next) => {
 
     await CartItem.findByIdAndDelete(id);
 
-    return res.send({ message: "Đã xóa sản phẩm khỏi giỏ hàng" });
+    const items = await sanitizeCartItems(cart._id);
+    const summary = calculateCartSummary(items);
+
+    return res.send({
+      message: "Đã xóa sản phẩm khỏi giỏ hàng",
+      summary,
+    });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi xóa sản phẩm khỏi giỏ: " + error.message));
   }
@@ -248,12 +364,18 @@ exports.clearMyCart = async (req, res, next) => {
 
     const cart = await Cart.findOne({ userId, status: "active" });
     if (!cart) {
-      return res.send({ message: "Giỏ hàng đã trống" });
+      return res.send({
+        message: "Giỏ hàng đã trống",
+        summary: { totalQuantity: 0, totalAmount: 0 },
+      });
     }
 
     await CartItem.deleteMany({ cartId: cart._id });
 
-    return res.send({ message: "Đã xóa toàn bộ giỏ hàng" });
+    return res.send({
+      message: "Đã xóa toàn bộ giỏ hàng",
+      summary: { totalQuantity: 0, totalAmount: 0 },
+    });
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi xóa giỏ hàng: " + error.message));
   }

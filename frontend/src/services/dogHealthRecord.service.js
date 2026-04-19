@@ -21,6 +21,10 @@ class DogHealthRecordService {
     return (await this.api.put(`/${id}`, data)).data;
   }
 
+  async review(id, data) {
+    return (await this.api.put(`/${id}/review`, data)).data;
+  }
+
   async delete(id) {
     return (await this.api.delete(`/${id}`)).data;
   }

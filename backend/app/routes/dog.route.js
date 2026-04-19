@@ -4,49 +4,46 @@ const upload = require("../middlewares/upload.middleware");
 const {
   requireAdmin,
   requireFarm,
+  optionalAuth,
 } = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
+/**
+ * Gắn cờ public riêng để controller nhận diện chắc chắn
+ */
+const markPublicRequest = (req, res, next) => {
+  req.isPublicRequest = true;
+  next();
+};
+
 // ==============================
-// XEM DANH SÁCH / CHI TIẾT
+// PUBLIC ROUTES - KHÁCH XEM
 // ==============================
 
-// Public / nội bộ xem danh sách
-router.get("/", dogController.findAll);
+router.get("/public", optionalAuth, markPublicRequest, dogController.findAll);
+router.get("/public/:id", optionalAuth, markPublicRequest, dogController.findOne);
 
-// Xem chi tiết 1 chó
-router.get("/:id", dogController.findOne);
+// ==============================
+// INTERNAL / MANAGEMENT ROUTES
+// ==============================
 
-// Xem lịch sử thay đổi hồ sơ chó
-router.get("/:id/history", dogController.getHistory);
+router.get("/", optionalAuth, dogController.findAll);
+router.get("/:id/history", requireAdmin, dogController.getHistory);
+router.get("/:id", optionalAuth, dogController.findOne);
 
 // ==============================
 // FARM TẠO / CẬP NHẬT HỒ SƠ CHÓ
 // ==============================
 
-// Trại gửi hồ sơ chó mới
 router.post("/", requireFarm, upload.single("image"), dogController.create);
-
-// Trại cập nhật hồ sơ chó của trại mình
 router.put("/:id", requireFarm, upload.single("image"), dogController.update);
 
 // ==============================
 // ADMIN DUYỆT HỒ SƠ / MỞ BÁN
 // ==============================
 
-// Admin cập nhật trạng thái duyệt hồ sơ
-router.put(
-  "/:id/approval-status",
-  requireAdmin,
-  dogController.updateApprovalStatus
-);
-
-// Admin cập nhật trạng thái bán
-router.put(
-  "/:id/sale-status",
-  requireAdmin,
-  dogController.updateSaleStatus
-);
+router.put("/:id/approval-status", requireAdmin, dogController.updateApprovalStatus);
+router.put("/:id/sale-status", requireAdmin, dogController.updateSaleStatus);
 
 module.exports = router;

@@ -1,10 +1,8 @@
 <template>
   <header class="customer-header">
-    <!-- HÀNG TRÊN -->
     <div class="header-top">
       <div class="container-fluid custom-container px-3">
         <div class="top-inner">
-          <!-- LOGO -->
           <router-link to="/" class="brand-logo text-decoration-none">
             <div class="brand-logo-box">
               <div class="brand-logo-icon">
@@ -17,7 +15,6 @@
             </div>
           </router-link>
 
-          <!-- SEARCH -->
           <div class="top-search">
             <div class="top-search-box">
               <input
@@ -31,7 +28,6 @@
             </div>
           </div>
 
-          <!-- ACTIONS -->
           <div class="top-actions">
             <router-link
               to="/cart"
@@ -203,7 +199,6 @@
       </div>
     </div>
 
-    <!-- HÀNG DƯỚI -->
     <div class="header-bottom">
       <div class="container-fluid custom-container px-3">
         <div class="bottom-inner">
@@ -213,82 +208,71 @@
             </router-link>
 
             <div
-              class="menu-dropdown"
+              class="menu-dropdown breed-menu-dropdown"
               @mouseenter="openDogMenu"
               @mouseleave="closeDogMenu"
             >
-              <a
-                href="#"
+              <router-link
+                to="/dogs/breeds"
                 class="bottom-menu-item text-decoration-none dropdown-toggle-link"
                 :class="{ active: isDogMenuActive }"
-                @click.prevent="toggleDogMenu"
+                @click="closeAllDropdowns"
               >
-                Chó cảnh
+                Giống chó
                 <i class="fas fa-chevron-down menu-caret ml-2"></i>
-              </a>
+              </router-link>
 
               <div
-                class="menu-dropdown-panel shadow"
+                class="menu-dropdown-panel shadow breed-dropdown-panel"
                 :class="{ 'show-dropdown': isDogMenuOpen }"
               >
                 <router-link
-                  to="/dogs?view=breed"
-                  class="menu-dropdown-item text-decoration-none"
+                  v-for="breed in breedMenuList"
+                  :key="breed._id || breed.id"
+                  :to="`/dogs/breeds/${breed._id || breed.id}`"
+                  class="menu-dropdown-item breed-dropdown-item text-decoration-none"
                   @click="closeAllDropdowns"
                 >
-                  <i class="fas fa-dna mr-2"></i>
-                  Theo giống chó
-                </router-link>
-
-                <router-link
-                  to="/dogs?view=farm"
-                  class="menu-dropdown-item text-decoration-none"
-                  @click="closeAllDropdowns"
-                >
-                  <i class="fas fa-warehouse mr-2"></i>
-                  Theo trang trại
+                  {{ breed.name }}
                 </router-link>
               </div>
             </div>
 
             <div
-              class="menu-dropdown"
+              class="menu-dropdown accessory-menu-dropdown"
               @mouseenter="openAccessoryMenu"
               @mouseleave="closeAccessoryMenu"
             >
-              <a
-                href="#"
+              <router-link
+                to="/accessories"
                 class="bottom-menu-item text-decoration-none dropdown-toggle-link"
                 :class="{ active: isAccessoryMenuActive }"
-                @click.prevent="toggleAccessoryMenu"
+                @click="closeAllDropdowns"
               >
                 Phụ kiện
                 <i class="fas fa-chevron-down menu-caret ml-2"></i>
-              </a>
+              </router-link>
 
               <div
-                class="menu-dropdown-panel shadow"
+                class="menu-dropdown-panel shadow accessory-dropdown-panel"
                 :class="{ 'show-dropdown': isAccessoryMenuOpen }"
               >
-                <router-link
-                  to="/accessories"
-                  class="menu-dropdown-item text-decoration-none"
-                  @click="closeAllDropdowns"
-                >
-                  <i class="fas fa-th-large mr-2"></i>
-                  Tất cả phụ kiện
-                </router-link>
-
                 <router-link
                   v-for="category in accessoryCategories"
                   :key="category._id || category.id"
                   :to="`/accessories?category=${category._id || category.id}`"
-                  class="menu-dropdown-item text-decoration-none"
+                  class="menu-dropdown-item accessory-dropdown-item text-decoration-none"
                   @click="closeAllDropdowns"
                 >
-                  <i class="fas fa-box mr-2"></i>
                   {{ category.name }}
                 </router-link>
+
+                <div
+                  v-if="!accessoryCategories.length"
+                  class="menu-dropdown-item accessory-dropdown-item empty-dropdown-item"
+                >
+                  Chưa có loại phụ kiện
+                </div>
               </div>
             </div>
 
@@ -315,8 +299,11 @@
 <script>
 import AccessoryCategoryService from "@/services/accessoryCategory.service";
 import NotificationService from "@/services/notification.service";
+import BreedService from "@/services/breed.service";
 
 export default {
+  name: "CustomerHeader",
+
   props: {
     currentUser: {
       type: Object,
@@ -334,6 +321,7 @@ export default {
       isDogMenuOpen: false,
       isAccessoryMenuOpen: false,
       accessoryCategories: [],
+      breedMenuList: [],
       unreadNotificationCount: 0,
     };
   },
@@ -369,12 +357,26 @@ export default {
     async fetchAccessoryCategories() {
       try {
         const data = await AccessoryCategoryService.getAll();
-        this.accessoryCategories = (data || []).filter(
-          (item) => item.status === "Hoạt động" || !item.status
-        );
+        this.accessoryCategories = Array.isArray(data)
+          ? data.filter((item) => item && (item._id || item.id) && item.name)
+          : [];
       } catch (error) {
         console.error("Lỗi tải loại phụ kiện:", error);
         this.accessoryCategories = [];
+      }
+    },
+
+    async fetchBreedMenu() {
+      try {
+        const data = await BreedService.getAll();
+        this.breedMenuList = Array.isArray(data)
+          ? data
+              .filter((item) => item.status === "active" || !item.status)
+              .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+          : [];
+      } catch (error) {
+        console.error("Lỗi tải danh sách giống chó cho menu:", error);
+        this.breedMenuList = [];
       }
     },
 
@@ -405,24 +407,12 @@ export default {
       this.isUserDropdownOpen = !this.isUserDropdownOpen;
     },
 
-    toggleDogMenu() {
-      this.isUserDropdownOpen = false;
-      this.isAccessoryMenuOpen = false;
-      this.isDogMenuOpen = !this.isDogMenuOpen;
-    },
-
     openDogMenu() {
       this.isDogMenuOpen = true;
     },
 
     closeDogMenu() {
       this.isDogMenuOpen = false;
-    },
-
-    toggleAccessoryMenu() {
-      this.isUserDropdownOpen = false;
-      this.isDogMenuOpen = false;
-      this.isAccessoryMenuOpen = !this.isAccessoryMenuOpen;
     },
 
     openAccessoryMenu() {
@@ -440,17 +430,18 @@ export default {
         localStorage.removeItem("token");
 
         this.closeAllDropdowns();
-
         window.dispatchEvent(new Event("auth-changed"));
-
         this.$router.push("/");
       }
     },
   },
 
   async mounted() {
-    await this.fetchAccessoryCategories();
-    await this.fetchUnreadNotifications();
+    await Promise.all([
+      this.fetchAccessoryCategories(),
+      this.fetchBreedMenu(),
+      this.fetchUnreadNotifications(),
+    ]);
   },
 };
 </script>
@@ -468,7 +459,6 @@ export default {
   }
 }
 
-/* HÀNG TRÊN */
 .header-top {
   background: linear-gradient(135deg, #6f42a4 0%, #5d2f93 55%, #4b1f73 100%);
   padding: 14px 0;
@@ -704,7 +694,6 @@ export default {
   opacity: 0.9;
 }
 
-/* HÀNG DƯỚI */
 .header-bottom {
   position: relative;
   background: #4b1f73;
@@ -774,16 +763,17 @@ export default {
 
 .menu-dropdown-panel {
   position: absolute;
-  top: calc(100% + 18px);
+  top: calc(100% + 2px);
   left: 50%;
   transform: translateX(-50%);
   min-width: 240px;
   background: white;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 10px;
   box-shadow: 0 18px 40px rgba(58, 24, 90, 0.16);
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: all 0.22s ease;
   z-index: 2000;
 }
@@ -791,7 +781,7 @@ export default {
 .show-dropdown {
   opacity: 1;
   visibility: visible;
-  top: calc(100% + 10px);
+  pointer-events: auto;
 }
 
 .menu-dropdown-item {
@@ -808,6 +798,117 @@ export default {
 .menu-dropdown-item:hover {
   background: #f5eefc;
   color: #6f42a4;
+}
+
+.breed-dropdown-panel {
+  min-width: 420px;
+  max-width: min(1100px, calc(100vw - 40px));
+  padding: 16px 18px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  border-radius: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: #cdb7ea #f7f0fd;
+}
+
+.breed-dropdown-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #4b3a60;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  white-space: nowrap;
+  background: #faf6ff;
+  border: 1px solid #eadcf6;
+  transition: all 0.2s ease;
+}
+
+.breed-dropdown-item:hover {
+  background: #f3e8ff;
+  color: #6f42a4;
+  border-color: #d9c2f3;
+}
+
+.accessory-dropdown-panel {
+  min-width: 420px;
+  max-width: min(1100px, calc(100vw - 40px));
+  padding: 16px 18px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  border-radius: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: #cdb7ea #f7f0fd;
+}
+
+.accessory-dropdown-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #4b3a60;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  white-space: nowrap;
+  background: #faf6ff;
+  border: 1px solid #eadcf6;
+  transition: all 0.2s ease;
+}
+
+.accessory-dropdown-item:hover {
+  background: #f3e8ff;
+  color: #6f42a4;
+  border-color: #d9c2f3;
+}
+
+.empty-dropdown-item {
+  color: #8b7fa0;
+  cursor: default;
+}
+
+.empty-dropdown-item:hover {
+  background: #faf6ff;
+  color: #8b7fa0;
+  border-color: #eadcf6;
+}
+
+.breed-dropdown-panel::-webkit-scrollbar,
+.accessory-dropdown-panel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.breed-dropdown-panel::-webkit-scrollbar-track,
+.accessory-dropdown-panel::-webkit-scrollbar-track {
+  background: #f7f0fd;
+  border-radius: 999px;
+}
+
+.breed-dropdown-panel::-webkit-scrollbar-thumb,
+.accessory-dropdown-panel::-webkit-scrollbar-thumb {
+  background: #cdb7ea;
+  border-radius: 999px;
+}
+
+.breed-dropdown-panel::-webkit-scrollbar-thumb:hover,
+.accessory-dropdown-panel::-webkit-scrollbar-thumb:hover {
+  background: #b795df;
 }
 
 .dropdown-menu {
@@ -877,6 +978,11 @@ export default {
   .bottom-menu-item {
     font-size: 0.92rem;
   }
+
+  .breed-dropdown-panel,
+  .accessory-dropdown-panel {
+    max-width: min(900px, calc(100vw - 40px));
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -928,6 +1034,22 @@ export default {
   .menu-dropdown-panel {
     left: 0;
     transform: none;
+  }
+
+  .breed-dropdown-panel,
+  .accessory-dropdown-panel {
+    min-width: 280px;
+    max-width: calc(100vw - 24px);
+    width: max-content;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .breed-dropdown-item,
+  .accessory-dropdown-item {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.88rem;
   }
 
   .bottom-menu-item.router-link-active::after,

@@ -9,16 +9,26 @@ const VALID_BOOKING_STATUSES = [
   "Đã hủy",
 ];
 
+const ACTIVE_BOOKING_STATUSES = ["Chờ xác nhận", "Đã xác nhận"];
+
 const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+const WORKING_HOUR_START = 8;
+const WORKING_HOUR_END = 20;
+
 const generateNextCode = async () => {
-  const lastBooking = await ServiceBooking.findOne().sort({ maLichDat: -1 });
+  const lastBooking = await ServiceBooking.findOne().sort({
+    createdAt: -1,
+    maLichDat: -1,
+  });
 
   let nextCode = "LDV001";
   if (lastBooking && lastBooking.maLichDat) {
     const lastNumber = parseInt(lastBooking.maLichDat.replace("LDV", ""), 10);
-    nextCode = "LDV" + (lastNumber + 1).toString().padStart(3, "0");
+    if (!Number.isNaN(lastNumber)) {
+      nextCode = "LDV" + String(lastNumber + 1).padStart(3, "0");
+    }
   }
 
   return nextCode;
@@ -29,7 +39,6 @@ const getCurrentUserId = (req) => {
 };
 
 const normalizeText = (value) => String(value || "").trim();
-
 const normalizeDateString = (value) => String(value || "").trim();
 
 const parseDateOnly = (dateString) => {
@@ -37,6 +46,14 @@ const parseDateOnly = (dateString) => {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   return date;
+};
+
+const parseTimeParts = (timeString) => {
+  const cleanTime = normalizeText(timeString);
+  if (!TIME_REGEX.test(cleanTime)) return null;
+
+  const [hour, minute] = cleanTime.split(":").map(Number);
+  return { hour, minute };
 };
 
 const isPastDate = (dateString) => {
@@ -49,7 +66,41 @@ const isPastDate = (dateString) => {
   return bookingDate < today;
 };
 
-const validateBookingPayload = ({ customerName, customerPhone, bookingDate, bookingTime, note }) => {
+const isPastDateTime = (dateString, timeString) => {
+  const bookingDate = parseDateOnly(dateString);
+  const timeParts = parseTimeParts(timeString);
+
+  if (!bookingDate || !timeParts) return true;
+
+  bookingDate.setHours(timeParts.hour, timeParts.minute, 0, 0);
+
+  return bookingDate < new Date();
+};
+
+const isWithinWorkingHours = (timeString) => {
+  const timeParts = parseTimeParts(timeString);
+  if (!timeParts) return false;
+
+  const { hour, minute } = timeParts;
+
+  if (hour < WORKING_HOUR_START || hour > WORKING_HOUR_END) {
+    return false;
+  }
+
+  if (hour === WORKING_HOUR_END && minute > 0) {
+    return false;
+  }
+
+  return true;
+};
+
+const validateBookingPayload = ({
+  customerName,
+  customerPhone,
+  bookingDate,
+  bookingTime,
+  note,
+}) => {
   const errors = [];
 
   const cleanCustomerName = normalizeText(customerName);
@@ -84,6 +135,18 @@ const validateBookingPayload = ({ customerName, customerPhone, bookingDate, book
     errors.push("Giờ đặt lịch không được để trống");
   } else if (!TIME_REGEX.test(cleanBookingTime)) {
     errors.push("Giờ đặt lịch không hợp lệ, định dạng đúng là HH:mm");
+  } else if (!isWithinWorkingHours(cleanBookingTime)) {
+    errors.push("Giờ đặt lịch phải trong khoảng 08:00 - 20:00");
+  }
+
+  if (
+    cleanBookingDate &&
+    cleanBookingTime &&
+    parseDateOnly(cleanBookingDate) &&
+    TIME_REGEX.test(cleanBookingTime) &&
+    isPastDateTime(cleanBookingDate, cleanBookingTime)
+  ) {
+    errors.push("Không thể đặt lịch vào thời điểm đã qua");
   }
 
   if (cleanNote.length > 1000) {
@@ -105,8 +168,14 @@ const validateBookingPayload = ({ customerName, customerPhone, bookingDate, book
 // Khách đặt lịch
 exports.create = async (req, res, next) => {
   try {
-    const { serviceId, customerName, customerPhone, bookingDate, bookingTime, note } =
-      req.body;
+    const {
+      serviceId,
+      customerName,
+      customerPhone,
+      bookingDate,
+      bookingTime,
+      note,
+    } = req.body;
 
     const currentUserId = getCurrentUserId(req);
     if (!currentUserId) {
@@ -142,7 +211,7 @@ exports.create = async (req, res, next) => {
       serviceId,
       bookingDate: cleanData.bookingDate,
       bookingTime: cleanData.bookingTime,
-      status: { $in: ["Chờ xác nhận", "Đã xác nhận"] },
+      status: { $in: ACTIVE_BOOKING_STATUSES },
     });
 
     if (duplicateBooking) {
@@ -159,7 +228,7 @@ exports.create = async (req, res, next) => {
       serviceId,
       bookingDate: cleanData.bookingDate,
       bookingTime: cleanData.bookingTime,
-      status: { $in: ["Chờ xác nhận", "Đã xác nhận"] },
+      status: { $in: ACTIVE_BOOKING_STATUSES },
     });
 
     if (sameCustomerBooking) {
@@ -189,7 +258,7 @@ exports.create = async (req, res, next) => {
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
       .populate("serviceId", "maDichVu name price image status")
-      .populate("customerId", "username fullName phone");
+      .populate("customerId", "username fullName phone email");
 
     return res.send({
       message: "Đặt lịch dịch vụ thành công!",
@@ -204,15 +273,38 @@ exports.create = async (req, res, next) => {
 // Admin xem tất cả lịch
 exports.findAll = async (req, res, next) => {
   try {
-    const bookings = await ServiceBooking.find({})
+    const filter = {};
+
+    if (
+      req.query.status &&
+      VALID_BOOKING_STATUSES.includes(req.query.status)
+    ) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.serviceId) {
+      filter.serviceId = req.query.serviceId;
+    }
+
+    if (req.query.bookingDate) {
+      filter.bookingDate = normalizeDateString(req.query.bookingDate);
+    }
+
+    if (req.query.customerPhone) {
+      filter.customerPhone = normalizeText(req.query.customerPhone);
+    }
+
+    const bookings = await ServiceBooking.find(filter)
       .populate("serviceId", "maDichVu name price image status")
-      .populate("customerId", "username fullName phone")
-      .sort({ createdAt: -1 });
+      .populate("customerId", "username fullName phone email")
+      .sort({ bookingDate: -1, bookingTime: -1, createdAt: -1 });
 
     return res.send(bookings);
   } catch (error) {
     console.error("Lỗi findAll service bookings:", error);
-    return next(new ApiError(500, "Lỗi khi lấy danh sách lịch đặt: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi lấy danh sách lịch đặt: " + error.message)
+    );
   }
 };
 
@@ -224,15 +316,26 @@ exports.findMyBookings = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const bookings = await ServiceBooking.find({ customerId: currentUserId })
+    const filter = { customerId: currentUserId };
+
+    if (
+      req.query.status &&
+      VALID_BOOKING_STATUSES.includes(req.query.status)
+    ) {
+      filter.status = req.query.status;
+    }
+
+    const bookings = await ServiceBooking.find(filter)
       .populate("serviceId", "maDichVu name price image status")
-      .populate("customerId", "username fullName phone")
-      .sort({ createdAt: -1 });
+      .populate("customerId", "username fullName phone email")
+      .sort({ bookingDate: -1, bookingTime: -1, createdAt: -1 });
 
     return res.send(bookings);
   } catch (error) {
     console.error("Lỗi findMyBookings:", error);
-    return next(new ApiError(500, "Lỗi khi lấy lịch đặt của bạn: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi lấy lịch đặt của bạn: " + error.message)
+    );
   }
 };
 
@@ -251,12 +354,17 @@ exports.updateStatus = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy lịch đặt"));
     }
 
+    const service = await Service.findById(booking.serviceId);
+    if (!service) {
+      return next(new ApiError(404, "Không tìm thấy dịch vụ của lịch đặt"));
+    }
+
     const oldStatus = booking.status;
 
     if (oldStatus === status) {
       const sameBooking = await ServiceBooking.findById(booking._id)
         .populate("serviceId", "maDichVu name price image status")
-        .populate("customerId", "username fullName phone");
+        .populate("customerId", "username fullName phone email");
 
       return res.send({
         message: "Trạng thái lịch không thay đổi.",
@@ -265,11 +373,15 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     if (oldStatus === "Hoàn thành") {
-      return next(new ApiError(400, "Lịch đã hoàn thành không thể thay đổi trạng thái"));
+      return next(
+        new ApiError(400, "Lịch đã hoàn thành không thể thay đổi trạng thái")
+      );
     }
 
     if (oldStatus === "Đã hủy") {
-      return next(new ApiError(400, "Lịch đã hủy không thể chuyển sang trạng thái khác"));
+      return next(
+        new ApiError(400, "Lịch đã hủy không thể chuyển sang trạng thái khác")
+      );
     }
 
     const allowedTransitions = {
@@ -286,12 +398,18 @@ exports.updateStatus = async (req, res, next) => {
       );
     }
 
+    if (status === "Đã xác nhận" && service.status !== "Đang hoạt động") {
+      return next(
+        new ApiError(400, "Không thể xác nhận lịch vì dịch vụ hiện không hoạt động")
+      );
+    }
+
     booking.status = status;
     await booking.save();
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
       .populate("serviceId", "maDichVu name price image status")
-      .populate("customerId", "username fullName phone");
+      .populate("customerId", "username fullName phone email");
 
     return res.send({
       message: "Cập nhật trạng thái lịch đặt thành công!",
@@ -299,7 +417,9 @@ exports.updateStatus = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Lỗi update service booking status:", error);
-    return next(new ApiError(500, "Lỗi khi cập nhật trạng thái lịch đặt: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi cập nhật trạng thái lịch đặt: " + error.message)
+    );
   }
 };
 
@@ -324,7 +444,9 @@ exports.cancelByCustomer = async (req, res, next) => {
     }
 
     if (booking.status !== "Chờ xác nhận") {
-      return next(new ApiError(400, "Bạn chỉ có thể hủy lịch khi đang chờ xác nhận"));
+      return next(
+        new ApiError(400, "Bạn chỉ có thể hủy lịch khi đang chờ xác nhận")
+      );
     }
 
     booking.status = "Đã hủy";
@@ -332,13 +454,15 @@ exports.cancelByCustomer = async (req, res, next) => {
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
       .populate("serviceId", "maDichVu name price image status")
-      .populate("customerId", "username fullName phone");
+      .populate("customerId", "username fullName phone email");
 
     return res.send({
       message: "Hủy lịch dịch vụ thành công!",
       booking: populatedBooking,
     });
   } catch (error) {
-    return next(new ApiError(500, "Lỗi khi hủy lịch dịch vụ: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi hủy lịch dịch vụ: " + error.message)
+    );
   }
 };

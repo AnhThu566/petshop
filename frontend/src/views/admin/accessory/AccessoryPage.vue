@@ -88,6 +88,7 @@
                 <th class="py-3">Tên phụ kiện</th>
                 <th class="py-3">Loại</th>
                 <th class="py-3">Giá</th>
+                <th class="py-3">Khuyến mãi</th>
                 <th class="py-3">Tồn kho</th>
                 <th class="py-3">Trạng thái</th>
                 <th class="py-3">Ngày tạo</th>
@@ -121,6 +122,18 @@
 
                 <td class="text-danger font-weight-bold">
                   {{ formatCurrency(item.price) }}
+                </td>
+
+                <td>
+                  <span
+                    v-if="item.promotion?.isActive && item.promotion?.discountValue > 0"
+                    class="badge badge-danger px-3 py-2"
+                  >
+                    {{ getPromotionLabel(item.promotion) }}
+                  </span>
+                  <span v-else class="badge badge-light border px-3 py-2">
+                    Không có
+                  </span>
                 </td>
 
                 <td>
@@ -186,7 +199,7 @@
         tabindex="-1"
         style="background: rgba(0,0,0,0.45);"
       >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content border-0 shadow">
             <div class="modal-header" :class="isEditMode ? 'bg-warning' : 'bg-primary text-white'">
               <h5 class="modal-title mb-0" :class="isEditMode ? 'text-dark' : 'text-white'">
@@ -243,6 +256,92 @@
                   <div class="form-group">
                     <label class="font-weight-bold">Mô tả</label>
                     <textarea class="form-control" rows="4" v-model.trim="form.description"></textarea>
+                  </div>
+
+                  <div class="promotion-box mt-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                      <h6 class="font-weight-bold text-danger mb-2 mb-md-0">
+                        <i class="fas fa-tags mr-2"></i>Cấu hình khuyến mãi
+                      </h6>
+
+                      <div class="custom-control custom-switch">
+                        <input
+                          type="checkbox"
+                          class="custom-control-input"
+                          id="promotionSwitch"
+                          v-model="form.promotion.isActive"
+                        />
+                        <label class="custom-control-label font-weight-bold" for="promotionSwitch">
+                          Bật khuyến mãi
+                        </label>
+                      </div>
+                    </div>
+
+                    <div v-if="form.promotion.isActive">
+                      <div class="form-group">
+                        <label class="font-weight-bold">Tên chương trình</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          v-model.trim="form.promotion.title"
+                          placeholder="Ví dụ: Sale hè, Ưu đãi cuối tuần..."
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <div class="form-group col-md-6">
+                          <label class="font-weight-bold">Loại giảm giá</label>
+                          <select class="form-control" v-model="form.promotion.discountType">
+                            <option value="percent">Giảm theo %</option>
+                            <option value="fixed">Giảm theo số tiền</option>
+                          </select>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                          <label class="font-weight-bold">
+                            {{ form.promotion.discountType === "percent" ? "Phần trăm giảm" : "Số tiền giảm" }}
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            class="form-control"
+                            v-model="form.promotion.discountValue"
+                            :placeholder="form.promotion.discountType === 'percent' ? 'Ví dụ: 10' : 'Ví dụ: 50000'"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="form-row">
+                        <div class="form-group col-md-6">
+                          <label class="font-weight-bold">Ngày bắt đầu</label>
+                          <input
+                            type="datetime-local"
+                            class="form-control"
+                            v-model="form.promotion.startDate"
+                          />
+                        </div>
+
+                        <div class="form-group col-md-6">
+                          <label class="font-weight-bold">Ngày kết thúc</label>
+                          <input
+                            type="datetime-local"
+                            class="form-control"
+                            v-model="form.promotion.endDate"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="promo-preview-box">
+                        <div class="small text-muted mb-1">Xem nhanh:</div>
+                        <div class="font-weight-bold text-danger">
+                          {{ previewPromotionText }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-else class="small text-muted font-italic">
+                      Phụ kiện này hiện không áp dụng chương trình khuyến mãi.
+                    </div>
                   </div>
                 </div>
 
@@ -343,6 +442,33 @@
                   <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedAccessory.status || "---" }}</p>
                   <p class="mb-1"><strong>Ngày tạo:</strong> {{ formatDateOnly(selectedAccessory.createdAt) }}</p>
                   <p class="mb-1"><strong>Mô tả:</strong> {{ selectedAccessory.description || "---" }}</p>
+
+                  <hr />
+                  <h6 class="font-weight-bold text-danger">Thông tin khuyến mãi</h6>
+                  <p class="mb-1">
+                    <strong>Áp dụng:</strong>
+                    {{ selectedAccessory.promotion?.isActive ? "Có" : "Không" }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Tên chương trình:</strong>
+                    {{ selectedAccessory.promotion?.title || "---" }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Loại giảm:</strong>
+                    {{ selectedAccessory.promotion?.discountType === "fixed" ? "Giảm tiền" : "Giảm %" }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Giá trị giảm:</strong>
+                    {{ formatPromotionValue(selectedAccessory.promotion) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Bắt đầu:</strong>
+                    {{ formatDateTime(selectedAccessory.promotion?.startDate) }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Kết thúc:</strong>
+                    {{ formatDateTime(selectedAccessory.promotion?.endDate) }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -389,6 +515,14 @@ export default {
         description: "",
         status: "Đang bán",
         image: "",
+        promotion: {
+          isActive: false,
+          title: "",
+          discountType: "percent",
+          discountValue: 0,
+          startDate: "",
+          endDate: "",
+        },
       },
     };
   },
@@ -416,6 +550,18 @@ export default {
 
         return matchSearch && matchStatus && matchCategory;
       });
+    },
+
+    previewPromotionText() {
+      if (!this.form.promotion.isActive) return "Không áp dụng khuyến mãi";
+
+      const value = Number(this.form.promotion.discountValue || 0);
+
+      if (this.form.promotion.discountType === "fixed") {
+        return `Giảm ${value.toLocaleString("vi-VN")} ₫`;
+      }
+
+      return `Giảm ${value}%`;
     },
   },
 
@@ -452,6 +598,39 @@ export default {
       return new Date(date).toLocaleDateString("vi-VN");
     },
 
+    formatDateTime(date) {
+      if (!date) return "---";
+      return new Date(date).toLocaleString("vi-VN");
+    },
+
+    formatDateTimeLocal(date) {
+      if (!date) return "";
+      const d = new Date(date);
+      const pad = (n) => String(n).padStart(2, "0");
+
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    },
+
+    formatPromotionValue(promotion = {}) {
+      if (!promotion?.isActive) return "---";
+
+      if (promotion.discountType === "fixed") {
+        return Number(promotion.discountValue || 0).toLocaleString("vi-VN") + " ₫";
+      }
+
+      return `${Number(promotion.discountValue || 0)}%`;
+    },
+
+    getPromotionLabel(promotion = {}) {
+      if (!promotion?.isActive) return "Không có";
+
+      if (promotion.discountType === "fixed") {
+        return `Giảm ${Number(promotion.discountValue || 0).toLocaleString("vi-VN")}₫`;
+      }
+
+      return `Giảm ${Number(promotion.discountValue || 0)}%`;
+    },
+
     getStatusClass(status) {
       if (status === "Đang bán") return "badge-success";
       if (status === "Ngừng bán") return "badge-secondary";
@@ -477,6 +656,14 @@ export default {
         description: item.description || "",
         status: item.status || "Đang bán",
         image: item.image || "",
+        promotion: {
+          isActive: item.promotion?.isActive || false,
+          title: item.promotion?.title || "",
+          discountType: item.promotion?.discountType || "percent",
+          discountValue: item.promotion?.discountValue ?? 0,
+          startDate: this.formatDateTimeLocal(item.promotion?.startDate),
+          endDate: this.formatDateTimeLocal(item.promotion?.endDate),
+        },
       };
 
       this.selectedFile = null;
@@ -504,6 +691,14 @@ export default {
         description: "",
         status: "Đang bán",
         image: "",
+        promotion: {
+          isActive: false,
+          title: "",
+          discountType: "percent",
+          discountValue: 0,
+          startDate: "",
+          endDate: "",
+        },
       };
 
       this.selectedFile = null;
@@ -565,6 +760,32 @@ export default {
         return false;
       }
 
+      if (this.form.promotion.isActive) {
+        const discountValue = Number(this.form.promotion.discountValue || 0);
+
+        if (discountValue <= 0) {
+          alert("Giá trị khuyến mãi phải lớn hơn 0.");
+          return false;
+        }
+
+        if (
+          this.form.promotion.discountType === "percent" &&
+          discountValue > 100
+        ) {
+          alert("Khuyến mãi phần trăm không được vượt quá 100%.");
+          return false;
+        }
+
+        if (
+          this.form.promotion.startDate &&
+          this.form.promotion.endDate &&
+          new Date(this.form.promotion.startDate) > new Date(this.form.promotion.endDate)
+        ) {
+          alert("Ngày bắt đầu khuyến mãi không được sau ngày kết thúc.");
+          return false;
+        }
+      }
+
       return true;
     },
 
@@ -581,6 +802,13 @@ export default {
         formData.append("quantity", this.form.quantity);
         formData.append("description", this.form.description || "");
         formData.append("status", this.form.status);
+
+        formData.append("promotion[isActive]", this.form.promotion.isActive ? "true" : "false");
+        formData.append("promotion[title]", this.form.promotion.title || "");
+        formData.append("promotion[discountType]", this.form.promotion.discountType || "percent");
+        formData.append("promotion[discountValue]", this.form.promotion.discountValue ?? 0);
+        formData.append("promotion[startDate]", this.form.promotion.startDate || "");
+        formData.append("promotion[endDate]", this.form.promotion.endDate || "");
 
         if (this.selectedFile) {
           formData.append("image", this.selectedFile);
@@ -681,5 +909,19 @@ export default {
 .btn-remove-image:hover {
   transform: scale(1.12);
   background-color: #c82333;
+}
+
+.promotion-box {
+  border: 1px solid #f8d7da;
+  background: #fff8f8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.promo-preview-box {
+  border: 1px dashed #dc3545;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
 }
 </style>

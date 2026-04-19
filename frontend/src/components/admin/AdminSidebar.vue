@@ -40,19 +40,6 @@
         </router-link>
       </li>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/dog-health-records"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-notes-medical mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Hồ sơ sức khỏe chó</span>
-        </router-link>
-      </li>
 
       <li class="nav-item mb-2">
         <router-link

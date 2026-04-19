@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const APPROVAL_STATUS = ["Chờ duyệt", "Đã duyệt", "Từ chối"];
+const APPROVAL_STATUS = ["Chờ duyệt", "Cần bổ sung", "Đã duyệt", "Từ chối"];
 
 const SALE_STATUS = [
   "Chưa mở bán",
@@ -12,6 +12,14 @@ const SALE_STATUS = [
   "Ngừng bán",
 ];
 
+const ACTIVE_PUBLIC_SALE_STATUSES = [
+  "Sẵn sàng bán",
+  "Chờ thanh toán",
+  "Đã đặt cọc",
+  "Đang giao",
+  "Đã bán",
+];
+
 const dogSchema = new mongoose.Schema(
   {
     maCho: {
@@ -19,12 +27,14 @@ const dogSchema = new mongoose.Schema(
       required: [true, "Mã chó là bắt buộc"],
       unique: true,
       trim: true,
+      uppercase: true,
     },
 
     name: {
       type: String,
       required: [true, "Tên chó là bắt buộc"],
       trim: true,
+      maxlength: [100, "Tên chó không được vượt quá 100 ký tự"],
     },
 
     farmId: {
@@ -48,29 +58,30 @@ const dogSchema = new mongoose.Schema(
         message: "Giới tính chỉ được là Đực hoặc Cái",
       },
       required: [true, "Giới tính là bắt buộc"],
-    },
-
-    suggestedPrice: {
-      type: Number,
-      min: [0, "Giá đề xuất không được âm"],
-      default: 0,
+      trim: true,
     },
 
     price: {
       type: Number,
-      required: [true, "Giá bán chính thức là bắt buộc"],
-      min: [1, "Giá bán chính thức phải lớn hơn 0"],
+      required: [true, "Giá bán là bắt buộc"],
+      min: [1, "Giá bán phải lớn hơn 0"],
+    },
+
+    proposedPrice: {
+      type: Number,
+      default: null,
+      min: [0, "Giá đề xuất không hợp lệ"],
     },
 
     depositAmount: {
       type: Number,
-      default: 0,
-      min: [0, "Tiền đặt cọc không được âm"],
+      default: null,
+      min: [0, "Tiền cọc không được âm"],
       validate: {
         validator: function (value) {
-          return value <= this.price;
+          return value == null || this.price == null || Number(value) <= Number(this.price);
         },
-        message: "Tiền đặt cọc không được lớn hơn giá bán",
+        message: "Tiền cọc không được lớn hơn giá bán",
       },
     },
 
@@ -78,12 +89,32 @@ const dogSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+      maxlength: [3000, "Mô tả không được vượt quá 3000 ký tự"],
+    },
+
+    sourceNotes: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: [2000, "Thông tin nguồn gốc không được vượt quá 2000 ký tự"],
+    },
+
+    healthNote: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: [2000, "Ghi chú sức khỏe không được vượt quá 2000 ký tự"],
     },
 
     image: {
       type: String,
       required: [true, "Ảnh đại diện là bắt buộc"],
       trim: true,
+    },
+
+    images: {
+      type: [String],
+      default: [],
     },
 
     birthDate: {
@@ -107,6 +138,12 @@ const dogSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "Tốt",
+      maxlength: [500, "Tình trạng sức khỏe không được vượt quá 500 ký tự"],
+    },
+
+    vaccinated: {
+      type: Boolean,
+      default: false,
     },
 
     lastDeworming: {
@@ -123,11 +160,7 @@ const dogSchema = new mongoose.Schema(
     sourceVerified: {
       type: Boolean,
       default: false,
-    },
-
-    eligibleForSale: {
-      type: Boolean,
-      default: false,
+      index: true,
     },
 
     approvalStatus: {
@@ -160,6 +193,18 @@ const dogSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+      maxlength: [1000, "Nội dung phản hồi không được vượt quá 1000 ký tự"],
+    },
+
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   {
@@ -167,59 +212,80 @@ const dogSchema = new mongoose.Schema(
   }
 );
 
-dogSchema.index({ maCho: 1 }, { unique: true });
 dogSchema.index({ farmId: 1, breedId: 1 });
 dogSchema.index({ approvalStatus: 1, saleStatus: 1, isPublished: 1 });
+dogSchema.index({ farmId: 1, approvalStatus: 1, saleStatus: 1 });
+dogSchema.index({ breedId: 1, approvalStatus: 1, saleStatus: 1 });
 
-dogSchema.pre("validate", function (next) {
-  if (this.rejectionReason && this.approvalStatus !== "Từ chối") {
-    return next(
-      new Error("Chỉ được nhập lý do từ chối khi trạng thái duyệt là 'Từ chối'")
+dogSchema.pre("validate", function () {
+  if (typeof this.name === "string") this.name = this.name.trim();
+  if (typeof this.description === "string") this.description = this.description.trim();
+  if (typeof this.healthStatus === "string") this.healthStatus = this.healthStatus.trim();
+  if (typeof this.rejectionReason === "string") this.rejectionReason = this.rejectionReason.trim();
+  if (typeof this.sourceNotes === "string") this.sourceNotes = this.sourceNotes.trim();
+  if (typeof this.healthNote === "string") this.healthNote = this.healthNote.trim();
+
+  if (!this.name) {
+    throw new Error("Tên chó là bắt buộc");
+  }
+
+  if (this.birthDate && this.birthDate > new Date()) {
+    throw new Error("Ngày sinh không được ở tương lai");
+  }
+
+  if (this.lastDeworming && this.lastDeworming > new Date()) {
+    throw new Error("Ngày tẩy giun gần nhất không được ở tương lai");
+  }
+
+  if (this.lastDeworming && this.birthDate && this.lastDeworming < this.birthDate) {
+    throw new Error("Ngày tẩy giun không được nhỏ hơn ngày sinh");
+  }
+
+  if (this.proposedPrice !== null && this.proposedPrice !== undefined && this.proposedPrice < 0) {
+    throw new Error("Giá đề xuất không hợp lệ");
+  }
+
+  if (this.depositAmount !== null && this.depositAmount !== undefined) {
+    if (this.depositAmount < 0) {
+      throw new Error("Tiền cọc không được âm");
+    }
+
+    if (this.price !== null && this.price !== undefined && Number(this.depositAmount) > Number(this.price)) {
+      throw new Error("Tiền cọc không được lớn hơn giá bán");
+    }
+  }
+
+  if (this.rejectionReason && !["Cần bổ sung", "Từ chối"].includes(this.approvalStatus)) {
+    throw new Error(
+      "Chỉ được nhập nội dung phản hồi khi trạng thái duyệt là 'Cần bổ sung' hoặc 'Từ chối'"
     );
   }
 
-  if (this.approvalStatus === "Từ chối" && !this.rejectionReason) {
-    return next(new Error("Phải nhập lý do từ chối khi chó bị từ chối"));
+  if (["Cần bổ sung", "Từ chối"].includes(this.approvalStatus) && !this.rejectionReason) {
+    throw new Error("Phải nhập nội dung phản hồi cho trạng thái hiện tại");
   }
 
-  if (this.approvalStatus !== "Từ chối") {
+  if (["Chờ duyệt", "Đã duyệt"].includes(this.approvalStatus)) {
     this.rejectionReason = "";
   }
 
   if (this.isPublished && this.approvalStatus !== "Đã duyệt") {
-    return next(new Error("Chỉ chó đã duyệt mới được hiển thị trên website"));
-  }
-
-  if (this.isPublished && !this.sourceVerified) {
-    return next(new Error("Chó chưa xác minh nguồn gốc thì không được hiển thị"));
-  }
-
-  if (this.isPublished && !this.eligibleForSale) {
-    return next(new Error("Chó chưa đủ điều kiện bán thì không được hiển thị"));
+    throw new Error("Chỉ chó đã duyệt mới được hiển thị trên website");
   }
 
   if (
-    ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(this.saleStatus) &&
+    ACTIVE_PUBLIC_SALE_STATUSES.includes(this.saleStatus) &&
     this.approvalStatus !== "Đã duyệt"
   ) {
-    return next(new Error("Chó chưa được duyệt thì không được chuyển sang trạng thái bán"));
-  }
-
-  if (
-    ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(this.saleStatus) &&
-    !this.sourceVerified
-  ) {
-    return next(new Error("Chó chưa xác minh nguồn gốc thì không được chuyển sang trạng thái bán"));
-  }
-
-  if (
-    ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(this.saleStatus) &&
-    !this.eligibleForSale
-  ) {
-    return next(new Error("Chó chưa đủ điều kiện bán thì không được chuyển sang trạng thái bán"));
+    throw new Error("Chó chưa được duyệt thì không được chuyển sang trạng thái bán");
   }
 
   if (this.approvalStatus === "Từ chối") {
+    this.isPublished = false;
+    this.saleStatus = "Chưa mở bán";
+  }
+
+  if (this.approvalStatus === "Cần bổ sung") {
     this.isPublished = false;
     this.saleStatus = "Chưa mở bán";
   }
@@ -233,11 +299,17 @@ dogSchema.pre("validate", function (next) {
     this.isPublished = false;
   }
 
-  if (["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(this.saleStatus)) {
+  if (ACTIVE_PUBLIC_SALE_STATUSES.includes(this.saleStatus)) {
     this.isPublished = true;
   }
 
-  next();
+  if (Array.isArray(this.images)) {
+    this.images = this.images
+      .filter((item) => typeof item === "string" && item.trim())
+      .map((item) => item.trim());
+  } else {
+    this.images = [];
+  }
 });
 
 dogSchema.method("toJSON", function () {

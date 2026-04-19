@@ -8,6 +8,50 @@
         </p>
       </div>
 
+      <div class="toolbar-box mb-4">
+        <div class="status-tabs">
+          <button
+            class="status-tab"
+            :class="{ active: statusFilter === 'Tất cả' }"
+            @click="statusFilter = 'Tất cả'"
+          >
+            Tất cả
+          </button>
+          <button
+            class="status-tab"
+            :class="{ active: statusFilter === 'Chờ xác nhận' }"
+            @click="statusFilter = 'Chờ xác nhận'"
+          >
+            Chờ xác nhận
+          </button>
+          <button
+            class="status-tab"
+            :class="{ active: statusFilter === 'Đã xác nhận' }"
+            @click="statusFilter = 'Đã xác nhận'"
+          >
+            Đã xác nhận
+          </button>
+          <button
+            class="status-tab"
+            :class="{ active: statusFilter === 'Hoàn thành' }"
+            @click="statusFilter = 'Hoàn thành'"
+          >
+            Hoàn thành
+          </button>
+          <button
+            class="status-tab"
+            :class="{ active: statusFilter === 'Đã hủy' }"
+            @click="statusFilter = 'Đã hủy'"
+          >
+            Đã hủy
+          </button>
+        </div>
+
+        <button class="btn-action btn-outline-custom refresh-btn" @click="loadBookings" :disabled="loading">
+          <i class="fas fa-sync-alt mr-2"></i>Làm mới
+        </button>
+      </div>
+
       <div v-if="loading" class="state-box">
         <div class="spinner"></div>
         <p>Đang tải lịch đặt dịch vụ...</p>
@@ -20,9 +64,15 @@
         </button>
       </div>
 
-      <div v-else-if="bookings.length === 0" class="state-box empty-box">
+      <div v-else-if="filteredBookings.length === 0" class="state-box empty-box">
         <div class="empty-icon">📅</div>
-        <h3>Bạn chưa có lịch đặt dịch vụ nào</h3>
+        <h3>
+          {{
+            bookings.length === 0
+              ? "Bạn chưa có lịch đặt dịch vụ nào"
+              : "Không có lịch dịch vụ phù hợp với bộ lọc"
+          }}
+        </h3>
         <p>Hãy đặt dịch vụ để bắt đầu chăm sóc thú cưng của bạn.</p>
         <router-link to="/services" class="btn-action btn-primary-custom">
           Xem dịch vụ
@@ -31,7 +81,7 @@
 
       <div v-else class="booking-list">
         <div
-          v-for="booking in bookings"
+          v-for="booking in filteredBookings"
           :key="booking._id || booking.id"
           class="booking-card"
         >
@@ -46,12 +96,21 @@
               </h3>
             </div>
 
-            <span
-              class="status-badge"
-              :class="getStatusClass(booking.status)"
-            >
-              {{ booking.status }}
-            </span>
+            <div class="top-badges">
+              <span
+                class="status-badge"
+                :class="getServiceStatusClass(booking.serviceId?.status)"
+              >
+                {{ booking.serviceId?.status || "Dịch vụ không xác định" }}
+              </span>
+
+              <span
+                class="status-badge"
+                :class="getStatusClass(booking.status)"
+              >
+                {{ booking.status }}
+              </span>
+            </div>
           </div>
 
           <div class="booking-card__body">
@@ -168,17 +227,36 @@ export default {
       errorMessage: "",
       successMessage: "",
       cancelLoadingId: null,
+      statusFilter: "Tất cả",
       baseImageUrl: "http://localhost:3000",
       fallbackImage: "https://via.placeholder.com/160x160?text=Service",
     };
   },
+
+  computed: {
+    filteredBookings() {
+      if (this.statusFilter === "Tất cả") {
+        return this.bookings;
+      }
+
+      return this.bookings.filter(
+        (booking) => booking.status === this.statusFilter
+      );
+    },
+  },
+
   methods: {
     async loadBookings() {
       this.loading = true;
       this.errorMessage = "";
 
       try {
-        const data = await ServiceBookingService.getMyBookings();
+        const params =
+          this.statusFilter !== "Tất cả"
+            ? { status: this.statusFilter }
+            : {};
+
+        const data = await ServiceBookingService.getMyBookings(params);
         this.bookings = Array.isArray(data) ? data : [];
       } catch (error) {
         console.error("Lỗi loadBookings:", error);
@@ -270,6 +348,11 @@ export default {
       }
     },
 
+    getServiceStatusClass(status) {
+      if (status === "Đang hoạt động") return "status-service-active";
+      return "status-service-inactive";
+    },
+
     getImageUrl(image) {
       if (!image) return this.fallbackImage;
 
@@ -291,6 +374,13 @@ export default {
       }, 2500);
     },
   },
+
+  watch: {
+    statusFilter() {
+      this.loadBookings();
+    },
+  },
+
   mounted() {
     this.loadBookings();
   },
@@ -325,6 +415,41 @@ export default {
   font-size: 15px;
   color: #6b7280;
   margin: 0;
+}
+
+.toolbar-box {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-tab {
+  border: none;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  transition: all 0.2s ease;
+}
+
+.status-tab.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.refresh-btn {
+  min-width: 130px;
 }
 
 .state-box {
@@ -408,6 +533,13 @@ export default {
   font-weight: 800;
 }
 
+.top-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .status-badge {
   white-space: nowrap;
   padding: 9px 14px;
@@ -434,6 +566,16 @@ export default {
 .status-cancelled {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.status-service-active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-service-inactive {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .booking-card__body {
@@ -627,6 +769,10 @@ export default {
     align-items: flex-start;
   }
 
+  .top-badges {
+    justify-content: flex-start;
+  }
+
   .service-info {
     grid-template-columns: 1fr;
   }
@@ -651,6 +797,11 @@ export default {
 
   .btn-action {
     width: 100%;
+  }
+
+  .toolbar-box {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

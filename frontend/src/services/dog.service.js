@@ -15,16 +15,28 @@ class DogService {
     ).data;
   }
 
-  async getAll() {
-    return (await this.api.get("/")).data;
+  async getAll(params = {}) {
+    return (
+      await this.api.get("/", {
+        params,
+      })
+    ).data;
   }
 
-  async getPublic() {
-    return (await this.api.get("/?public=true")).data;
+  async getPublic(params = {}) {
+    return (
+      await this.api.get("/public", {
+        params,
+      })
+    ).data;
   }
 
   async get(id) {
     return (await this.api.get(`/${id}`)).data;
+  }
+
+  async getPublicById(id) {
+    return (await this.api.get(`/public/${id}`)).data;
   }
 
   async update(id, data) {

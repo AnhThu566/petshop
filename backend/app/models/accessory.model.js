@@ -42,6 +42,39 @@ const accessorySchema = new mongoose.Schema(
       enum: ["Đang bán", "Ngừng bán"],
       default: "Đang bán",
     },
+
+    // =========================
+    // KHUYẾN MÃI PHỤ KIỆN
+    // =========================
+    promotion: {
+      isActive: {
+        type: Boolean,
+        default: false,
+      },
+      title: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      discountType: {
+        type: String,
+        enum: ["percent", "fixed"],
+        default: "percent",
+      },
+      discountValue: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      startDate: {
+        type: Date,
+        default: null,
+      },
+      endDate: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   { timestamps: true }
 );

@@ -25,24 +25,32 @@
           </div>
 
           <div class="sidebar-menu">
-            <router-link to="/profile" class="menu-item text-decoration-none">
-              <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
+            <router-link to="/profile" class="menu-item-link text-decoration-none">
+              <div class="menu-item">
+                <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
             </router-link>
 
-            <router-link to="/orders" class="menu-item text-decoration-none">
-              <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
+            <router-link to="/tra-cuu-don" class="menu-item-link text-decoration-none">
+              <div class="menu-item">
+                <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
             </router-link>
 
-            <router-link to="/accessory-orders" class="menu-item active text-decoration-none">
-              <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
+            <router-link to="/accessory-orders" class="menu-item-link text-decoration-none">
+              <div class="menu-item active">
+                <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
             </router-link>
 
-            <router-link to="/service-bookings" class="menu-item text-decoration-none">
-              <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
-              <i class="fas fa-chevron-right menu-arrow"></i>
+            <router-link to="/service-bookings" class="menu-item-link text-decoration-none">
+              <div class="menu-item">
+                <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+              </div>
             </router-link>
 
             <div class="menu-item">
@@ -147,7 +155,13 @@
 
           <div v-else-if="filteredOrders.length === 0" class="empty-panel">
             <i class="fas fa-box-open empty-icon"></i>
-            <p>Bạn chưa có đơn phụ kiện nào</p>
+            <p>
+              {{
+                orders.length === 0
+                  ? "Bạn chưa có đơn phụ kiện nào"
+                  : "Không có đơn phụ kiện phù hợp"
+              }}
+            </p>
           </div>
 
           <div v-else class="table-card">
@@ -259,6 +273,7 @@
                   <p class="mb-1"><strong>Người nhận:</strong> {{ selectedOrder.customerName }}</p>
                   <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
                   <p class="mb-1"><strong>Địa chỉ:</strong> {{ selectedOrder.shippingAddress }}</p>
+                  <p class="mb-1"><strong>Ghi chú:</strong> {{ selectedOrder.note || "Không có" }}</p>
                 </div>
 
                 <div class="col-12">
@@ -276,13 +291,45 @@
                       class="product-line-image"
                     />
                     <div class="product-line-info">
-                      <div class="product-line-name">{{ item.accessoryName }}</div>
+                      <div class="product-line-name">
+                        {{ item.accessoryName || item.accessoryId?.name || "Phụ kiện" }}
+                      </div>
+
                       <div class="product-line-meta">
-                        Số lượng: {{ item.quantity }} | Đơn giá: {{ formatCurrency(item.price) }}
+                        Số lượng: {{ item.quantity }}
+                      </div>
+
+                      <div class="product-price-wrap">
+                        <div class="product-line-meta">
+                          Đơn giá: {{ formatCurrency(item.price) }}
+                        </div>
+                        <div
+                          v-if="isPromotionPrice(item)"
+                          class="product-line-sale-note"
+                        >
+                          <i class="fas fa-tags mr-1"></i>
+                          Giá ưu đãi đã được áp dụng tại thời điểm đặt hàng
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="item.accessoryId?.status && item.accessoryId.status !== 'Đang bán'"
+                        class="product-line-warning"
+                      >
+                        Sản phẩm hiện không còn mở bán
                       </div>
                     </div>
-                    <div class="product-line-total">
-                      {{ formatCurrency(item.subTotal) }}
+
+                    <div class="product-line-right">
+                      <div
+                        v-if="isPromotionPrice(item)"
+                        class="product-line-old-price"
+                      >
+                        {{ formatCurrency(item.accessoryId?.price) }}
+                      </div>
+                      <div class="product-line-total">
+                        {{ formatCurrency(item.subTotal) }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -373,6 +420,13 @@ export default {
         : 0;
     },
 
+    isPromotionPrice(item) {
+      const currentPrice = Number(item?.accessoryId?.price || 0);
+      const orderPrice = Number(item?.price || 0);
+
+      return currentPrice > 0 && orderPrice > 0 && orderPrice < currentPrice;
+    },
+
     async fetchOrders() {
       try {
         const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -384,7 +438,14 @@ export default {
 
         this.currentUser = user;
         this.loading = true;
-        this.orders = await AccessoryOrderService.getMyOrders();
+
+        const params =
+          this.statusFilter !== "Tất cả"
+            ? { status: this.statusFilter }
+            : {};
+
+        const data = await AccessoryOrderService.getMyOrders(params);
+        this.orders = Array.isArray(data) ? data : [];
       } catch (error) {
         console.error("Lỗi tải lịch sử đơn phụ kiện:", error);
         alert(
@@ -443,6 +504,7 @@ export default {
       try {
         const cartResponse = await CartService.getCart();
         const cartItems = cartResponse?.items || [];
+        let addedCount = 0;
 
         for (const item of order.items) {
           const accessoryId =
@@ -477,9 +539,17 @@ export default {
             latestAccessory._id || latestAccessory.id,
             finalQty
           );
+
+          addedCount += finalQty;
         }
 
         window.dispatchEvent(new Event("cart-updated"));
+
+        if (addedCount <= 0) {
+          alert("Không có sản phẩm nào còn đủ điều kiện để mua lại.");
+          return;
+        }
+
         alert("Đã thêm lại các sản phẩm còn phù hợp vào giỏ hàng!");
         this.closeDetail();
         this.$router.push("/cart");
@@ -517,6 +587,12 @@ export default {
       if (status === "Hoàn thành") return "status-completed";
       if (status === "Đã hủy") return "status-cancelled";
       return "status-default";
+    },
+  },
+
+  watch: {
+    statusFilter() {
+      this.fetchOrders();
     },
   },
 
@@ -609,6 +685,11 @@ export default {
 
 .sidebar-menu {
   overflow: hidden;
+}
+
+.menu-item-link {
+  display: block;
+  color: inherit;
 }
 
 .menu-item {
@@ -900,7 +981,7 @@ export default {
   align-items: center;
   border: 1px solid #eee2f7;
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 10px;
   background: #faf7fd;
   gap: 12px;
@@ -916,6 +997,7 @@ export default {
 
 .product-line-info {
   flex: 1;
+  min-width: 0;
 }
 
 .product-line-name {
@@ -927,6 +1009,35 @@ export default {
   font-size: 0.85rem;
   color: #7b7287;
   margin-top: 3px;
+}
+
+.product-price-wrap {
+  margin-top: 4px;
+}
+
+.product-line-sale-note {
+  font-size: 0.82rem;
+  color: #dc2626;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.product-line-warning {
+  font-size: 0.82rem;
+  color: #dc2626;
+  margin-top: 4px;
+}
+
+.product-line-right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.product-line-old-price {
+  color: #9b90ad;
+  font-size: 0.8rem;
+  text-decoration: line-through;
+  margin-bottom: 4px;
 }
 
 .product-line-total {
@@ -961,6 +1072,16 @@ export default {
   .order-page-container {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .product-line {
+    align-items: flex-start;
+  }
+
+  .product-line-right {
+    min-width: 90px;
   }
 }
 </style>

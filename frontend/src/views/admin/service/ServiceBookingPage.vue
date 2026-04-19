@@ -6,9 +6,37 @@
         <p>Theo dõi và xử lý các lịch đặt dịch vụ của khách hàng.</p>
       </div>
 
-      <router-link to="/admin/services" class="btn-secondary">
-        Quản lý dịch vụ
-      </router-link>
+      <div class="header-actions">
+        <button class="btn-primary" @click="loadBookings" :disabled="loading">
+          Làm mới
+        </button>
+
+        <router-link to="/admin/services" class="btn-secondary">
+          Quản lý dịch vụ
+        </router-link>
+      </div>
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-box summary-pending">
+        <div class="summary-value">{{ countByStatus("Chờ xác nhận") }}</div>
+        <div class="summary-label">Chờ xác nhận</div>
+      </div>
+
+      <div class="summary-box summary-confirmed">
+        <div class="summary-value">{{ countByStatus("Đã xác nhận") }}</div>
+        <div class="summary-label">Đã xác nhận</div>
+      </div>
+
+      <div class="summary-box summary-completed">
+        <div class="summary-value">{{ countByStatus("Hoàn thành") }}</div>
+        <div class="summary-label">Hoàn thành</div>
+      </div>
+
+      <div class="summary-box summary-cancelled">
+        <div class="summary-value">{{ countByStatus("Đã hủy") }}</div>
+        <div class="summary-label">Đã hủy</div>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -49,13 +77,14 @@
             <th>Giờ</th>
             <th>Ghi chú</th>
             <th>Ngày tạo</th>
-            <th>Trạng thái</th>
+            <th>TT dịch vụ</th>
+            <th>TT lịch</th>
             <th class="text-center">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="filteredBookings.length === 0">
-            <td colspan="9" class="empty-row">Không có lịch đặt phù hợp.</td>
+            <td colspan="10" class="empty-row">Không có lịch đặt phù hợp.</td>
           </tr>
 
           <tr
@@ -82,6 +111,12 @@
             <td>{{ booking.bookingTime || "---" }}</td>
             <td>{{ truncateText(booking.note, 60) }}</td>
             <td>{{ formatDateTime(booking.createdAt) }}</td>
+
+            <td>
+              <span class="status-badge" :class="getServiceStatusClass(booking.serviceId?.status)">
+                {{ booking.serviceId?.status || "Không xác định" }}
+              </span>
+            </td>
 
             <td>
               <span class="status-badge" :class="getStatusClass(booking.status)">
@@ -144,6 +179,7 @@ export default {
       successMessage: "",
     };
   },
+
   computed: {
     filteredBookings() {
       const kw = this.keyword.toLowerCase();
@@ -164,13 +200,19 @@ export default {
       });
     },
   },
+
   methods: {
+    countByStatus(status) {
+      return this.bookings.filter((booking) => booking.status === status).length;
+    },
+
     async loadBookings() {
       this.loading = true;
       this.errorMessage = "";
 
       try {
-        const data = await ServiceBookingService.getAll();
+        const params = this.statusFilter ? { status: this.statusFilter } : {};
+        const data = await ServiceBookingService.getAll(params);
         this.bookings = Array.isArray(data) ? data : [];
       } catch (error) {
         console.error("Lỗi loadBookings:", error);
@@ -261,6 +303,11 @@ export default {
       }
     },
 
+    getServiceStatusClass(status) {
+      if (status === "Đang hoạt động") return "status-service-active";
+      return "status-service-inactive";
+    },
+
     showSuccess(message) {
       this.successMessage = message;
       setTimeout(() => {
@@ -268,6 +315,13 @@ export default {
       }, 2500);
     },
   },
+
+  watch: {
+    statusFilter() {
+      this.loadBookings();
+    },
+  },
+
   mounted() {
     this.loadBookings();
   },
@@ -299,6 +353,54 @@ export default {
 .page-header p {
   margin: 0;
   color: #64748b;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.summary-box {
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.summary-pending {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.summary-confirmed {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.summary-completed {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.summary-cancelled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
 .toolbar {
@@ -391,6 +493,16 @@ export default {
 .status-cancelled {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.status-service-active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-service-inactive {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .action-group {
@@ -508,7 +620,17 @@ export default {
   }
 
   .booking-table {
-    min-width: 1200px;
+    min-width: 1350px;
+  }
+
+  .summary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575.98px) {
+  .summary-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

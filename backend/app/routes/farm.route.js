@@ -8,6 +8,9 @@ const {
 
 const router = express.Router();
 
+// PUBLIC: khách xem danh sách trại hiển thị công khai
+router.get("/public", farmController.findPublic);
+
 // Lấy danh sách trại / tạo trại mới
 router
   .route("/")
@@ -26,7 +29,7 @@ router.put("/:id/status", requireAdmin, farmController.updateStatus);
 // Sửa / xóa trại
 router
   .route("/:id")
-  .put(requireAdmin, upload.single("image"), farmController.update)
+  .put(requireAdminOrFarm, upload.single("image"), farmController.update)
   .delete(requireAdmin, farmController.delete);
 
 module.exports = router;

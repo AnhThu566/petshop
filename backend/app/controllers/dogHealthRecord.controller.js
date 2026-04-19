@@ -1,16 +1,125 @@
 const DogHealthRecord = require("../models/dogHealthRecord.model");
 const Dog = require("../models/dog.model");
+const Vaccine = require("../models/vaccine.model");
 const ApiError = require("../api-error");
 
-const CHECK_RESULT = [
-  "Đủ điều kiện bán",
-  "Chưa đủ điều kiện bán",
-  "Cần theo dõi thêm",
-];
+const REVIEW_STATUS = ["Chờ duyệt", "Cần bổ sung", "Đã duyệt"];
 
-// 1. Admin tạo hồ sơ sức khỏe mới
+const getCurrentUserId = (req) => req.user?._id || req.user?.id || null;
+const getCurrentUserRole = (req) => String(req.user?.role || "").toLowerCase();
+
+const normalizeText = (value) => String(value || "").trim();
+
+const parseBoolean = (value) => value === true || value === "true";
+
+const parseNullableNumber = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const parseVaccinesInput = (vaccines) => {
+  if (!vaccines) return [];
+
+  if (typeof vaccines === "string") {
+    try {
+      const parsed = JSON.parse(vaccines);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  return Array.isArray(vaccines) ? vaccines : [];
+};
+
+const normalizeVaccines = async (vaccines) => {
+  const rows = parseVaccinesInput(vaccines);
+  if (!rows.length) return [];
+
+  const normalized = [];
+
+  for (const item of rows) {
+    const vaccineId = normalizeText(item?.vaccineId);
+    const dateInjected = item?.dateInjected || null;
+
+    if (!dateInjected) continue;
+
+    let vaccineName = normalizeText(item?.vaccineName);
+    let vaccineCode = normalizeText(item?.vaccineCode);
+    let finalVaccineId = vaccineId || null;
+
+    if (vaccineId) {
+      const vaccineDoc = await Vaccine.findById(vaccineId);
+      if (!vaccineDoc) {
+        throw new ApiError(400, "Có vaccine không còn tồn tại trong hệ thống");
+      }
+
+      vaccineName = vaccineDoc.name;
+      vaccineCode = vaccineDoc.maVaccine || "";
+      finalVaccineId = vaccineDoc._id;
+    }
+
+    if (!vaccineName) continue;
+
+    normalized.push({
+      vaccineId: finalVaccineId,
+      vaccineCode,
+      vaccineName,
+      dateInjected,
+      needsReminder: parseBoolean(item?.needsReminder),
+      nextDueDate: parseBoolean(item?.needsReminder)
+        ? item?.nextDueDate || null
+        : null,
+      note: normalizeText(item?.note),
+    });
+  }
+
+  return normalized;
+};
+
+const syncDogHealthStatus = async (record) => {
+  const dog = await Dog.findById(record.dogId);
+  if (!dog) return;
+
+  if (record.generalCondition) {
+    dog.healthStatus = record.generalCondition;
+  }
+
+  dog.vaccinated = Array.isArray(record.vaccines) && record.vaccines.length > 0;
+
+  if (record.lastDewormingDate) {
+    dog.lastDeworming = record.lastDewormingDate;
+  }
+
+  if (record.weight !== undefined && record.weight !== null) {
+    dog.weight = record.weight;
+  }
+
+  await dog.save();
+};
+
+const populateRecord = async (id) => {
+  return DogHealthRecord.findById(id)
+    .populate("dogId", "name maCho image approvalStatus saleStatus farmId")
+    .populate("farmId", "name")
+    .populate("createdBy", "username fullName role")
+    .populate("updatedBy", "username fullName role")
+    .populate("reviewedBy", "username fullName role");
+};
+
+// 1. FARM tạo hồ sơ sức khỏe ban đầu
 exports.create = async (req, res, next) => {
   try {
+    const currentUserId = getCurrentUserId(req);
+    const currentRole = getCurrentUserRole(req);
+
+    if (currentRole !== "farm") {
+      return next(
+        new ApiError(403, "Chỉ trang trại mới được tạo hồ sơ sức khỏe ban đầu")
+      );
+    }
+
     const {
       dogId,
       farmId,
@@ -26,21 +135,17 @@ exports.create = async (req, res, next) => {
       mobilityStatus,
       dewormed,
       lastDewormingDate,
+      nextDewormingDate,
       vaccines,
       medicalNotes,
       abnormalSigns,
-      checkResult,
       recommendation,
     } = req.body;
 
-    if (!dogId || !farmId || !checkResult) {
+    if (!dogId || !farmId) {
       return next(
         new ApiError(400, "Thiếu thông tin bắt buộc để tạo hồ sơ sức khỏe")
       );
-    }
-
-    if (!CHECK_RESULT.includes(checkResult)) {
-      return next(new ApiError(400, "Kết luận sức khỏe không hợp lệ"));
     }
 
     const dog = await Dog.findById(dogId);
@@ -54,60 +159,52 @@ exports.create = async (req, res, next) => {
       );
     }
 
-    const createdBy = req.user?._id || req.user?.id || null;
+    const userFarmId = req.user?.farmId || req.user?.farm || null;
+    if (!userFarmId || String(userFarmId) !== String(farmId)) {
+      return next(
+        new ApiError(403, "Bạn chỉ được tạo hồ sơ sức khỏe cho chó của trại mình")
+      );
+    }
+
+    const normalizedVaccines = await normalizeVaccines(vaccines);
 
     const healthRecord = new DogHealthRecord({
       dogId,
       farmId,
-      checkedBy: checkedBy ? String(checkedBy).trim() : "",
+      checkedBy: normalizeText(checkedBy),
       checkedAt: checkedAt || new Date(),
-      weight: weight ?? null,
-      bodyTemperature: bodyTemperature ?? null,
-      generalCondition: generalCondition ? String(generalCondition).trim() : "",
-      appetiteStatus: appetiteStatus ? String(appetiteStatus).trim() : "",
-      digestiveStatus: digestiveStatus ? String(digestiveStatus).trim() : "",
-      respiratoryStatus: respiratoryStatus ? String(respiratoryStatus).trim() : "",
-      skinCondition: skinCondition ? String(skinCondition).trim() : "",
-      mobilityStatus: mobilityStatus ? String(mobilityStatus).trim() : "",
-      dewormed: dewormed === true || dewormed === "true",
+      weight: parseNullableNumber(weight),
+      bodyTemperature: parseNullableNumber(bodyTemperature),
+      generalCondition: normalizeText(generalCondition),
+      appetiteStatus: normalizeText(appetiteStatus),
+      digestiveStatus: normalizeText(digestiveStatus),
+      respiratoryStatus: normalizeText(respiratoryStatus),
+      skinCondition: normalizeText(skinCondition),
+      mobilityStatus: normalizeText(mobilityStatus),
+      dewormed: parseBoolean(dewormed),
       lastDewormingDate: lastDewormingDate || null,
-      vaccines: Array.isArray(vaccines) ? vaccines : [],
-      medicalNotes: medicalNotes ? String(medicalNotes).trim() : "",
-      abnormalSigns: abnormalSigns ? String(abnormalSigns).trim() : "",
-      checkResult,
-      recommendation: recommendation ? String(recommendation).trim() : "",
-      createdBy,
+      nextDewormingDate: nextDewormingDate || null,
+      vaccines: normalizedVaccines,
+      medicalNotes: normalizeText(medicalNotes),
+      abnormalSigns: normalizeText(abnormalSigns),
+      recommendation: normalizeText(recommendation),
+
+      createdBy: currentUserId,
+      updatedBy: currentUserId,
+      submittedByFarm: true,
+      reviewStatus: "Chờ duyệt",
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: "",
     });
 
     await healthRecord.save();
+    await syncDogHealthStatus(healthRecord);
 
-    // Đồng bộ sang Dog
-    dog.healthStatus =
-      checkResult === "Đủ điều kiện bán"
-        ? "Tốt"
-        : checkResult === "Chưa đủ điều kiện bán"
-        ? "Chưa ổn định"
-        : "Đang theo dõi";
-
-    dog.eligibleForSale = healthRecord.isEligibleForSale;
-
-    if (lastDewormingDate) {
-      dog.lastDeworming = lastDewormingDate;
-    }
-
-    if (weight !== undefined && weight !== null) {
-      dog.weight = weight;
-    }
-
-    await dog.save();
-
-    const populatedRecord = await DogHealthRecord.findById(healthRecord._id)
-      .populate("dogId", "name maCho image")
-      .populate("farmId", "name")
-      .populate("createdBy", "username fullName");
+    const populatedRecord = await populateRecord(healthRecord._id);
 
     return res.send({
-      message: "Tạo hồ sơ sức khỏe chó thành công",
+      message: "Gửi hồ sơ sức khỏe thành công, vui lòng chờ admin duyệt",
       healthRecord: populatedRecord,
     });
   } catch (error) {
@@ -117,9 +214,10 @@ exports.create = async (req, res, next) => {
   }
 };
 
-// 2. Admin lấy tất cả hồ sơ sức khỏe
+// 2. ADMIN xem tất cả / FARM xem hồ sơ của trại mình
 exports.findAll = async (req, res, next) => {
   try {
+    const currentRole = getCurrentUserRole(req);
     const filter = {};
 
     if (req.query.dogId) {
@@ -130,14 +228,27 @@ exports.findAll = async (req, res, next) => {
       filter.farmId = req.query.farmId;
     }
 
-    if (req.query.checkResult && CHECK_RESULT.includes(req.query.checkResult)) {
-      filter.checkResult = req.query.checkResult;
+    if (
+      req.query.reviewStatus &&
+      REVIEW_STATUS.includes(req.query.reviewStatus)
+    ) {
+      filter.reviewStatus = req.query.reviewStatus;
+    }
+
+    if (currentRole === "farm") {
+      const userFarmId = req.user?.farmId || req.user?.farm || null;
+      if (!userFarmId) {
+        return next(new ApiError(403, "Không xác định được trang trại của bạn"));
+      }
+      filter.farmId = userFarmId;
     }
 
     const records = await DogHealthRecord.find(filter)
-      .populate("dogId", "name maCho image approvalStatus saleStatus")
+      .populate("dogId", "name maCho image approvalStatus saleStatus farmId")
       .populate("farmId", "name")
-      .populate("createdBy", "username fullName")
+      .populate("createdBy", "username fullName role")
+      .populate("updatedBy", "username fullName role")
+      .populate("reviewedBy", "username fullName role")
       .sort({ checkedAt: -1, createdAt: -1 });
 
     return res.send(records);
@@ -148,18 +259,26 @@ exports.findAll = async (req, res, next) => {
   }
 };
 
-// 3. Admin lấy chi tiết 1 hồ sơ sức khỏe
+// 3. ADMIN/FARM lấy chi tiết 1 hồ sơ
 exports.findOne = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const currentRole = getCurrentUserRole(req);
 
-    const record = await DogHealthRecord.findById(id)
-      .populate("dogId", "name maCho image approvalStatus saleStatus")
-      .populate("farmId", "name")
-      .populate("createdBy", "username fullName");
+    const record = await populateRecord(id);
 
     if (!record) {
       return next(new ApiError(404, "Không tìm thấy hồ sơ sức khỏe"));
+    }
+
+    if (currentRole === "farm") {
+      const userFarmId = req.user?.farmId || req.user?.farm || null;
+      if (
+        !userFarmId ||
+        String(record.farmId?._id || record.farmId) !== String(userFarmId)
+      ) {
+        return next(new ApiError(403, "Bạn không có quyền xem hồ sơ này"));
+      }
     }
 
     return res.send(record);
@@ -170,14 +289,37 @@ exports.findOne = async (req, res, next) => {
   }
 };
 
-// 4. Admin cập nhật hồ sơ sức khỏe
+// 4. FARM sửa hồ sơ của mình khi chưa duyệt hoặc cần bổ sung
 exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const currentRole = getCurrentUserRole(req);
+    const currentUserId = getCurrentUserId(req);
+
+    if (currentRole !== "farm") {
+      return next(
+        new ApiError(403, "Chỉ trang trại mới được cập nhật nội dung hồ sơ sức khỏe")
+      );
+    }
 
     const record = await DogHealthRecord.findById(id);
     if (!record) {
       return next(new ApiError(404, "Không tìm thấy hồ sơ sức khỏe"));
+    }
+
+    const userFarmId = req.user?.farmId || req.user?.farm || null;
+
+    if (!userFarmId || String(record.farmId) !== String(userFarmId)) {
+      return next(new ApiError(403, "Bạn chỉ được sửa hồ sơ của trại mình"));
+    }
+
+    if (!["Chờ duyệt", "Cần bổ sung"].includes(record.reviewStatus)) {
+      return next(
+        new ApiError(
+          400,
+          "Chỉ được sửa hồ sơ khi đang chờ duyệt hoặc khi admin yêu cầu bổ sung"
+        )
+      );
     }
 
     const {
@@ -193,67 +335,70 @@ exports.update = async (req, res, next) => {
       mobilityStatus,
       dewormed,
       lastDewormingDate,
+      nextDewormingDate,
       vaccines,
       medicalNotes,
       abnormalSigns,
-      checkResult,
       recommendation,
     } = req.body;
 
-    if (checkResult && !CHECK_RESULT.includes(checkResult)) {
-      return next(new ApiError(400, "Kết luận sức khỏe không hợp lệ"));
+    if (checkedBy !== undefined) record.checkedBy = normalizeText(checkedBy);
+    if (checkedAt !== undefined) record.checkedAt = checkedAt || record.checkedAt;
+    if (weight !== undefined) record.weight = parseNullableNumber(weight);
+    if (bodyTemperature !== undefined) {
+      record.bodyTemperature = parseNullableNumber(bodyTemperature);
+    }
+    if (generalCondition !== undefined) {
+      record.generalCondition = normalizeText(generalCondition);
+    }
+    if (appetiteStatus !== undefined) {
+      record.appetiteStatus = normalizeText(appetiteStatus);
+    }
+    if (digestiveStatus !== undefined) {
+      record.digestiveStatus = normalizeText(digestiveStatus);
+    }
+    if (respiratoryStatus !== undefined) {
+      record.respiratoryStatus = normalizeText(respiratoryStatus);
+    }
+    if (skinCondition !== undefined) {
+      record.skinCondition = normalizeText(skinCondition);
+    }
+    if (mobilityStatus !== undefined) {
+      record.mobilityStatus = normalizeText(mobilityStatus);
+    }
+    if (dewormed !== undefined) record.dewormed = parseBoolean(dewormed);
+    if (lastDewormingDate !== undefined) {
+      record.lastDewormingDate = lastDewormingDate || null;
+    }
+    if (nextDewormingDate !== undefined) {
+      record.nextDewormingDate = nextDewormingDate || null;
+    }
+    if (vaccines !== undefined) {
+      record.vaccines = await normalizeVaccines(vaccines);
+    }
+    if (medicalNotes !== undefined) {
+      record.medicalNotes = normalizeText(medicalNotes);
+    }
+    if (abnormalSigns !== undefined) {
+      record.abnormalSigns = normalizeText(abnormalSigns);
+    }
+    if (recommendation !== undefined) {
+      record.recommendation = normalizeText(recommendation);
     }
 
-    if (checkedBy !== undefined) record.checkedBy = String(checkedBy || "").trim();
-    if (checkedAt !== undefined) record.checkedAt = checkedAt || record.checkedAt;
-    if (weight !== undefined) record.weight = weight ?? null;
-    if (bodyTemperature !== undefined) record.bodyTemperature = bodyTemperature ?? null;
-    if (generalCondition !== undefined) record.generalCondition = String(generalCondition || "").trim();
-    if (appetiteStatus !== undefined) record.appetiteStatus = String(appetiteStatus || "").trim();
-    if (digestiveStatus !== undefined) record.digestiveStatus = String(digestiveStatus || "").trim();
-    if (respiratoryStatus !== undefined) record.respiratoryStatus = String(respiratoryStatus || "").trim();
-    if (skinCondition !== undefined) record.skinCondition = String(skinCondition || "").trim();
-    if (mobilityStatus !== undefined) record.mobilityStatus = String(mobilityStatus || "").trim();
-    if (dewormed !== undefined) record.dewormed = dewormed === true || dewormed === "true";
-    if (lastDewormingDate !== undefined) record.lastDewormingDate = lastDewormingDate || null;
-    if (vaccines !== undefined) record.vaccines = Array.isArray(vaccines) ? vaccines : [];
-    if (vaccines !== undefined) record.vaccines = Array.isArray(vaccines) ? vaccines : [];
-    if (medicalNotes !== undefined) record.medicalNotes = String(medicalNotes || "").trim();
-    if (abnormalSigns !== undefined) record.abnormalSigns = String(abnormalSigns || "").trim();
-    if (checkResult !== undefined) record.checkResult = checkResult;
-    if (recommendation !== undefined) record.recommendation = String(recommendation || "").trim();
+    record.reviewStatus = "Chờ duyệt";
+    record.reviewNote = "";
+    record.reviewedAt = null;
+    record.reviewedBy = null;
+    record.updatedBy = currentUserId;
 
     await record.save();
+    await syncDogHealthStatus(record);
 
-    const dog = await Dog.findById(record.dogId);
-    if (dog) {
-      dog.healthStatus =
-        record.checkResult === "Đủ điều kiện bán"
-          ? "Tốt"
-          : record.checkResult === "Chưa đủ điều kiện bán"
-          ? "Chưa ổn định"
-          : "Đang theo dõi";
-
-      dog.eligibleForSale = record.isEligibleForSale;
-
-      if (record.lastDewormingDate) {
-        dog.lastDeworming = record.lastDewormingDate;
-      }
-
-      if (record.weight !== undefined && record.weight !== null) {
-        dog.weight = record.weight;
-      }
-
-      await dog.save();
-    }
-
-    const populatedRecord = await DogHealthRecord.findById(record._id)
-      .populate("dogId", "name maCho image")
-      .populate("farmId", "name")
-      .populate("createdBy", "username fullName");
+    const populatedRecord = await populateRecord(record._id);
 
     return res.send({
-      message: "Cập nhật hồ sơ sức khỏe thành công",
+      message: "Cập nhật hồ sơ sức khỏe thành công và đã gửi lại admin duyệt",
       healthRecord: populatedRecord,
     });
   } catch (error) {
@@ -263,9 +408,70 @@ exports.update = async (req, res, next) => {
   }
 };
 
-// 5. Admin xóa hồ sơ sức khỏe
+// 5. ADMIN duyệt / phản hồi hồ sơ
+exports.reviewRecord = async (req, res, next) => {
+  try {
+    const currentRole = getCurrentUserRole(req);
+    const currentUserId = getCurrentUserId(req);
+    const { id } = req.params;
+    const { reviewStatus, reviewNote } = req.body;
+
+    if (currentRole !== "admin") {
+      return next(new ApiError(403, "Chỉ admin mới được duyệt hồ sơ sức khỏe"));
+    }
+
+    if (!REVIEW_STATUS.includes(reviewStatus) || reviewStatus === "Chờ duyệt") {
+      return next(
+        new ApiError(400, "Admin chỉ được chuyển hồ sơ sang Đã duyệt hoặc Cần bổ sung")
+      );
+    }
+
+    if (
+      reviewStatus === "Cần bổ sung" &&
+      !String(reviewNote || "").trim()
+    ) {
+      return next(new ApiError(400, "Vui lòng nhập nội dung cần trang trại bổ sung"));
+    }
+
+    const record = await DogHealthRecord.findById(id);
+    if (!record) {
+      return next(new ApiError(404, "Không tìm thấy hồ sơ sức khỏe"));
+    }
+
+    record.reviewStatus = reviewStatus;
+    record.reviewNote = normalizeText(reviewNote);
+    record.reviewedAt = new Date();
+    record.reviewedBy = currentUserId;
+    record.updatedBy = currentUserId;
+
+    await record.save();
+    await syncDogHealthStatus(record);
+
+    const populatedRecord = await populateRecord(record._id);
+
+    return res.send({
+      message:
+        reviewStatus === "Đã duyệt"
+          ? "Duyệt hồ sơ sức khỏe thành công"
+          : "Đã trả hồ sơ về cho trang trại bổ sung",
+      healthRecord: populatedRecord,
+    });
+  } catch (error) {
+    return next(
+      new ApiError(500, "Lỗi khi duyệt hồ sơ sức khỏe: " + error.message)
+    );
+  }
+};
+
+// 6. ADMIN xóa hồ sơ sức khỏe
 exports.delete = async (req, res, next) => {
   try {
+    const currentRole = getCurrentUserRole(req);
+
+    if (currentRole !== "admin") {
+      return next(new ApiError(403, "Chỉ admin mới được xóa hồ sơ sức khỏe"));
+    }
+
     const { id } = req.params;
 
     const record = await DogHealthRecord.findByIdAndDelete(id);
@@ -283,24 +489,40 @@ exports.delete = async (req, res, next) => {
   }
 };
 
-// 6. Lấy hồ sơ sức khỏe mới nhất theo chó
+// 7. Lấy hồ sơ sức khỏe mới nhất theo chó
 exports.findLatestByDog = async (req, res, next) => {
   try {
     const { dogId } = req.params;
+    const currentRole = getCurrentUserRole(req);
 
     const dog = await Dog.findById(dogId);
     if (!dog) {
       return next(new ApiError(404, "Không tìm thấy bé chó"));
     }
 
-    const latestRecord = await DogHealthRecord.findOne({ dogId })
+    const filter = { dogId };
+
+    if (currentRole !== "admin" && currentRole !== "farm") {
+      filter.reviewStatus = "Đã duyệt";
+    }
+
+    if (currentRole === "farm") {
+      const userFarmId = req.user?.farmId || req.user?.farm || null;
+      if (!userFarmId || String(dog.farmId) !== String(userFarmId)) {
+        return next(new ApiError(403, "Bạn không có quyền xem hồ sơ của bé chó này"));
+      }
+    }
+
+    const latestRecord = await DogHealthRecord.findOne(filter)
       .populate("dogId", "name maCho image")
       .populate("farmId", "name")
-      .populate("createdBy", "username fullName")
+      .populate("createdBy", "username fullName role")
+      .populate("updatedBy", "username fullName role")
+      .populate("reviewedBy", "username fullName role")
       .sort({ checkedAt: -1, createdAt: -1 });
 
     if (!latestRecord) {
-      return next(new ApiError(404, "Chưa có hồ sơ sức khỏe cho bé chó này"));
+      return next(new ApiError(404, "Chưa có hồ sơ sức khỏe phù hợp cho bé chó này"));
     }
 
     return res.send(latestRecord);

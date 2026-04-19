@@ -9,6 +9,10 @@ class FarmService {
     return (await this.api.get("/")).data;
   }
 
+  async getPublic() {
+    return (await this.api.get("/public")).data;
+  }
+
   async create(data) {
     return (
       await this.api.post("/", data, {

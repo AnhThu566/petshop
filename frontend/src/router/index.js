@@ -25,7 +25,6 @@ import FarmDashboard from "@/views/farm/FarmDashboard.vue";
 import FarmDogList from "@/views/farm/FarmDogList.vue";
 import FarmDogForm from "@/views/farm/FarmDogForm.vue";
 
-
 // ==========================================
 // IMPORT CÁC TRANG CỦA KHÁCH HÀNG (CUSTOMER)
 // ==========================================
@@ -41,7 +40,6 @@ import ServiceList from "@/views/customer/ServiceList.vue";
 import ServiceDetail from "@/views/customer/ServiceDetail.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
-import DogList from "@/views/customer/DogList.vue";
 import CustomerNotification from "@/views/customer/CustomerNotification.vue";
 import CustomerDogReminder from "@/views/customer/CustomerDogReminder.vue";
 import CustomerMyDogs from "@/views/customer/CustomerMyDogs.vue";
@@ -56,11 +54,6 @@ const routes = [
     component: Home,
   },
   {
-    path: "/dogs",
-    name: "dog-list",
-    component: DogList,
-  },
-  {
     path: "/dog/:id",
     name: "dog-detail",
     component: DogDetail,
@@ -69,11 +62,13 @@ const routes = [
     path: "/login",
     name: "login",
     component: Login,
+    meta: { guestOnly: true },
   },
   {
     path: "/register",
     name: "register",
     component: Register,
+    meta: { guestOnly: true },
   },
   {
     path: "/cart",
@@ -143,16 +138,41 @@ const routes = [
     component: CustomerDogReminder,
     meta: { requiresCustomer: true },
   },
+  {
+    path: "/my-dogs",
+    name: "customer-my-dogs",
+    component: CustomerMyDogs,
+    meta: { requiresCustomer: true },
+  },
+
+
 
   {
-  path: "/my-dogs",
-  name: "customer-my-dogs",
-  component:CustomerMyDogs,
-  meta: { requiresCustomer: true },
+  path: "/dogs/breeds",
+  name: "dog-breeds",
+  component: () => import("@/views/customer/DogBreedList.vue"),
+},
+{
+  path: "/dogs/breeds/:id",
+  name: "dogs-by-breed",
+  component: () => import("@/views/customer/DogByBreed.vue"),
+  props: true,
+},
+{
+  path: "/dogs/farms",
+  name: "dog-farms",
+  component: () => import("@/views/customer/DogFarmList.vue"),
+},
+{
+  path: "/dogs/farms/:id",
+  name: "dogs-by-farm",
+  component: () => import("@/views/customer/DogByFarm.vue"),
+  props: true,
 },
 
   // ============================================================
   // ROUTER CHO CHỦ TRẠI (FARM)
+  // FarmDashboard phải là layout cha có <router-view />
   // ============================================================
   {
     path: "/farm",
@@ -175,24 +195,18 @@ const routes = [
         component: FarmDogForm,
         meta: { requiresFarm: true },
       },
-      
-{
-  path: "/farm/account-profile",
-  name: "farm-account-profile",
-  component: () => import("@/views/farm/FarmAccountProfilePage.vue"),
-  meta: { requiresFarm: true },
-},
-{
-  path: "/farm/profile",
-  name: "farm-profile",
-  component: () => import("@/views/farm/FarmProfilePage.vue"),
-  meta: { requiresFarm: true },
-},
+      {
+        path: "profile",
+        name: "farm-profile",
+        component: () => import("@/views/farm/FarmProfilePage.vue"),
+        meta: { requiresFarm: true },
+      },
     ],
   },
 
   // ============================================================
   // ROUTER CHO ADMIN
+  // AdminDashboard phải là layout cha có <router-view />
   // ============================================================
   {
     path: "/admin",
@@ -205,7 +219,7 @@ const routes = [
       },
       {
         path: "dashboard",
-        name: "admin-overview",
+        name: "admin-dashboard",
         component: DashboardOverview,
         meta: { requiresAdmin: true },
       },
@@ -213,6 +227,19 @@ const routes = [
         path: "dog",
         name: "admin-dog",
         component: DogPage,
+        meta: { requiresAdmin: true },
+      },
+
+      {
+        path: "dog-reminders",
+        name: "admin-dog-reminders",
+        component: () => import("@/views/admin/dog/DogReminderPage.vue"),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: "dog-care-records",
+        name: "admin-dog-care-records",
+        component: () => import("@/views/admin/dog/DogCareRecordPage.vue"),
         meta: { requiresAdmin: true },
       },
       {
@@ -281,34 +308,12 @@ const routes = [
         component: ServiceCategoryPage,
         meta: { requiresAdmin: true },
       },
-
       {
-  path: "dog-health-records",
-  name: "admin-dog-health-records",
-  component: () => import("@/views/admin/dog/DogHealthRecordPage.vue"),
-  meta: { requiresAdmin: true },
-},
-
-{
-  path: "dog-reminders",
-  name: "admin-dog-reminders",
-  component: () => import("@/views/admin/dog/DogReminderPage.vue"),
-  meta: { requiresAdmin: true },
-},
-
-{
-  path: "dog-care-records",
-  name: "admin-dog-care-records",
-  component: () => import("@/views/admin/dog/DogCareRecordPage.vue"),
-  meta: { requiresAdmin: true },
-},
-
-{
-  path: "notifications",
-  name: "admin-notifications",
-  component: () => import("@/views/admin/notification/NotificationPage.vue"),
-  meta: { requiresAdmin: true },
-},
+        path: "notifications",
+        name: "admin-notifications",
+        component: () => import("@/views/admin/notification/NotificationPage.vue"),
+        meta: { requiresAdmin: true },
+      },
     ],
   },
 
@@ -326,6 +331,16 @@ const router = createRouter({
   routes,
 });
 
+const normalizeRole = (role) => String(role || "").toLowerCase();
+
+const buildLoginRedirect = (to) => {
+  const redirect = to.fullPath || "/";
+  return {
+    path: "/login",
+    query: { redirect },
+  };
+};
+
 // ============================================================
 // ROUTER GUARD PHÂN QUYỀN
 // ============================================================
@@ -334,24 +349,29 @@ router.beforeEach((to) => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const farm = JSON.parse(localStorage.getItem("farm") || "null");
 
-  const role = user?.role || "";
+  const role = normalizeRole(user?.role);
 
-  // Nếu đã đăng nhập rồi thì không cần vào login/register nữa
-  if ((to.path === "/login" || to.path === "/register") && token && user) {
-    if (role === "admin") return "/admin/dashboard";
-    if (role === "farm") return "/farm/dashboard";
-    return "/";
+  // Không cho người đã đăng nhập vào login/register nữa
+  if (to.matched.some((record) => record.meta.guestOnly)) {
+    if (token && user) {
+      if (role === "admin") return "/admin/dashboard";
+      if (role === "farm") return "/farm/dashboard";
+      return "/";
+    }
+
+    return true;
   }
 
   // Admin
   if (to.matched.some((record) => record.meta.requiresAdmin)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập tài khoản quản trị.");
-      return "/login";
+      return buildLoginRedirect(to);
     }
 
     if (role !== "admin") {
       alert("Bạn không có quyền truy cập khu vực quản trị.");
+      if (role === "farm") return "/farm/dashboard";
       return "/";
     }
 
@@ -362,17 +382,18 @@ router.beforeEach((to) => {
   if (to.matched.some((record) => record.meta.requiresFarm)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập tài khoản trang trại.");
-      return "/login";
+      return buildLoginRedirect(to);
     }
 
     if (role !== "farm") {
       if (role === "admin") return "/admin/dashboard";
+      alert("Bạn không có quyền truy cập khu vực trang trại.");
       return "/";
     }
 
     if (!farm) {
       alert("Không tìm thấy thông tin trang trại. Vui lòng đăng nhập lại.");
-      return "/login";
+      return buildLoginRedirect(to);
     }
 
     return true;
@@ -382,7 +403,7 @@ router.beforeEach((to) => {
   if (to.matched.some((record) => record.meta.requiresCustomer)) {
     if (!token || !user) {
       alert("Vui lòng đăng nhập để tiếp tục.");
-      return "/login";
+      return buildLoginRedirect(to);
     }
 
     if (role === "admin") {
@@ -393,6 +414,11 @@ router.beforeEach((to) => {
     if (role === "farm") {
       alert("Tài khoản trang trại không dùng cho chức năng khách hàng.");
       return "/farm/dashboard";
+    }
+
+    if (role !== "customer") {
+      alert("Bạn không có quyền truy cập chức năng này.");
+      return "/";
     }
 
     return true;

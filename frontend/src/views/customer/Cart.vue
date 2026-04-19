@@ -58,24 +58,43 @@
                           <div class="product-name">
                             {{ item.name }}
                           </div>
+
                           <div
                             v-if="item.stock !== null && item.stock !== undefined"
                             class="product-sub"
                           >
                             Tồn kho: {{ item.stock }}
                           </div>
+
+                          <div v-if="item.isPromotionApplied" class="product-sale-note">
+                            <i class="fas fa-tags mr-1"></i>
+                            Giá khuyến mãi đã áp dụng
+                          </div>
+
                           <div
                             v-if="item.status && item.status !== 'Đang bán'"
                             class="product-sub text-danger"
                           >
                             Sản phẩm hiện không còn mở bán
                           </div>
+
+                          <div
+                            v-else-if="Number(item.stock || 0) <= 0"
+                            class="product-sub text-danger"
+                          >
+                            Sản phẩm hiện đã hết hàng
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     <td class="text-center product-price">
-                      {{ formatCurrency(item.price) }}
+                      <div v-if="item.isPromotionApplied && item.originalPriceAtDisplay > item.price" class="old-price-mini">
+                        {{ formatCurrency(item.originalPriceAtDisplay) }}
+                      </div>
+                      <div class="current-price">
+                        {{ formatCurrency(item.price) }}
+                      </div>
                     </td>
 
                     <td class="text-center">
@@ -83,7 +102,7 @@
                         <button
                           class="qty-btn"
                           @click="decreaseQuantity(item)"
-                          :disabled="updatingItemId === item.id || Number(item.quantity) <= 1"
+                          :disabled="updatingItemId === item.id || Number(item.quantity) <= 1 || !isItemPurchasable(item)"
                         >
                           -
                         </button>
@@ -95,7 +114,7 @@
                           class="qty-input"
                           :value="item.quantity"
                           @change="changeQuantity(item, $event)"
-                          :disabled="updatingItemId === item.id"
+                          :disabled="updatingItemId === item.id || !isItemPurchasable(item)"
                         />
 
                         <button
@@ -128,6 +147,11 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div v-if="hasInvalidItems" class="cart-warning-box mt-3">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Giỏ hàng đang có sản phẩm không còn đủ điều kiện mua. Vui lòng cập nhật lại giỏ trước khi đặt hàng.
           </div>
         </div>
 
@@ -177,6 +201,11 @@
                 <strong>{{ totalCount }}</strong>
               </div>
 
+              <div v-if="promotionItemCount > 0" class="summary-row promo-row">
+                <span>Sản phẩm ưu đãi:</span>
+                <strong>{{ promotionItemCount }}</strong>
+              </div>
+
               <div class="summary-row total-row">
                 <span>Tổng tiền:</span>
                 <strong>{{ formatCurrency(totalPrice) }}</strong>
@@ -186,7 +215,7 @@
             <button
               class="submit-btn"
               @click="submitOrder"
-              :disabled="isSubmitting || cart.length === 0"
+              :disabled="isSubmitting || cart.length === 0 || hasInvalidItems"
             >
               <i class="fas fa-check-circle mr-1"></i>
               {{ isSubmitting ? "Đang xử lý..." : "Đặt hàng phụ kiện" }}
@@ -220,6 +249,10 @@ export default {
       isSubmitting: false,
       updatingItemId: null,
       baseImageUrl: "http://localhost:3000",
+      summary: {
+        totalQuantity: 0,
+        totalAmount: 0,
+      },
       form: {
         customerName: "",
         customerPhone: "",
@@ -231,14 +264,19 @@ export default {
 
   computed: {
     totalCount() {
-      return this.cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+      return Number(this.summary?.totalQuantity || 0);
     },
 
     totalPrice() {
-      return this.cart.reduce(
-        (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-        0
-      );
+      return Number(this.summary?.totalAmount || 0);
+    },
+
+    hasInvalidItems() {
+      return this.cart.some((item) => !this.isItemPurchasable(item));
+    },
+
+    promotionItemCount() {
+      return this.cart.filter((item) => item.isPromotionApplied).length;
     },
   },
 
@@ -248,17 +286,39 @@ export default {
         this.loading = true;
         const response = await CartService.getCart();
 
-        this.cart = (response.items || []).map((item) => ({
-          id: item.id,
-          accessoryId:
-            item.accessoryId?._id || item.accessoryId?.id || item.accessoryId,
-          name: item.accessoryId?.name || "",
-          price: item.priceAtTime || item.accessoryId?.price || 0,
-          image: item.accessoryId?.image || "",
-          stock: item.accessoryId?.quantity ?? null,
-          status: item.accessoryId?.status || "",
-          quantity: item.quantity || 1,
-        }));
+        this.cart = (response.items || []).map((item) => {
+          const accessoryPrice = Number(item.accessoryId?.price || 0);
+          const priceAtTime = Number(item.priceAtTime || 0);
+
+          return {
+            id: item.id || item._id,
+            accessoryId:
+              item.accessoryId?._id || item.accessoryId?.id || item.accessoryId,
+            name: item.accessoryId?.name || "",
+            price: priceAtTime || accessoryPrice,
+            originalPriceAtDisplay: accessoryPrice,
+            isPromotionApplied:
+              accessoryPrice > 0 &&
+              priceAtTime > 0 &&
+              priceAtTime < accessoryPrice,
+            image: item.accessoryId?.image || "",
+            stock: item.accessoryId?.quantity ?? null,
+            status: item.accessoryId?.status || "",
+            quantity: item.quantity || 1,
+          };
+        });
+
+        this.summary = response.summary || {
+          totalQuantity: this.cart.reduce(
+            (sum, item) => sum + Number(item.quantity || 0),
+            0
+          ),
+          totalAmount: this.cart.reduce(
+            (sum, item) =>
+              sum + Number(item.price || 0) * Number(item.quantity || 0),
+            0
+          ),
+        };
 
         const user = JSON.parse(localStorage.getItem("user") || "null");
         if (user) {
@@ -269,12 +329,24 @@ export default {
       } catch (error) {
         console.error("Lỗi tải giỏ hàng:", error);
         this.cart = [];
+        this.summary = { totalQuantity: 0, totalAmount: 0 };
       } finally {
         this.loading = false;
       }
     },
 
+    isItemPurchasable(item) {
+      return (
+        !!item.accessoryId &&
+        item.status === "Đang bán" &&
+        Number(item.stock || 0) > 0 &&
+        Number(item.quantity || 0) <= Number(item.stock || 0)
+      );
+    },
+
     canIncrease(item) {
+      if (!this.isItemPurchasable(item)) return false;
+
       const stock = Number(item.stock || 0);
       const qty = Number(item.quantity || 0);
       return stock > 0 && qty < stock;
@@ -298,6 +370,11 @@ export default {
     },
 
     async changeQuantity(item, event) {
+      if (!this.isItemPurchasable(item)) {
+        event.target.value = item.quantity;
+        return;
+      }
+
       const value = this.normalizeInputQuantity(item, event.target.value);
 
       if (value === Number(item.quantity)) {
@@ -307,7 +384,10 @@ export default {
 
       try {
         this.updatingItemId = item.id;
-        await CartService.updateQuantity(item.id, value);
+        const response = await CartService.updateQuantity(item.id, value);
+        if (response.summary) {
+          this.summary = response.summary;
+        }
         await this.loadCart();
         window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
@@ -323,7 +403,10 @@ export default {
 
       try {
         this.updatingItemId = item.id;
-        await CartService.updateQuantity(item.id, Number(item.quantity) + 1);
+        const response = await CartService.updateQuantity(item.id, Number(item.quantity) + 1);
+        if (response.summary) {
+          this.summary = response.summary;
+        }
         await this.loadCart();
         window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
@@ -335,11 +418,14 @@ export default {
     },
 
     async decreaseQuantity(item) {
-      if (Number(item.quantity) <= 1) return;
+      if (Number(item.quantity) <= 1 || !this.isItemPurchasable(item)) return;
 
       try {
         this.updatingItemId = item.id;
-        await CartService.updateQuantity(item.id, Number(item.quantity) - 1);
+        const response = await CartService.updateQuantity(item.id, Number(item.quantity) - 1);
+        if (response.summary) {
+          this.summary = response.summary;
+        }
         await this.loadCart();
         window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
@@ -355,7 +441,10 @@ export default {
 
       try {
         this.updatingItemId = item.id;
-        await CartService.removeItem(item.id);
+        const response = await CartService.removeItem(item.id);
+        if (response.summary) {
+          this.summary = response.summary;
+        }
         await this.loadCart();
         window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
@@ -370,7 +459,10 @@ export default {
       if (!confirm("Bạn có chắc muốn xóa toàn bộ giỏ hàng?")) return;
 
       try {
-        await CartService.clearCart();
+        const response = await CartService.clearCart();
+        if (response.summary) {
+          this.summary = response.summary;
+        }
         await this.loadCart();
         window.dispatchEvent(new Event("cart-updated"));
       } catch (error) {
@@ -456,6 +548,7 @@ export default {
       } catch (error) {
         console.error("Lỗi đặt đơn phụ kiện:", error);
         alert("Lỗi đặt đơn: " + (error.response?.data?.message || error.message));
+        await this.loadCart();
       } finally {
         this.isSubmitting = false;
       }
@@ -614,10 +707,27 @@ export default {
   margin-top: 4px;
 }
 
+.product-sale-note {
+  color: #dc2626;
+  font-size: 0.83rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
 .product-price {
+  white-space: nowrap;
+}
+
+.old-price-mini {
+  color: #9b90ad;
+  font-size: 0.82rem;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
+.current-price {
   color: #b42318;
   font-weight: 800;
-  white-space: nowrap;
 }
 
 .product-total {
@@ -701,9 +811,22 @@ export default {
   margin-bottom: 0;
 }
 
+.promo-row strong {
+  color: #dc2626;
+}
+
 .total-row strong {
   color: #b42318;
   font-size: 1.02rem;
+}
+
+.cart-warning-box {
+  background: #fff7e8;
+  border: 1px solid #f3d18b;
+  color: #a16207;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-weight: 600;
 }
 
 .submit-btn,

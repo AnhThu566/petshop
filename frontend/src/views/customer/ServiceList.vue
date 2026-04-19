@@ -3,31 +3,48 @@
     <div class="container py-4">
       <div class="hero-box">
         <div class="hero-content">
-          <p class="hero-badge">Dịch vụ chăm sóc thú cưng</p>
+          <span class="hero-kicker">Dịch vụ chăm sóc thú cưng</span>
           <h1>Chọn dịch vụ phù hợp cho bé cưng của bạn</h1>
           <p>
             Khám phá các dịch vụ chăm sóc, vệ sinh và hỗ trợ sức khỏe với quy trình
-            rõ ràng, dễ đặt lịch và dễ theo dõi.
+            rõ ràng, dễ đặt lịch và dễ theo dõi trên cùng một hệ thống.
           </p>
+
+          <div class="hero-tags">
+            <span class="hero-tag">
+              <i class="fas fa-check-circle mr-1"></i>Dễ đặt lịch
+            </span>
+            <span class="hero-tag">
+              <i class="fas fa-heart mr-1"></i>Chăm sóc thuận tiện
+            </span>
+            <span class="hero-tag">
+              <i class="fas fa-shield-alt mr-1"></i>Thông tin minh bạch
+            </span>
+          </div>
         </div>
       </div>
 
-      <div class="toolbar">
-        <div class="search-box">
-          <input
-            v-model.trim="keyword"
-            type="text"
-            placeholder="Tìm theo tên dịch vụ..."
-          />
-        </div>
+      <div class="toolbar-card">
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">
+              <i class="fas fa-search"></i>
+            </span>
+            <input
+              v-model.trim="keyword"
+              type="text"
+              placeholder="Tìm theo tên dịch vụ..."
+            />
+          </div>
 
-        <router-link
-          v-if="isCustomer"
-          to="/service-bookings"
-          class="btn-history"
-        >
-          Lịch sử đặt dịch vụ
-        </router-link>
+          <router-link
+            v-if="isCustomer"
+            to="/service-bookings"
+            class="btn-history"
+          >
+            Lịch sử đặt dịch vụ
+          </router-link>
+        </div>
       </div>
 
       <div v-if="loading" class="state-box">
@@ -62,6 +79,12 @@
               class="service-image"
               @error="handleImageError"
             />
+
+            <div class="service-image-gradient"></div>
+
+            <span class="service-badge">
+              <i class="fas fa-star mr-1"></i> Dịch vụ nổi bật
+            </span>
           </router-link>
 
           <div class="service-body">
@@ -102,6 +125,11 @@
               >
                 Xem chi tiết
               </router-link>
+            </div>
+
+            <div class="service-link-row">
+              Đặt lịch dịch vụ nhanh chóng
+              <i class="fas fa-arrow-right ml-2"></i>
             </div>
           </div>
         </div>
@@ -202,11 +230,13 @@ export default {
 <style scoped>
 .service-list-page {
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(177, 145, 211, 0.12), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
   padding-left: 16px;
   padding-right: 16px;
@@ -214,36 +244,65 @@ export default {
 
 .hero-box {
   margin-bottom: 24px;
-  border-radius: 24px;
-  padding: 36px 28px;
+  border-radius: 28px;
+  padding: 38px 30px;
   background: linear-gradient(135deg, #eff6ff, #ffffff);
   border: 1px solid #dbeafe;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
 }
 
-.hero-badge {
+.hero-kicker {
   display: inline-block;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: #dbeafe;
   color: #1d4ed8;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .hero-content h1 {
   margin: 0 0 10px;
-  font-size: 34px;
+  font-size: 36px;
   line-height: 1.2;
   color: #0f172a;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .hero-content p {
   margin: 0;
   color: #475569;
-  line-height: 1.7;
+  line-height: 1.75;
   max-width: 760px;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 0.86rem;
+  font-weight: 700;
+  border: 1px solid #dbeafe;
+}
+
+.toolbar-card {
+  background: #ffffff;
+  border: 1px solid #e5edf6;
+  border-radius: 22px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+  padding: 16px;
+  margin-bottom: 22px;
 }
 
 .toolbar {
@@ -251,24 +310,40 @@ export default {
   gap: 12px;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 22px;
   flex-wrap: wrap;
 }
 
 .search-box {
   flex: 1;
   min-width: 260px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .search-box input {
   width: 100%;
-  height: 46px;
-  padding: 0 16px;
+  height: 48px;
+  padding: 0 16px 0 46px;
   border-radius: 14px;
   border: 1px solid #dbe2ea;
   background: #fff;
   outline: none;
   font-size: 14px;
+  display: block;
 }
 
 .search-box input:focus {
@@ -286,19 +361,20 @@ export default {
   padding: 0 18px;
   border-radius: 12px;
   text-decoration: none;
-  font-weight: 700;
+  font-weight: 800;
   transition: 0.2s ease;
   cursor: pointer;
   border: none;
 }
 
 .btn-history {
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
 }
 
 .btn-history:hover {
-  background: #1d4ed8;
+  color: #fff;
+  filter: brightness(0.98);
 }
 
 .btn-detail {
@@ -308,6 +384,7 @@ export default {
 
 .btn-detail:hover {
   background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .btn-reload {
@@ -318,8 +395,8 @@ export default {
 
 .state-box {
   background: #fff;
-  border-radius: 18px;
-  padding: 48px 20px;
+  border-radius: 20px;
+  padding: 52px 20px;
   text-align: center;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
@@ -348,12 +425,12 @@ export default {
 .service-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 
 .service-card {
   background: #fff;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
   border: 1px solid #eef2f7;
@@ -367,14 +444,43 @@ export default {
 
 .service-image-link {
   display: block;
-  height: 220px;
+  height: 230px;
   background: #f1f5f9;
+  position: relative;
+  overflow: hidden;
 }
 
 .service-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.service-card:hover .service-image {
+  transform: scale(1.05);
+}
+
+.service-image-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 10, 28, 0.02) 0%, rgba(20, 10, 28, 0.25) 100%);
+}
+
+.service-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+  z-index: 2;
 }
 
 .service-body {
@@ -414,13 +520,14 @@ export default {
 
 .service-name {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: 21px;
   line-height: 1.35;
 }
 
 .service-name a {
   color: #0f172a;
   text-decoration: none;
+  font-weight: 900;
 }
 
 .service-name a:hover {
@@ -436,8 +543,8 @@ export default {
 .service-description {
   margin: 0 0 16px;
   color: #64748b;
-  line-height: 1.6;
-  min-height: 52px;
+  line-height: 1.7;
+  min-height: 56px;
 }
 
 .service-bottom {
@@ -450,8 +557,15 @@ export default {
 
 .service-price {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 900;
   color: #dc2626;
+}
+
+.service-link-row {
+  margin-top: 12px;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 @keyframes spin {
@@ -463,6 +577,10 @@ export default {
 @media (max-width: 992px) {
   .service-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-content h1 {
+    font-size: 30px;
   }
 }
 

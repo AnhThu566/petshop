@@ -16,38 +16,127 @@ const VALID_STATUSES = [
 const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 
 const generateNextCode = async () => {
-  const lastOrder = await AccessoryOrder.findOne().sort({ maDonPhuKien: -1 });
+  const lastOrder = await AccessoryOrder.findOne().sort({
+    createdAt: -1,
+    maDonPhuKien: -1,
+  });
 
   let nextCode = "DPK001";
 
   if (lastOrder && lastOrder.maDonPhuKien) {
     const lastNumber = parseInt(lastOrder.maDonPhuKien.replace("DPK", ""), 10);
-    nextCode = "DPK" + (lastNumber + 1).toString().padStart(3, "0");
+    if (!Number.isNaN(lastNumber)) {
+      nextCode = "DPK" + String(lastNumber + 1).padStart(3, "0");
+    }
   }
 
   return nextCode;
 };
 
 const getCurrentUserId = (req) => req.user?._id || req.user?.id || null;
-const getCurrentUserRole = (req) => req.user?.role || "";
+const getCurrentUserRole = (req) => String(req.user?.role || "").toLowerCase();
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const normalizeText = (value) => String(value || "").trim();
+
+// =========================
+// HỖ TRỢ KHUYẾN MÃI
+// =========================
+const isPromotionValid = (promotion = {}) => {
+  if (!promotion?.isActive) return false;
+
+  const now = new Date();
+
+  if (promotion.startDate && new Date(promotion.startDate) > now) {
+    return false;
+  }
+
+  if (promotion.endDate && new Date(promotion.endDate) < now) {
+    return false;
+  }
+
+  if (!promotion.discountValue || Number(promotion.discountValue) <= 0) {
+    return false;
+  }
+
+  return true;
+};
+
+const calculatePromotionPrice = (price, promotion = {}) => {
+  const originalPrice = Number(price || 0);
+
+  if (!isPromotionValid(promotion)) {
+    return {
+      originalPrice,
+      finalPrice: originalPrice,
+      discountAmount: 0,
+      discountLabel: "",
+      hasPromotion: false,
+    };
+  }
+
+  let discountAmount = 0;
+
+  if (promotion.discountType === "percent") {
+    discountAmount = Math.round(
+      (originalPrice * Number(promotion.discountValue || 0)) / 100
+    );
+  } else if (promotion.discountType === "fixed") {
+    discountAmount = Number(promotion.discountValue || 0);
+  }
+
+  if (discountAmount < 0) discountAmount = 0;
+  if (discountAmount > originalPrice) discountAmount = originalPrice;
+
+  const finalPrice = originalPrice - discountAmount;
+
+  const discountLabel =
+    promotion.discountType === "percent"
+      ? `Giảm ${promotion.discountValue}%`
+      : `Giảm ${Number(promotion.discountValue || 0).toLocaleString("vi-VN")}đ`;
+
+  return {
+    originalPrice,
+    finalPrice,
+    discountAmount,
+    discountLabel,
+    hasPromotion: discountAmount > 0,
+  };
+};
+
+const getAccessoryEffectivePrice = (accessory) => {
+  const promo = calculatePromotionPrice(accessory.price, accessory.promotion || {});
+  return promo.finalPrice;
+};
 
 const populateOrderWithItems = async (orderId) => {
   const order = await AccessoryOrder.findById(orderId).populate(
     "customerId",
-    "username fullName phone"
+    "username fullName phone email"
   );
 
   const items = await AccessoryOrderItem.find({ orderId }).populate(
     "accessoryId",
-    "maPhuKien name image"
+    "maPhuKien name image status quantity price promotion"
   );
 
   return {
     order,
     items,
   };
+};
+
+const restoreAccessoryStock = async (orderId) => {
+  const orderItems = await AccessoryOrderItem.find({ orderId });
+
+  for (const item of orderItems) {
+    const accessory = await Accessory.findById(item.accessoryId);
+
+    if (accessory) {
+      accessory.quantity =
+        Number(accessory.quantity || 0) + Number(item.quantity || 0);
+      await accessory.save();
+    }
+  }
 };
 
 // Customer tạo đơn phụ kiện
@@ -88,7 +177,6 @@ exports.create = async (req, res, next) => {
     const normalizedItems = [];
     let totalAmount = 0;
 
-    // Bước 1: validate toàn bộ item trước
     for (const item of items) {
       const accessoryId = item?.accessoryId;
       const quantity = Number(item?.quantity);
@@ -119,20 +207,20 @@ exports.create = async (req, res, next) => {
         );
       }
 
-      const subTotal = Number(accessory.price) * quantity;
+      const effectivePrice = getAccessoryEffectivePrice(accessory);
+      const subTotal = Number(effectivePrice) * quantity;
       totalAmount += subTotal;
 
       normalizedItems.push({
         accessory,
         accessoryId: accessory._id,
         accessoryName: accessory.name,
-        price: accessory.price,
+        price: effectivePrice,
         quantity,
         subTotal,
       });
     }
 
-    // Bước 2: mọi item hợp lệ rồi mới trừ kho
     for (const item of normalizedItems) {
       item.accessory.quantity =
         Number(item.accessory.quantity) - Number(item.quantity);
@@ -187,8 +275,14 @@ exports.findMyOrders = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const orders = await AccessoryOrder.find({ customerId: currentUserId })
-      .populate("customerId", "username fullName phone")
+    const filter = { customerId: currentUserId };
+
+    if (req.query.status && VALID_STATUSES.includes(req.query.status)) {
+      filter.status = req.query.status;
+    }
+
+    const orders = await AccessoryOrder.find(filter)
+      .populate("customerId", "username fullName phone email")
       .sort({ createdAt: -1 });
 
     const result = [];
@@ -196,7 +290,7 @@ exports.findMyOrders = async (req, res, next) => {
     for (const order of orders) {
       const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
         "accessoryId",
-        "maPhuKien name image"
+        "maPhuKien name image status price promotion"
       );
 
       result.push({
@@ -215,8 +309,22 @@ exports.findMyOrders = async (req, res, next) => {
 // Admin xem tất cả đơn phụ kiện
 exports.findAll = async (req, res, next) => {
   try {
-    const orders = await AccessoryOrder.find({})
-      .populate("customerId", "username fullName phone")
+    const filter = {};
+
+    if (req.query.status && VALID_STATUSES.includes(req.query.status)) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.customerPhone) {
+      filter.customerPhone = normalizeText(req.query.customerPhone);
+    }
+
+    if (req.query.maDonPhuKien) {
+      filter.maDonPhuKien = normalizeText(req.query.maDonPhuKien);
+    }
+
+    const orders = await AccessoryOrder.find(filter)
+      .populate("customerId", "username fullName phone email")
       .sort({ createdAt: -1 });
 
     const result = [];
@@ -224,7 +332,7 @@ exports.findAll = async (req, res, next) => {
     for (const order of orders) {
       const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
         "accessoryId",
-        "maPhuKien name image"
+        "maPhuKien name image status price promotion"
       );
 
       result.push({
@@ -294,17 +402,7 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     if (status === "Đã hủy") {
-      const orderItems = await AccessoryOrderItem.find({ orderId: order._id });
-
-      for (const item of orderItems) {
-        const accessory = await Accessory.findById(item.accessoryId);
-
-        if (accessory) {
-          accessory.quantity =
-            Number(accessory.quantity || 0) + Number(item.quantity || 0);
-          await accessory.save();
-        }
-      }
+      await restoreAccessoryStock(order._id);
     }
 
     order.status = status;
@@ -338,7 +436,7 @@ exports.findOne = async (req, res, next) => {
 
     const order = await AccessoryOrder.findById(id).populate(
       "customerId",
-      "username fullName phone"
+      "username fullName phone email"
     );
 
     if (!order) {
@@ -354,7 +452,7 @@ exports.findOne = async (req, res, next) => {
 
     const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
       "accessoryId",
-      "maPhuKien name image"
+      "maPhuKien name image status price promotion"
     );
 
     return res.send({
@@ -399,16 +497,7 @@ exports.cancelByCustomer = async (req, res, next) => {
       );
     }
 
-    const orderItems = await AccessoryOrderItem.find({ orderId: order._id });
-
-    for (const item of orderItems) {
-      const accessory = await Accessory.findById(item.accessoryId);
-      if (accessory) {
-        accessory.quantity =
-          Number(accessory.quantity || 0) + Number(item.quantity || 0);
-        await accessory.save();
-      }
-    }
+    await restoreAccessoryStock(order._id);
 
     order.status = "Đã hủy";
     await order.save();

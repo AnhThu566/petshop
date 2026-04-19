@@ -172,3 +172,51 @@ exports.register = async (req, res, next) => {
     return next(new ApiError(500, "Lỗi server: " + error.message));
   }
 };
+
+//đổi mật khẩu
+exports.changePassword = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!userId) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin mật khẩu"));
+    }
+
+    if (newPassword.length < 6) {
+      return next(new ApiError(400, "Mật khẩu mới phải có ít nhất 6 ký tự"));
+    }
+
+    if (newPassword !== confirmPassword) {
+      return next(new ApiError(400, "Xác nhận mật khẩu mới không khớp"));
+    }
+
+    if (currentPassword === newPassword) {
+      return next(new ApiError(400, "Mật khẩu mới không được trùng mật khẩu hiện tại"));
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new ApiError(404, "Không tìm thấy tài khoản"));
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return next(new ApiError(400, "Mật khẩu hiện tại không đúng"));
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.send({
+      message: "Đổi mật khẩu thành công",
+    });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi đổi mật khẩu: " + error.message));
+  }
+};
