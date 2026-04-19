@@ -29,13 +29,16 @@
           </div>
 
           <div class="top-actions">
-            <router-link
-              to="/cart"
-              class="top-cart text-decoration-none"
-              title="Giỏ hàng"
-            >
-              <i class="fas fa-shopping-cart"></i>
-            </router-link>
+<router-link
+  to="/cart"
+  class="top-cart text-decoration-none"
+  title="Giỏ hàng"
+>
+  <i class="fas fa-shopping-cart"></i>
+  <span v-if="cartCount > 0" class="cart-badge">
+    {{ cartCount > 99 ? "99+" : cartCount }}
+  </span>
+</router-link>
 
             <router-link
               v-if="isLoggedIn && currentUser && currentUser.role === 'customer'"
@@ -300,6 +303,7 @@
 import AccessoryCategoryService from "@/services/accessoryCategory.service";
 import NotificationService from "@/services/notification.service";
 import BreedService from "@/services/breed.service";
+import CartService from "@/services/cart.service";
 
 export default {
   name: "CustomerHeader",
@@ -315,16 +319,17 @@ export default {
     },
   },
 
-  data() {
-    return {
-      isUserDropdownOpen: false,
-      isDogMenuOpen: false,
-      isAccessoryMenuOpen: false,
-      accessoryCategories: [],
-      breedMenuList: [],
-      unreadNotificationCount: 0,
-    };
-  },
+data() {
+  return {
+    isUserDropdownOpen: false,
+    isDogMenuOpen: false,
+    isAccessoryMenuOpen: false,
+    accessoryCategories: [],
+    breedMenuList: [],
+    unreadNotificationCount: 0,
+    cartCount: 0,
+  };
+},
 
   computed: {
     isDogMenuActive() {
@@ -338,19 +343,22 @@ export default {
     },
   },
 
+
   watch: {
     $route() {
+      
       this.closeAllDropdowns();
       this.fetchUnreadNotifications();
+      this.fetchCartCount();
     },
 
-    currentUser: {
-      handler() {
-        this.fetchUnreadNotifications();
-      },
-      deep: true,
-      immediate: true,
-    },
+currentUser: {
+  handler() {
+    this.fetchUnreadNotifications();
+    this.fetchCartCount();
+  },
+  immediate: true,
+},
   },
 
   methods: {
@@ -395,6 +403,26 @@ export default {
       }
     },
 
+      async fetchCartCount() {
+  try {
+    if (!this.isLoggedIn || !this.currentUser || this.currentUser.role !== "customer") {
+      this.cartCount = 0;
+      return;
+    }
+
+    const data = await CartService.getCart();
+    const items = data?.items || [];
+
+    this.cartCount = items.reduce(
+      (sum, item) => sum + Number(item.quantity || 0),
+      0
+    );
+  } catch (error) {
+    console.error("Lỗi tải số lượng giỏ hàng:", error);
+    this.cartCount = 0;
+  }
+},
+
     closeAllDropdowns() {
       this.isUserDropdownOpen = false;
       this.isDogMenuOpen = false;
@@ -436,13 +464,21 @@ export default {
     },
   },
 
-  async mounted() {
-    await Promise.all([
-      this.fetchAccessoryCategories(),
-      this.fetchBreedMenu(),
-      this.fetchUnreadNotifications(),
-    ]);
-  },
+async mounted() {
+  await Promise.all([
+    this.fetchAccessoryCategories(),
+    this.fetchBreedMenu(),
+    this.fetchUnreadNotifications(),
+    this.fetchCartCount(),
+  ]);
+
+  window.addEventListener("cart-updated", this.fetchCartCount);
+  window.addEventListener("auth-changed", this.fetchCartCount);
+},
+beforeUnmount() {
+  window.removeEventListener("cart-updated", this.fetchCartCount);
+  window.removeEventListener("auth-changed", this.fetchCartCount);
+},
 };
 </script>
 
@@ -585,6 +621,23 @@ export default {
   transition: all 0.2s ease;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
   position: relative;
+}
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .top-cart:hover,

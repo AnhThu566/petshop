@@ -169,6 +169,12 @@ const routes = [
   component: () => import("@/views/customer/DogByFarm.vue"),
   props: true,
 },
+{
+  path: "/accessory-checkout",
+  name: "AccessoryCheckout",
+  component: () => import("@/views/customer/AccessoryCheckout.vue"),
+  meta: { requiresCustomer: true }
+},
 
   // ============================================================
   // ROUTER CHO CHỦ TRẠI (FARM)

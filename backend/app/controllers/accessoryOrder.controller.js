@@ -12,6 +12,7 @@ const VALID_STATUSES = [
   "Hoàn thành",
   "Đã hủy",
 ];
+const VALID_PAYMENT_METHODS = ["COD", "ZALOPAY"];
 
 const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 
@@ -148,11 +149,13 @@ exports.create = async (req, res, next) => {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
-    const customerName = normalizeText(req.body.customerName);
-    const customerPhone = normalizeText(req.body.customerPhone);
-    const shippingAddress = normalizeText(req.body.shippingAddress);
-    const note = normalizeText(req.body.note);
-    const items = req.body.items;
+const customerName = normalizeText(req.body.customerName);
+const customerPhone = normalizeText(req.body.customerPhone);
+const shippingAddress = normalizeText(req.body.shippingAddress);
+const note = normalizeText(req.body.note);
+const paymentMethod = normalizeText(req.body.paymentMethod || "COD").toUpperCase();
+const shippingFee = Number(req.body.shippingFee || 0);
+const items = req.body.items;
 
     if (!customerName || !customerPhone || !shippingAddress) {
       return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin người nhận"));
@@ -170,12 +173,20 @@ exports.create = async (req, res, next) => {
       return next(new ApiError(400, "Địa chỉ giao hàng không hợp lệ"));
     }
 
+    if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+  return next(new ApiError(400, "Phương thức thanh toán không hợp lệ"));
+}
+
+if (!Number.isFinite(shippingFee) || shippingFee < 0) {
+  return next(new ApiError(400, "Phí vận chuyển không hợp lệ"));
+}
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return next(new ApiError(400, "Đơn phụ kiện phải có ít nhất 1 sản phẩm"));
     }
 
     const normalizedItems = [];
-    let totalAmount = 0;
+    let subTotalAmount = 0;
 
     for (const item of items) {
       const accessoryId = item?.accessoryId;
@@ -209,7 +220,7 @@ exports.create = async (req, res, next) => {
 
       const effectivePrice = getAccessoryEffectivePrice(accessory);
       const subTotal = Number(effectivePrice) * quantity;
-      totalAmount += subTotal;
+subTotalAmount += subTotal;
 
       normalizedItems.push({
         accessory,
@@ -228,17 +239,19 @@ exports.create = async (req, res, next) => {
     }
 
     const maDonPhuKien = await generateNextCode();
-
-    const newOrder = new AccessoryOrder({
-      maDonPhuKien,
-      customerId: currentUserId,
-      customerName,
-      customerPhone,
-      shippingAddress,
-      note: note || "",
-      totalAmount,
-      status: "Chờ xác nhận",
-    });
+const totalAmount = Number(subTotalAmount) + Number(shippingFee);
+const newOrder = new AccessoryOrder({
+  maDonPhuKien,
+  customerId: currentUserId,
+  customerName,
+  customerPhone,
+  shippingAddress,
+  paymentMethod,
+  shippingFee,
+  note: note || "",
+  totalAmount,
+  status: "Chờ xác nhận",
+});
 
     await newOrder.save();
 
@@ -255,11 +268,11 @@ exports.create = async (req, res, next) => {
 
     const { order, items: createdItems } = await populateOrderWithItems(newOrder._id);
 
-    return res.send({
-      message: "Đặt đơn phụ kiện thành công!",
-      order,
-      items: createdItems,
-    });
+return res.send({
+  message: "Đặt đơn phụ kiện thành công!",
+  order,
+  items: createdItems,
+});
   } catch (error) {
     console.error("Lỗi create accessory order:", error);
     return next(new ApiError(500, "Lỗi khi tạo đơn phụ kiện: " + error.message));

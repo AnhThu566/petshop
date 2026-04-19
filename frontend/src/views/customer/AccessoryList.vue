@@ -2,9 +2,32 @@
   <div class="accessory-list-page">
     <div class="container-fluid accessory-page-container py-4">
       <div class="page-head text-center">
-        <h2 class="page-title">
-          Danh sách phụ kiện
-        </h2>
+        <h2 class="page-title">Danh sách phụ kiện</h2>
+        <p class="page-subtitle">
+          Lựa chọn phụ kiện phù hợp để chăm sóc và nâng niu thú cưng của bạn mỗi ngày
+        </p>
+      </div>
+
+      <div v-if="categories.length" class="filter-bar">
+        <button
+          type="button"
+          class="filter-chip"
+          :class="{ active: !selectedCategoryId }"
+          @click="selectCategory('')"
+        >
+          Tất cả
+        </button>
+
+        <button
+          v-for="cat in categories"
+          :key="cat._id || cat.id"
+          type="button"
+          class="filter-chip"
+          :class="{ active: String(selectedCategoryId) === String(cat._id || cat.id) }"
+          @click="selectCategory(cat._id || cat.id)"
+        >
+          {{ cat.name }}
+        </button>
       </div>
 
       <div v-if="loading" class="empty-panel">
@@ -15,6 +38,15 @@
       <div v-else-if="filteredAccessories.length === 0" class="empty-panel">
         <i class="fas fa-box-open empty-icon"></i>
         <p>Hiện chưa có phụ kiện phù hợp để hiển thị</p>
+
+        <button
+          v-if="selectedCategoryId"
+          type="button"
+          class="reset-filter-btn"
+          @click="selectCategory('')"
+        >
+          Xem tất cả phụ kiện
+        </button>
       </div>
 
       <div v-else class="accessory-grid">
@@ -35,6 +67,10 @@
                 {{ item.discountLabel || "Giảm giá" }}
               </span>
 
+              <span class="stock-badge" :class="getStockBadgeClass(item)">
+                {{ getStockBadgeText(item) }}
+              </span>
+
               <div class="card-image-gradient"></div>
             </div>
 
@@ -51,6 +87,10 @@
                 <div class="accessory-price">
                   {{ formatCurrency(item.finalPrice || item.price) }}
                 </div>
+              </div>
+
+              <div class="stock-note" :class="getStockClass(item)">
+                {{ getStockText(item) }}
               </div>
 
               <div class="qty-box">
@@ -102,6 +142,14 @@
                   {{ isAdding(item) ? "Đang xử lý..." : "Mua ngay" }}
                 </button>
               </div>
+
+              <button
+                type="button"
+                class="detail-link-btn"
+                @click="goToDetail(item)"
+              >
+                Xem chi tiết
+              </button>
 
               <div v-if="!canBuy(item)" class="sold-out-note">
                 Hết hàng hoặc tạm ngừng bán
@@ -211,11 +259,7 @@ export default {
     },
 
     canBuy(item) {
-      return (
-        item &&
-        item.status === "Đang bán" &&
-        Number(item.quantity || 0) > 0
-      );
+      return item && item.status === "Đang bán" && Number(item.quantity || 0) > 0;
     },
 
     canIncrease(item) {
@@ -252,55 +296,135 @@ export default {
       this.quantities = { ...this.quantities, [id]: next };
     },
 
-    async addToCart(item, redirectToCart = false) {
-      if (!item) return;
+    getStockText(item) {
+      const stock = Number(item?.quantity || 0);
 
-      const accessoryId = this.getItemId(item);
-      if (!accessoryId) {
-        alert("Phụ kiện này chưa có ID hợp lệ.");
-        return;
-      }
-
-      if (!this.canBuy(item)) {
-        alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
-        return;
-      }
-
-      const qty = this.getQty(item);
-      if (!qty || qty < 1) {
-        alert("Số lượng không hợp lệ.");
-        return;
-      }
-
-      const user = JSON.parse(localStorage.getItem("user") || "null");
-      if (!user) {
-        alert("Vui lòng đăng nhập để thêm phụ kiện vào giỏ hàng.");
-        this.$router.push("/login");
-        return;
-      }
-
-      this.isAddingMap = { ...this.isAddingMap, [accessoryId]: true };
-
-      try {
-        await CartService.addToCart(accessoryId, Number(qty));
-        window.dispatchEvent(new Event("cart-updated"));
-
-        if (redirectToCart) {
-          this.$router.push("/cart");
-          return;
-        }
-
-        alert("Đã thêm phụ kiện vào giỏ hàng.");
-      } catch (error) {
-        alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
-      } finally {
-        this.isAddingMap = { ...this.isAddingMap, [accessoryId]: false };
-      }
+      if (item?.status !== "Đang bán") return "Tạm ngừng bán";
+      if (stock <= 0) return "Hết hàng";
+      if (stock <= 5) return `Sắp hết hàng • Còn ${stock} sản phẩm`;
+      return `Còn ${stock} sản phẩm`;
     },
 
-    async buyNow(item) {
-      await this.addToCart(item, true);
+    getStockClass(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "stock-off";
+      if (stock <= 0) return "stock-out";
+      if (stock <= 5) return "stock-low";
+      return "stock-available";
     },
+
+    getStockBadgeText(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "Ngừng bán";
+      if (stock <= 0) return "Hết hàng";
+      if (stock <= 5) return "Sắp hết";
+      return "Còn hàng";
+    },
+
+    getStockBadgeClass(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "badge-off";
+      if (stock <= 0) return "badge-out";
+      if (stock <= 5) return "badge-low";
+      return "badge-available";
+    },
+
+    selectCategory(categoryId = "") {
+      this.selectedCategoryId = categoryId;
+      this.$router.push({
+        path: "/accessories",
+        query: categoryId ? { category: categoryId } : {},
+      });
+    },
+
+async addToCart(item) {
+  if (!item) return;
+
+  const accessoryId = this.getItemId(item);
+  if (!accessoryId) {
+    alert("Phụ kiện này chưa có ID hợp lệ.");
+    return;
+  }
+
+  if (!this.canBuy(item)) {
+    alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+    return;
+  }
+
+  const qty = this.getQty(item);
+  if (!qty || qty < 1) {
+    alert("Số lượng không hợp lệ.");
+    return;
+  }
+
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  if (!user) {
+    alert("Vui lòng đăng nhập để thêm phụ kiện vào giỏ hàng.");
+    this.$router.push("/login");
+    return;
+  }
+
+  this.isAddingMap = { ...this.isAddingMap, [accessoryId]: true };
+
+  try {
+    await CartService.addToCart(accessoryId, Number(qty));
+    window.dispatchEvent(new Event("cart-updated"));
+    alert("Đã thêm phụ kiện vào giỏ hàng.");
+  } catch (error) {
+    alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
+  } finally {
+    this.isAddingMap = { ...this.isAddingMap, [accessoryId]: false };
+  }
+},
+
+async buyNow(item) {
+  if (!item) return;
+
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  if (!user) {
+    alert("Vui lòng đăng nhập để mua phụ kiện.");
+    this.$router.push("/login");
+    return;
+  }
+
+  if (!this.canBuy(item)) {
+    alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+    return;
+  }
+
+  const qty = this.getQty(item);
+  const stock = Number(item.quantity || 0);
+
+  if (!qty || qty < 1) {
+    alert("Số lượng không hợp lệ.");
+    return;
+  }
+
+  if (qty > stock) {
+    alert(`Số lượng vượt quá tồn kho. Chỉ còn ${stock} sản phẩm.`);
+    return;
+  }
+
+  const buyNowItem = {
+    id: `buy-now-${this.getItemId(item)}`,
+    accessoryId: this.getItemId(item),
+    name: item.name || "",
+    price: Number(item.finalPrice || item.price || 0),
+    originalPriceAtDisplay: Number(item.price || 0),
+    isPromotionApplied:
+      Number(item.finalPrice || item.price || 0) < Number(item.price || 0),
+    image: item.image || "",
+    stock: Number(item.quantity || 0),
+    status: item.status || "",
+    quantity: Number(qty || 1),
+  };
+
+  sessionStorage.setItem("buy_now_checkout", JSON.stringify([buyNowItem]));
+  this.$router.push({ path: "/accessory-checkout", query: { mode: "buy-now" } });
+},
 
     goToDetail(item) {
       const id = this.getItemId(item);
@@ -324,7 +448,7 @@ export default {
 .accessory-list-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(177, 145, 211, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(155, 117, 204, 0.12), transparent 28%),
     linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
 }
 
@@ -335,14 +459,52 @@ export default {
 }
 
 .page-head {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .page-title {
   color: #2f1b44;
   font-size: 2.05rem;
   font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  color: #7b6c8f;
+  font-size: 0.98rem;
   margin-bottom: 0;
+  font-weight: 500;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 18px 0 28px;
+}
+
+.filter-chip {
+  border: 1px solid #ddc8f0;
+  background: #ffffff;
+  color: #7b2fc0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+  background: #f7f1fd;
+  border-color: #c9a7e7;
+}
+
+.filter-chip.active {
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 8px 16px rgba(117, 34, 178, 0.16);
 }
 
 .empty-panel {
@@ -356,6 +518,8 @@ export default {
   flex-direction: column;
   color: #7a708a;
   box-shadow: 0 10px 24px rgba(106, 27, 154, 0.05);
+  text-align: center;
+  padding: 24px;
 }
 
 .empty-icon {
@@ -364,10 +528,20 @@ export default {
   color: #cfbfdc;
 }
 
+.reset-filter-btn {
+  margin-top: 12px;
+  border: none;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
 .accessory-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
+  gap: 22px;
 }
 
 .accessory-col {
@@ -381,7 +555,7 @@ export default {
   overflow: hidden;
   box-shadow: 0 12px 24px rgba(106, 27, 154, 0.06);
   transition: all 0.25s ease;
-  min-height: 455px;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
 }
@@ -393,7 +567,7 @@ export default {
 
 .card-image-wrap {
   position: relative;
-  height: 230px;
+  height: 215px;
   background: #f7f1fd;
   overflow: hidden;
   cursor: pointer;
@@ -408,7 +582,7 @@ export default {
 }
 
 .accessory-card:hover .card-image {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 .card-image-gradient {
@@ -417,7 +591,7 @@ export default {
   background: linear-gradient(
     180deg,
     rgba(20, 10, 28, 0.02) 0%,
-    rgba(20, 10, 28, 0.18) 100%
+    rgba(20, 10, 28, 0.14) 100%
   );
 }
 
@@ -427,18 +601,48 @@ export default {
   right: 12px;
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 6px 11px;
   border-radius: 999px;
   color: #fff;
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   font-weight: 800;
-  box-shadow: 0 8px 16px rgba(106, 27, 154, 0.18);
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.18);
   z-index: 2;
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+.stock-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  z-index: 2;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+.badge-available {
+  background: rgba(22, 163, 74, 0.92);
+  color: #fff;
+}
+
+.badge-low {
+  background: rgba(217, 119, 6, 0.95);
+  color: #fff;
+}
+
+.badge-out,
+.badge-off {
+  background: rgba(185, 28, 28, 0.94);
+  color: #fff;
+}
+
 .card-body-custom {
-  padding: 16px 16px 18px;
+  padding: 10px 14px 14px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -448,15 +652,15 @@ export default {
   color: #2f1b44;
   font-size: 1rem;
   font-weight: 800;
-  line-height: 1.5;
-  margin-bottom: 10px;
-  min-height: 48px;
+  line-height: 1.32;
+  margin-bottom: 4px;
   text-align: center;
   cursor: pointer;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 32px;
 }
 
 .accessory-name:hover {
@@ -465,21 +669,42 @@ export default {
 
 .price-block {
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 
 .old-price {
   color: #9b90ad;
-  font-size: 0.85rem;
+  font-size: 0.81rem;
   text-decoration: line-through;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .accessory-price {
   color: #b42318;
-  font-size: 1.12rem;
+  font-size: 1.08rem;
   font-weight: 900;
-  line-height: 1.3;
+  line-height: 1.2;
+}
+
+.stock-note {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+
+.stock-available {
+  color: #15803d;
+}
+
+.stock-low {
+  color: #b45309;
+}
+
+.stock-out,
+.stock-off {
+  color: #b42318;
 }
 
 .qty-box {
@@ -490,8 +715,8 @@ export default {
   border: 1px solid #eadcf7;
   border-radius: 14px;
   background: #fcf9ff;
-  padding: 10px 12px;
-  margin-bottom: 14px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
 }
 
 .qty-title {
@@ -503,16 +728,16 @@ export default {
 .qty-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .qty-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid #e2d4ef;
   background: #fff;
   color: #6d5d7d;
-  border-radius: 10px;
+  border-radius: 9px;
   font-weight: 800;
   transition: all 0.2s ease;
 }
@@ -523,28 +748,28 @@ export default {
 }
 
 .qty-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .qty-value {
-  min-width: 24px;
+  min-width: 22px;
   text-align: center;
   color: #2f1b44;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.94rem;
 }
 
 .card-actions {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 10px;
+  grid-template-columns: 50px 1fr;
+  gap: 8px;
   margin-top: auto;
 }
 
 .cart-btn,
 .buy-btn {
-  height: 44px;
+  height: 42px;
   border-radius: 12px;
   font-size: 0.92rem;
   font-weight: 800;
@@ -552,7 +777,7 @@ export default {
 }
 
 .cart-btn {
-  border: 1.5px solid #d3b8eb;
+  border: 1.5px solid #d7bdea;
   background: #fff;
   color: #8e3fd1;
   display: flex;
@@ -567,25 +792,49 @@ export default {
 
 .buy-btn {
   border: none;
-  background: linear-gradient(135deg, #8e3fd1, #6a1b9a);
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
   color: #fff;
+  box-shadow: 0 10px 18px rgba(117, 34, 178, 0.16);
 }
 
 .buy-btn:hover:not(:disabled) {
   filter: brightness(0.98);
-  box-shadow: 0 10px 18px rgba(106, 27, 154, 0.2);
 }
 
 .cart-btn:disabled,
 .buy-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.detail-link-btn {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(123, 47, 192, 0.42);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0 0;
+  width: 100%;
+  align-self: center;
+  transition: all 0.22s ease;
+}
+
+.accessory-card:hover .detail-link-btn {
+  color: rgba(123, 47, 192, 0.96);
+}
+
+.detail-link-btn:hover {
+  color: #5f1796;
+  text-decoration: underline;
 }
 
 .sold-out-note {
-  margin-top: 10px;
+  margin-top: 6px;
   color: #b42318;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 700;
   text-align: center;
 }
@@ -620,14 +869,22 @@ export default {
     font-size: 1.6rem;
   }
 
+  .page-subtitle {
+    font-size: 0.92rem;
+  }
+
   .card-image-wrap {
-    height: 210px;
+    height: 205px;
   }
 }
 
 @media (max-width: 575.98px) {
   .accessory-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-bar {
+    justify-content: flex-start;
   }
 }
 </style>

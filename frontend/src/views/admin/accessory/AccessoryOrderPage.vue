@@ -89,18 +89,19 @@
 
       <div class="card border-0 shadow-sm" v-else-if="filteredOrders.length > 0">
         <div class="table-responsive">
-          <table class="table table-hover align-middle text-center mb-0">
+          <table class="table table-hover align-middle text-center mb-0 admin-order-table">
             <thead class="bg-light">
               <tr class="small text-secondary">
-                <th class="py-3">Mã đơn</th>
-                <th class="py-3">Khách hàng</th>
-                <th class="py-3">Điện thoại</th>
-                <th class="py-3">Số SP</th>
-                <th class="py-3">Tổng tiền</th>
-                <th class="py-3">Trạng thái</th>
-                <th class="py-3">Ngày tạo</th>
-                <th class="py-3">Thao tác</th>
-              </tr>
+  <th class="py-3">Mã đơn</th>
+  <th class="py-3">Khách hàng</th>
+  <th class="py-3">Điện thoại</th>
+  <th class="py-3">Số SP</th>
+  <th class="py-3">Thanh toán</th>
+  <th class="py-3">Tổng tiền</th>
+  <th class="py-3">Trạng thái</th>
+  <th class="py-3">Ngày tạo</th>
+  <th class="py-3">Thao tác</th>
+</tr>
             </thead>
 
             <tbody>
@@ -117,19 +118,25 @@
                   {{ order.customerPhone }}
                 </td>
 
-                <td class="font-weight-bold">
-                  {{ getProductCount(order) }}
-                </td>
+<td class="font-weight-bold">
+  {{ getProductCount(order) }}
+</td>
 
-                <td class="text-danger font-weight-bold">
-                  {{ formatCurrency(order.totalAmount) }}
-                </td>
+<td>
+  <span class="payment-badge" :class="getPaymentClass(order.paymentMethod)">
+    {{ getPaymentText(order.paymentMethod) }}
+  </span>
+</td>
 
-                <td>
-                  <span class="badge px-3 py-2" :class="getStatusClass(order.status)">
-                    {{ order.status }}
-                  </span>
-                </td>
+<td class="text-danger font-weight-bold">
+  {{ formatCurrency(order.totalAmount) }}
+</td>
+
+<td>
+  <span class="badge px-3 py-2" :class="getStatusClass(order.status)">
+    {{ order.status }}
+  </span>
+</td>
 
                 <td>
                   {{ formatDateTime(order.createdAt) }}
@@ -245,13 +252,25 @@
 
             <div class="modal-body">
               <div class="row">
-                <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
-                  <p class="mb-1"><strong>Mã đơn:</strong> {{ selectedOrder.maDonPhuKien || getShortOrderCode(selectedOrder.id || selectedOrder._id) }}</p>
-                  <p class="mb-1"><strong>Ngày tạo:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
-                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
-                  <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalAmount) }}</p>
-                </div>
+<div class="col-md-6 mb-3">
+  <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
+  <p class="mb-1"><strong>Mã đơn:</strong> {{ selectedOrder.maDonPhuKien || getShortOrderCode(selectedOrder.id || selectedOrder._id) }}</p>
+  <p class="mb-1"><strong>Ngày tạo:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
+  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
+  <p class="mb-1">
+    <strong>Phương thức thanh toán:</strong>
+    {{ getPaymentText(selectedOrder.paymentMethod) }}
+  </p>
+  <p class="mb-1">
+    <strong>Tạm tính:</strong>
+    {{ formatCurrency(getItemsSubTotal(selectedOrder)) }}
+  </p>
+  <p class="mb-1">
+    <strong>Phí vận chuyển:</strong>
+    {{ formatCurrency(selectedOrder.shippingFee || 0) }}
+  </p>
+  <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalAmount) }}</p>
+</div>
 
                 <div class="col-md-6 mb-3">
                   <h6 class="font-weight-bold text-success">Thông tin nhận hàng</h6>
@@ -433,6 +452,22 @@ export default {
       if (status === "Đã hủy") return "badge-danger";
       return "badge-light border";
     },
+
+    getItemsSubTotal(order) {
+  return Array.isArray(order?.items)
+    ? order.items.reduce((sum, item) => sum + Number(item.subTotal || 0), 0)
+    : 0;
+},
+
+getPaymentText(paymentMethod) {
+  if (paymentMethod === "ZALOPAY") return "ZaloPay";
+  return "Thanh toán khi nhận hàng";
+},
+
+getPaymentClass(paymentMethod) {
+  if (paymentMethod === "ZALOPAY") return "payment-zalopay";
+  return "payment-cod";
+},
   },
 
   watch: {
@@ -562,5 +597,30 @@ export default {
   .summary-row {
     grid-template-columns: 1fr;
   }
+}
+
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.payment-cod {
+  background: #e7f8ee;
+  color: #15803d;
+}
+
+.payment-zalopay {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.admin-order-table {
+  min-width: 1100px;
 }
 </style>

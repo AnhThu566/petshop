@@ -75,18 +75,58 @@
             </div>
           </div>
 
+          <div class="overview-cards">
+            <div class="overview-card overview-total">
+              <div class="overview-icon">
+                <i class="fas fa-shopping-bag"></i>
+              </div>
+              <div class="overview-info">
+                <div class="overview-label">Tổng đơn hàng</div>
+                <div class="overview-value">{{ totalOrders }}</div>
+              </div>
+            </div>
+
+            <div class="overview-card overview-completed">
+              <div class="overview-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="overview-info">
+                <div class="overview-label">Hoàn thành</div>
+                <div class="overview-value">{{ completedOrders }}</div>
+              </div>
+            </div>
+
+            <div class="overview-card overview-processing">
+              <div class="overview-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="overview-info">
+                <div class="overview-label">Đang xử lý</div>
+                <div class="overview-value">{{ processingOrders }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="toolbar-box">
             <div class="search-box">
-              <i class="fas fa-search"></i>
+              <span class="search-icon-wrap">
+                <i class="fas fa-search"></i>
+              </span>
+
               <input
                 type="text"
                 v-model.trim="searchText"
-                placeholder="Tìm theo mã đơn hoặc tên người nhận"
+                placeholder="Tìm đơn hàng"
               />
             </div>
 
-            <button class="refresh-btn" @click="fetchOrders" :disabled="loading">
-              <i class="fas fa-sync-alt mr-1"></i> Làm mới
+            <button
+              class="refresh-btn"
+              @click="fetchOrders"
+              :disabled="loading"
+              title="Làm mới"
+            >
+              <i class="fas" :class="loading ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
             </button>
           </div>
 
@@ -171,8 +211,9 @@
                   <tr>
                     <th>Mã đơn</th>
                     <th>Ngày đặt</th>
-                    <th>Người nhận</th>
-                    <th>Số sản phẩm</th>
+                    <th>Sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Thanh toán</th>
                     <th>Tổng tiền</th>
                     <th>Trạng thái</th>
                     <th>Thao tác</th>
@@ -185,14 +226,40 @@
                       {{ order.maDonPhuKien || getShortOrderCode(getOrderId(order)) }}
                     </td>
 
-                    <td>{{ formatDateTime(order.createdAt) }}</td>
+                    <td class="td-date">
+                      {{ formatDateTime(order.createdAt) }}
+                    </td>
 
                     <td>
-                      <div class="receiver-name">{{ order.customerName }}</div>
-                      <div class="receiver-phone">{{ order.customerPhone }}</div>
+                      <div class="order-product-preview">
+                        <img
+                          :src="getOrderPreviewImage(order)"
+                          alt="product"
+                          class="order-preview-image"
+                        />
+
+                        <div class="order-product-text">
+                          <div class="order-product-main">
+                            {{ getOrderPreviewName(order) }}
+                          </div>
+
+                          <div
+                            v-if="getRemainingProductCount(order) > 0"
+                            class="order-product-more"
+                          >
+                            + {{ getRemainingProductCount(order) }} sản phẩm khác
+                          </div>
+                        </div>
+                      </div>
                     </td>
 
                     <td>{{ getProductCount(order) }}</td>
+
+                    <td>
+                      <span class="payment-badge" :class="getPaymentClass(order.paymentMethod)">
+                        {{ getPaymentText(order.paymentMethod) }}
+                      </span>
+                    </td>
 
                     <td class="money-total">
                       {{ formatCurrency(order.totalAmount) }}
@@ -244,11 +311,11 @@
         tabindex="-1"
         style="background: rgba(0, 0, 0, 0.45);"
       >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content border-0 shadow">
             <div class="modal-header modal-head-custom">
               <h5 class="modal-title mb-0">
-                <i class="fas fa-file-invoice mr-2"></i>Chi tiết đơn phụ kiện
+                <i class="fas fa-file-invoice mr-2"></i> Chi tiết đơn phụ kiện
               </h5>
               <button type="button" class="close text-white" @click="closeDetail">
                 <span>&times;</span>
@@ -258,27 +325,46 @@
             <div class="modal-body">
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
-                  <p class="mb-1">
-                    <strong>Mã đơn:</strong>
-                    {{ selectedOrder.maDonPhuKien || getShortOrderCode(getOrderId(selectedOrder)) }}
-                  </p>
-                  <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
-                  <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
-                  <p class="mb-1"><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalAmount) }}</p>
+                  <div class="detail-info-box detail-info-order">
+                    <h6 class="detail-info-title">Thông tin đơn hàng</h6>
+                    <p class="mb-1">
+                      <strong>Mã đơn:</strong>
+                      {{ selectedOrder.maDonPhuKien || getShortOrderCode(getOrderId(selectedOrder)) }}
+                    </p>
+                    <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
+                    <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
+                    <p class="mb-1">
+                      <strong>Phương thức thanh toán:</strong>
+                      {{ getPaymentText(selectedOrder.paymentMethod) }}
+                    </p>
+                    <p class="mb-1">
+                      <strong>Tạm tính:</strong>
+                      {{ formatCurrency(getItemsSubTotal(selectedOrder)) }}
+                    </p>
+                    <p class="mb-1">
+                      <strong>Phí vận chuyển:</strong>
+                      {{ formatCurrency(selectedOrder.shippingFee || 0) }}
+                    </p>
+                    <p class="mb-1 detail-total-line">
+                      <strong>Tổng tiền:</strong>
+                      <span>{{ formatCurrency(selectedOrder.totalAmount) }}</span>
+                    </p>
+                  </div>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-success">Thông tin nhận hàng</h6>
-                  <p class="mb-1"><strong>Người nhận:</strong> {{ selectedOrder.customerName }}</p>
-                  <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
-                  <p class="mb-1"><strong>Địa chỉ:</strong> {{ selectedOrder.shippingAddress }}</p>
-                  <p class="mb-1"><strong>Ghi chú:</strong> {{ selectedOrder.note || "Không có" }}</p>
+                  <div class="detail-info-box detail-info-shipping">
+                    <h6 class="detail-info-title">Thông tin nhận hàng</h6>
+                    <p class="mb-1"><strong>Người nhận:</strong> {{ selectedOrder.customerName }}</p>
+                    <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
+                    <p class="mb-1"><strong>Địa chỉ:</strong> {{ selectedOrder.shippingAddress }}</p>
+                    <p class="mb-1"><strong>Ghi chú:</strong> {{ selectedOrder.note || "Không có" }}</p>
+                  </div>
                 </div>
 
                 <div class="col-12">
                   <hr />
-                  <h6 class="font-weight-bold text-dark">Sản phẩm trong đơn</h6>
+                  <h6 class="font-weight-bold text-dark mb-3">Sản phẩm trong đơn</h6>
 
                   <div
                     v-for="item in selectedOrder.items"
@@ -290,19 +376,21 @@
                       alt="accessory"
                       class="product-line-image"
                     />
+
                     <div class="product-line-info">
                       <div class="product-line-name">
                         {{ item.accessoryName || item.accessoryId?.name || "Phụ kiện" }}
                       </div>
 
                       <div class="product-line-meta">
-                        Số lượng: {{ item.quantity }}
+                        Số lượng: <strong>{{ item.quantity }}</strong>
                       </div>
 
                       <div class="product-price-wrap">
                         <div class="product-line-meta">
-                          Đơn giá: {{ formatCurrency(item.price) }}
+                          Đơn giá: <strong>{{ formatCurrency(item.price) }}</strong>
                         </div>
+
                         <div
                           v-if="isPromotionPrice(item)"
                           class="product-line-sale-note"
@@ -320,13 +408,14 @@
                       </div>
                     </div>
 
-                    <div class="product-line-right">
+                    <div class="product-line-total-wrap">
                       <div
                         v-if="isPromotionPrice(item)"
                         class="product-line-old-price"
                       >
                         {{ formatCurrency(item.accessoryId?.price) }}
                       </div>
+                      <div class="product-line-total-label">Thành tiền</div>
                       <div class="product-line-total">
                         {{ formatCurrency(item.subTotal) }}
                       </div>
@@ -382,15 +471,30 @@ export default {
           this.getShortOrderCode(this.getOrderId(order)) ||
           ""
         ).toLowerCase();
-        const customerName = (order.customerName || "").toLowerCase();
 
+        const previewName = this.getOrderPreviewName(order).toLowerCase();
         const matchSearch =
-          orderCode.includes(keyword) || customerName.includes(keyword);
+          orderCode.includes(keyword) || previewName.includes(keyword);
+
         const matchStatus =
           this.statusFilter === "Tất cả" || order.status === this.statusFilter;
 
         return matchSearch && matchStatus;
       });
+    },
+
+    totalOrders() {
+      return this.orders.length;
+    },
+
+    completedOrders() {
+      return this.orders.filter((order) => order.status === "Hoàn thành").length;
+    },
+
+    processingOrders() {
+      return this.orders.filter((order) =>
+        ["Chờ xác nhận", "Đã xác nhận", "Đang giao"].includes(order.status)
+      ).length;
     },
   },
 
@@ -418,6 +522,48 @@ export default {
       return Array.isArray(order.items)
         ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
         : 0;
+    },
+
+    getOrderPreviewName(order) {
+      if (!Array.isArray(order?.items) || order.items.length === 0) {
+        return "Không có sản phẩm";
+      }
+
+      const firstItem = order.items[0];
+      return firstItem?.accessoryName || firstItem?.accessoryId?.name || "Phụ kiện";
+    },
+
+    getRemainingProductCount(order) {
+      if (!Array.isArray(order?.items) || order.items.length <= 1) {
+        return 0;
+      }
+
+      return order.items.length - 1;
+    },
+
+    getOrderPreviewImage(order) {
+      if (!Array.isArray(order?.items) || order.items.length === 0) {
+        return "https://via.placeholder.com/80x80?text=Item";
+      }
+
+      const firstItem = order.items[0];
+      return this.getAccessoryImage(firstItem?.accessoryId);
+    },
+
+    getItemsSubTotal(order) {
+      return Array.isArray(order?.items)
+        ? order.items.reduce((sum, item) => sum + Number(item.subTotal || 0), 0)
+        : 0;
+    },
+
+    getPaymentText(paymentMethod) {
+      if (paymentMethod === "ZALOPAY") return "ZaloPay";
+      return "Thanh toán khi nhận hàng";
+    },
+
+    getPaymentClass(paymentMethod) {
+      if (paymentMethod === "ZALOPAY") return "payment-zalopay";
+      return "payment-cod";
     },
 
     isPromotionPrice(item) {
@@ -562,10 +708,17 @@ export default {
     },
 
     getAccessoryImage(item) {
-      if (!item?.image) return "";
-      if (item.image.startsWith("http://") || item.image.startsWith("https://")) {
+      if (!item?.image) {
+        return "https://via.placeholder.com/80x80?text=Item";
+      }
+
+      if (
+        String(item.image).startsWith("http://") ||
+        String(item.image).startsWith("https://")
+      ) {
         return item.image;
       }
+
       return this.baseImageUrl + item.image;
     },
 
@@ -609,14 +762,14 @@ export default {
 }
 
 .order-page-container {
-  max-width: 1420px;
+  max-width: 1480px;
   padding-left: 24px;
   padding-right: 24px;
 }
 
 .order-layout {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -627,12 +780,12 @@ export default {
 .table-card {
   background: #ffffff;
   border: 1px solid #eee2f7;
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
 }
 
 .account-card {
-  padding: 20px;
+  padding: 22px;
   margin-bottom: 16px;
 }
 
@@ -651,20 +804,20 @@ export default {
   margin: 0;
   font-weight: 800;
   color: #2f1b44;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   line-height: 1.35;
 }
 
 .account-email {
   color: #7b7287;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   margin-top: 4px;
   word-break: break-word;
 }
 
 .account-avatar {
-  width: 52px;
-  height: 52px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6a1b9a, #4a148c);
   color: #fff;
@@ -672,15 +825,15 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
 .account-note {
-  margin-top: 14px;
+  margin-top: 16px;
   color: #746a80;
-  font-size: 0.91rem;
-  line-height: 1.7;
+  font-size: 0.92rem;
+  line-height: 1.75;
 }
 
 .sidebar-menu {
@@ -741,7 +894,7 @@ export default {
 }
 
 .order-content {
-  padding: 22px;
+  padding: 20px;
   min-width: 0;
 }
 
@@ -750,102 +903,196 @@ export default {
 }
 
 .content-title {
-  margin: 0 0 4px;
-  font-size: 1.7rem;
+  margin: 0 0 3px;
+  font-size: 1.75rem;
   font-weight: 900;
   color: #2f1b44;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .content-subtitle {
   color: #7b7287;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+}
+
+.overview-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-height: 78px;
+}
+
+.overview-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.overview-info {
+  min-width: 0;
+}
+
+.overview-label {
+  font-size: 0.82rem;
+  color: #675f73;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.overview-value {
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #2f1b44;
+}
+
+.overview-total {
+  background: linear-gradient(135deg, #eaf2ff, #ddeaff);
+}
+
+.overview-total .overview-icon {
+  background: linear-gradient(135deg, #4f86f7, #2f66d6);
+}
+
+.overview-completed {
+  background: linear-gradient(135deg, #ebfbf0, #dcf6e4);
+}
+
+.overview-completed .overview-icon {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.overview-processing {
+  background: linear-gradient(135deg, #fff4e5, #fff0d6);
+}
+
+.overview-processing .overview-icon {
+  background: linear-gradient(135deg, #fb923c, #f97316);
 }
 
 .toolbar-box {
   display: grid;
-  grid-template-columns: 1fr 120px;
-  gap: 12px;
+  grid-template-columns: minmax(280px, 760px) 42px;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .search-box {
-  position: relative;
-}
-
-.search-box i {
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #8b7fa0;
-  font-size: 0.95rem;
-  pointer-events: none;
-}
-
-.search-box input {
-  width: 100%;
-  height: 46px;
+  height: 42px;
+  display: flex;
+  align-items: center;
   border: 1px solid #dfd3ec;
-  border-radius: 14px;
-  padding: 0 16px 0 40px;
-  outline: none;
-  font-size: 0.94rem;
+  border-radius: 12px;
   background: #fff;
-  color: #3b3150;
+  overflow: hidden;
   transition: all 0.2s ease;
 }
 
-.search-box input:focus {
+.search-box:focus-within {
   border-color: #7b3fc8;
   box-shadow: 0 0 0 3px rgba(123, 63, 200, 0.08);
 }
 
-.refresh-btn {
+.search-icon-wrap {
+  width: 40px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b7fa0;
+  flex-shrink: 0;
+  font-size: 0.88rem;
+}
+
+.search-box input {
+  flex: 1;
+  width: 100%;
+  height: 42px;
   border: none;
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
-  color: #fff;
-  height: 46px;
+  outline: none;
+  padding: 0 12px 0 0;
+  font-size: 0.85rem;
+  background: transparent;
+  color: #3b3150;
+}
+
+.refresh-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
   border-radius: 12px;
-  font-weight: 800;
+  background: linear-gradient(135deg, #7b2fc0, #5f1796);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   font-size: 0.92rem;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  filter: brightness(0.98);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .status-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  border-bottom: 1px solid #ece3f4;
-  margin-bottom: 18px;
-  padding-bottom: 2px;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .status-tab {
-  border: none;
-  background: none;
-  padding: 0 0 10px;
+  border: 1px solid #e6d9f2;
+  background: #fff;
+  padding: 7px 12px;
+  border-radius: 999px;
   font-weight: 700;
-  color: #7f748f;
-  border-bottom: 2px solid transparent;
-  font-size: 0.94rem;
+  color: #766b86;
+  font-size: 0.84rem;
   transition: all 0.2s ease;
 }
 
 .status-tab:hover {
   color: #6a1b9a;
+  background: #f8f2fd;
+  border-color: #d8c0ef;
 }
 
 .status-tab.active {
-  color: #6a1b9a;
-  border-bottom-color: #6a1b9a;
+  color: #fff;
+  background: linear-gradient(135deg, #8f46d6, #6f23b3);
+  border-color: transparent;
 }
 
 .empty-panel {
   background: #fff;
   border: 1px solid #eee2f7;
-  border-radius: 16px;
-  min-height: 260px;
+  border-radius: 18px;
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -870,25 +1117,25 @@ export default {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 1180px;
 }
 
 .order-table thead th {
   background: #f8f3fc;
   color: #514564;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  padding: 14px 12px;
+  padding: 13px 10px;
   border-bottom: 1px solid #ece3f4;
   text-align: left;
   white-space: nowrap;
 }
 
 .order-table tbody td {
-  padding: 15px 12px;
+  padding: 13px 10px;
   border-bottom: 1px solid #f2ebf8;
   vertical-align: middle;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: #3d3450;
 }
 
@@ -898,36 +1145,77 @@ export default {
 
 .td-code {
   font-weight: 900;
-  color: #6b46d9;
+  color: #3c2f62;
   white-space: nowrap;
 }
 
-.receiver-name {
-  font-weight: 700;
-  color: #2f1b44;
+.td-date {
+  min-width: 150px;
+  color: #5a5266;
 }
 
-.receiver-phone {
+.order-product-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.order-preview-image {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #eadcf6;
+  background: #faf7fd;
+}
+
+.order-product-text {
+  min-width: 0;
+}
+
+.order-product-main {
+  font-weight: 700;
+  color: #2f1b44;
+  line-height: 1.3;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.order-product-more {
   color: #8b7fa0;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   margin-top: 3px;
 }
 
 .money-total {
-  color: #b42318;
+  color: #2f1b44;
+  font-weight: 900;
+  white-space: nowrap;
+  font-size: 1rem;
+}
+
+.order-badge,
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.76rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.order-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  white-space: nowrap;
+.payment-cod {
+  background: #e7f8ee;
+  color: #15803d;
+}
+
+.payment-zalopay {
+  background: #e8f1ff;
+  color: #1d4ed8;
 }
 
 .status-waiting {
@@ -976,22 +1264,62 @@ export default {
   color: #fff;
 }
 
+.detail-info-box {
+  border-radius: 16px;
+  padding: 16px 18px;
+  min-height: 100%;
+}
+
+.detail-info-title {
+  font-weight: 900;
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.detail-info-order {
+  background: #f6f1fd;
+  border: 1px solid #eadcf7;
+}
+
+.detail-info-order .detail-info-title {
+  color: #6a1b9a;
+}
+
+.detail-info-shipping {
+  background: #eefbf2;
+  border: 1px solid #d8f2e0;
+}
+
+.detail-info-shipping .detail-info-title {
+  color: #15803d;
+}
+
+.detail-total-line {
+  margin-top: 10px;
+  font-size: 1rem;
+}
+
+.detail-total-line span {
+  color: #b42318;
+  font-weight: 900;
+}
+
 .product-line {
   display: flex;
   align-items: center;
   border: 1px solid #eee2f7;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
   background: #faf7fd;
-  gap: 12px;
+  gap: 14px;
 }
 
 .product-line-image {
-  width: 60px;
-  height: 60px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
   flex-shrink: 0;
 }
 
@@ -1003,12 +1331,13 @@ export default {
 .product-line-name {
   font-weight: 800;
   color: #2f1b44;
+  font-size: 1rem;
 }
 
 .product-line-meta {
-  font-size: 0.85rem;
+  font-size: 0.87rem;
   color: #7b7287;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .product-price-wrap {
@@ -1028,7 +1357,7 @@ export default {
   margin-top: 4px;
 }
 
-.product-line-right {
+.product-line-total-wrap {
   text-align: right;
   white-space: nowrap;
 }
@@ -1040,15 +1369,26 @@ export default {
   margin-bottom: 4px;
 }
 
+.product-line-total-label {
+  font-size: 0.78rem;
+  color: #8b7fa0;
+  margin-bottom: 4px;
+}
+
 .product-line-total {
-  font-weight: 800;
+  font-weight: 900;
   color: #2f1b44;
   white-space: nowrap;
+  font-size: 1rem;
 }
 
 @media (max-width: 1199.98px) {
   .content-title {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
+  }
+
+  .overview-cards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1058,15 +1398,15 @@ export default {
   }
 
   .toolbar-box {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 42px;
   }
 
   .refresh-btn {
-    width: 100%;
+    width: 42px;
   }
 
   .content-title {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 
   .order-page-container {
@@ -1080,8 +1420,12 @@ export default {
     align-items: flex-start;
   }
 
-  .product-line-right {
-    min-width: 90px;
+  .product-line-total-wrap {
+    min-width: 95px;
+  }
+
+  .order-product-preview {
+    min-width: 220px;
   }
 }
 </style>

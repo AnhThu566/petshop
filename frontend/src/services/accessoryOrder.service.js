@@ -9,12 +9,12 @@ class AccessoryOrderService {
     return (await this.api.post("/", data)).data;
   }
 
-  async getAll() {
-    return (await this.api.get("/")).data;
+  async getAll(params = {}) {
+    return (await this.api.get("/", { params })).data;
   }
 
-  async getMyOrders() {
-    return (await this.api.get("/my-orders")).data;
+  async getMyOrders(params = {}) {
+    return (await this.api.get("/my-orders", { params })).data;
   }
 
   async updateStatus(id, status) {

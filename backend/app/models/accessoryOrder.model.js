@@ -26,17 +26,30 @@ const accessoryOrderSchema = new mongoose.Schema(
       trim: true,
     },
 
-    shippingAddress: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+shippingAddress: {
+  type: String,
+  required: true,
+  trim: true,
+},
 
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+paymentMethod: {
+  type: String,
+  enum: ["COD", "ZALOPAY"],
+  default: "COD",
+  required: true,
+},
+
+shippingFee: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
+totalAmount: {
+  type: Number,
+  required: true,
+  min: 0,
+},
 
     status: {
       type: String,
