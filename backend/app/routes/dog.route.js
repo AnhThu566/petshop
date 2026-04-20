@@ -10,7 +10,7 @@ const {
 const router = express.Router();
 
 /**
- * Gắn cờ public riêng để controller nhận diện chắc chắn
+ * Đánh dấu request public để controller biết chỉ trả chó đã duyệt + đang public
  */
 const markPublicRequest = (req, res, next) => {
   req.isPublicRequest = true;

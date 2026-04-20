@@ -1,14 +1,19 @@
 <template>
-  <div class="farm-dogs-page bg-light py-4" style="min-height: 100vh;">
-    <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 flex-wrap">
-        <h4 class="font-weight-bold text-dark mb-2">
-          <i class="fas fa-dog text-success mr-2"></i>
-          HỒ SƠ CHÓ ĐÃ CUNG CẤP
-        </h4>
-
+  <div class="farm-dogs-page">
+    <div class="page-shell">
+      <div class="page-header">
         <div>
-          <button class="btn btn-outline-success btn-sm mr-2" @click="loadPageData" :disabled="loading">
+          <h3 class="page-title">
+            <i class="fas fa-dog text-success mr-2"></i>
+            Hồ sơ chó đã cung cấp
+          </h3>
+          <p class="page-subtitle mb-0">
+            Theo dõi tình trạng hồ sơ, phản hồi duyệt và cập nhật thông tin khi cần.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-outline-success btn-sm" @click="loadPageData" :disabled="loading">
             <i class="fas fa-sync-alt mr-1"></i> Làm mới
           </button>
           <router-link to="/farm/add-dog" class="btn btn-success btn-sm">
@@ -17,101 +22,88 @@
         </div>
       </div>
 
-      <div class="card border-0 shadow-sm mb-4 dashboard-filter-card">
-        <div class="card-body py-3">
-          <div class="row align-items-center">
-            <div class="col-md-4 mb-2 mb-md-0">
-              <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                  <span class="input-group-text bg-white border-right-0">
-                    <i class="fas fa-search text-success"></i>
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  class="form-control border-left-0"
-                  placeholder="Tìm tên chó hoặc mã chó..."
-                  v-model.trim="searchText"
-                />
+      <div class="filter-card">
+        <div class="row align-items-center">
+          <div class="col-lg-4 mb-2 mb-lg-0">
+            <div class="input-group input-group-sm">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-white border-right-0">
+                  <i class="fas fa-search text-success"></i>
+                </span>
               </div>
+              <input
+                type="text"
+                class="form-control border-left-0"
+                placeholder="Tìm tên chó hoặc mã tại trại..."
+                v-model.trim="searchText"
+              />
             </div>
+          </div>
 
-            <div class="col-md-4 mb-2 mb-md-0">
-              <select class="form-control form-control-sm" v-model="approvalFilter">
-                <option value="Tất cả">Tất cả duyệt hồ sơ chó</option>
-                <option value="Chờ duyệt">Chờ duyệt</option>
-                <option value="Cần bổ sung">Cần bổ sung</option>
-                <option value="Đã duyệt">Đã duyệt</option>
-                <option value="Từ chối">Từ chối</option>
-              </select>
-            </div>
+          <div class="col-lg-4 mb-2 mb-lg-0">
+            <select class="form-control form-control-sm" v-model="approvalFilter">
+              <option value="Tất cả">Tất cả duyệt hồ sơ chó</option>
+              <option value="Chờ duyệt">Chờ duyệt</option>
+              <option value="Cần bổ sung">Cần bổ sung</option>
+              <option value="Đã duyệt">Đã duyệt</option>
+              <option value="Từ chối">Từ chối</option>
+            </select>
+          </div>
 
-            <div class="col-md-4">
-              <select class="form-control form-control-sm" v-model="saleFilter">
-                <option value="Tất cả">Tất cả trạng thái bán</option>
-                <option value="Chưa mở bán">Chưa mở bán</option>
-                <option value="Sẵn sàng bán">Sẵn sàng bán</option>
-                <option value="Chờ thanh toán">Chờ thanh toán</option>
-                <option value="Đã đặt cọc">Đã đặt cọc</option>
-                <option value="Đang giao">Đang giao</option>
-                <option value="Đã bán">Đã bán</option>
-                <option value="Ngừng bán">Ngừng bán</option>
-              </select>
-            </div>
+          <div class="col-lg-4">
+            <select class="form-control form-control-sm" v-model="saleFilter">
+              <option value="Tất cả">Tất cả trạng thái bán</option>
+              <option value="Chưa mở bán">Chưa mở bán</option>
+              <option value="Sẵn sàng bán">Sẵn sàng bán</option>
+              <option value="Chờ thanh toán">Chờ thanh toán</option>
+              <option value="Đã đặt cọc">Đã đặt cọc</option>
+              <option value="Đang giao">Đang giao</option>
+              <option value="Đã bán">Đã bán</option>
+              <option value="Ngừng bán">Ngừng bán</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-          <div class="card border-0 shadow-sm text-center py-3 stat-card">
-            <div class="small text-muted">Chờ duyệt</div>
-            <h4 class="font-weight-bold text-warning mb-0">{{ stats.pending }}</h4>
-          </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Chờ duyệt</div>
+          <div class="stat-value text-warning">{{ stats.pending }}</div>
         </div>
-
-        <div class="col-md-3 mb-3">
-          <div class="card border-0 shadow-sm text-center py-3 stat-card">
-            <div class="small text-muted">Cần bổ sung</div>
-            <h4 class="font-weight-bold text-danger mb-0">{{ stats.needFix }}</h4>
-          </div>
+        <div class="stat-card">
+          <div class="stat-label">Cần bổ sung</div>
+          <div class="stat-value text-danger">{{ stats.needFix }}</div>
         </div>
-
-        <div class="col-md-3 mb-3">
-          <div class="card border-0 shadow-sm text-center py-3 stat-card">
-            <div class="small text-muted">Đã duyệt</div>
-            <h4 class="font-weight-bold text-success mb-0">{{ stats.approved }}</h4>
-          </div>
+        <div class="stat-card">
+          <div class="stat-label">Đã duyệt</div>
+          <div class="stat-value text-success">{{ stats.approved }}</div>
         </div>
-
-        <div class="col-md-3 mb-3">
-          <div class="card border-0 shadow-sm text-center py-3 stat-card">
-            <div class="small text-muted">Đã bán</div>
-            <h4 class="font-weight-bold text-dark mb-0">{{ stats.sold }}</h4>
-          </div>
+        <div class="stat-card">
+          <div class="stat-label">Đã bán</div>
+          <div class="stat-value text-dark">{{ stats.sold }}</div>
         </div>
       </div>
 
-      <div v-if="loading" class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
+      <div v-if="loading" class="content-card">
+        <div class="empty-box">
           <i class="fas fa-spinner fa-spin fa-3x mb-3 d-block"></i>
           Đang tải hồ sơ chó...
         </div>
       </div>
 
-      <div v-else-if="filteredDogs.length > 0" class="card border-0 shadow-sm">
+      <div v-else-if="filteredDogs.length > 0" class="content-card">
         <div class="table-responsive">
           <table class="table table-hover align-middle text-center mb-0 dashboard-table">
-            <thead class="bg-light">
-              <tr class="small text-secondary">
-                <th class="py-3 action-col">Thao tác</th>
-                <th class="py-3 image-col">Ảnh</th>
-                <th class="py-3 code-col">Mã chó</th>
-                <th class="py-3 name-col">Tên</th>
-                <th class="py-3 breed-col">Giống</th>
-                <th class="py-3 price-col">Giá đề xuất</th>
-                <th class="py-3 approval-col">Duyệt hồ sơ chó</th>
-                <th class="py-3 sale-col">Trạng thái bán</th>
+            <thead>
+              <tr>
+                <th class="action-col">Thao tác</th>
+                <th class="image-col">Ảnh</th>
+                <th class="code-col">Mã tại trại</th>
+                <th class="name-col">Tên</th>
+                <th class="breed-col">Giống</th>
+                <th class="price-col">Giá đề xuất</th>
+                <th class="approval-col">Duyệt hồ sơ</th>
+                <th class="sale-col">Trạng thái bán</th>
               </tr>
             </thead>
 
@@ -147,7 +139,7 @@
                 </td>
 
                 <td class="font-weight-bold text-primary code-col">
-                  {{ dog.maCho || "---" }}
+                  {{ dog.farmDogCode || "---" }}
                 </td>
 
                 <td class="font-weight-bold text-dark name-col">
@@ -159,7 +151,7 @@
                 </td>
 
                 <td class="text-danger font-weight-bold price-col">
-                  {{ formatCurrency(dog.proposedPrice || dog.price) }}
+                  {{ formatCurrency(dog.proposedPrice) }}
                 </td>
 
                 <td class="approval-col">
@@ -186,8 +178,8 @@
         </div>
       </div>
 
-      <div v-else class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
+      <div v-else class="content-card">
+        <div class="empty-box">
           <i class="fas fa-dog fa-3x mb-3 d-block"></i>
           Không có hồ sơ chó nào phù hợp.
         </div>
@@ -210,36 +202,31 @@
               </button>
             </div>
 
-            <div class="modal-body p-4">
-              <div class="row align-items-start">
-                <div class="col-lg-4 mb-4">
+            <div class="modal-body p-3 p-md-4">
+              <div class="detail-layout">
+                <div class="detail-left">
                   <img
                     :src="getDogImage(selectedDog)"
-                    class="img-fluid rounded shadow-sm detail-image"
+                    class="detail-image"
                     alt="dog"
                   />
                 </div>
 
-                <div class="col-lg-8">
+                <div class="detail-right">
                   <div class="detail-grid compact-grid">
+                    <div class="detail-item">
+                      <label>Mã tại trại</label>
+                      <div>{{ selectedDog.farmDogCode || "---" }}</div>
+                    </div>
+
                     <div class="detail-item">
                       <label>Tên chó</label>
                       <div>{{ selectedDog.name || "---" }}</div>
                     </div>
 
                     <div class="detail-item">
-                      <label>Mã chó</label>
-                      <div>{{ selectedDog.maCho || "---" }}</div>
-                    </div>
-
-                    <div class="detail-item">
                       <label>Giống</label>
                       <div>{{ selectedDog.breedId?.name || "---" }}</div>
-                    </div>
-
-                    <div class="detail-item">
-                      <label>Giá đề xuất của trại</label>
-                      <div>{{ formatCurrency(selectedDog.proposedPrice || selectedDog.price) }}</div>
                     </div>
 
                     <div class="detail-item">
@@ -253,12 +240,47 @@
                     </div>
 
                     <div class="detail-item">
+                      <label>Màu lông</label>
+                      <div>{{ selectedDog.coatColor || "---" }}</div>
+                    </div>
+
+                    <div class="detail-item">
                       <label>Cân nặng</label>
                       <div>{{ selectedDog.weight ? selectedDog.weight + " kg" : "---" }}</div>
                     </div>
 
                     <div class="detail-item">
-                      <label>Ghi chú admin</label>
+                      <label>Nơi sinh</label>
+                      <div>{{ selectedDog.birthPlace || "---" }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Tên chó bố</label>
+                      <div>{{ selectedDog.fatherName || "---" }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Tên chó mẹ</label>
+                      <div>{{ selectedDog.motherName || "---" }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Tình trạng sức khỏe</label>
+                      <div>{{ selectedDog.healthStatus || "---" }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Ngày tẩy giun</label>
+                      <div>{{ formatDateOnly(selectedDog.lastDeworming) }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Giá đề xuất</label>
+                      <div>{{ formatCurrency(selectedDog.proposedPrice) }}</div>
+                    </div>
+
+                    <div class="detail-item">
+                      <label>Phản hồi admin</label>
                       <div>
                         {{
                           ["Cần bổ sung", "Từ chối"].includes(selectedDog.approvalStatus)
@@ -275,95 +297,33 @@
                   </div>
 
                   <div class="detail-block mt-3">
-                    <label>Ghi chú nguồn gốc</label>
-                    <div class="detail-text">{{ selectedDog.sourceNotes || "---" }}</div>
+                    <label>Vaccine đã tiêm</label>
+                    <ul v-if="selectedDog.vaccines?.length" class="pl-3 mb-0">
+                      <li
+                        v-for="(vaccine, index) in selectedDog.vaccines"
+                        :key="`dog-vaccine-${index}`"
+                        class="mb-1"
+                      >
+                        {{ vaccine.vaccineName || getVaccineName(vaccine.vaccineId) || "---" }}
+                        - {{ formatDateOnly(vaccine.dateInjected) }}
+                      </li>
+                    </ul>
+                    <div v-else class="detail-text">Chưa có vaccine nào.</div>
                   </div>
-
-                  <div class="detail-block mt-3">
-                    <label>Ghi chú sức khỏe</label>
-                    <div class="detail-text">{{ selectedDog.healthNote || "---" }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="health-section mt-4">
-                <h6 class="font-weight-bold text-success mb-3">Tóm tắt hồ sơ sức khỏe</h6>
-
-                <div class="detail-grid compact-grid">
-                  <div class="detail-item">
-                    <label>Người kiểm tra</label>
-                    <div>{{ selectedDog.healthRecord?.checkedBy || "---" }}</div>
-                  </div>
-
-                  <div class="detail-item">
-                    <label>Ngày kiểm tra</label>
-                    <div>{{ formatDateTime(selectedDog.healthRecord?.checkedAt) }}</div>
-                  </div>
-
-                  <div class="detail-item">
-                    <label>Tình trạng tổng quát</label>
-                    <div>{{ selectedDog.healthRecord?.generalCondition || "---" }}</div>
-                  </div>
-
-                  <div class="detail-item">
-                    <label>Ngày tẩy giun gần nhất</label>
-                    <div>{{ formatDateOnly(selectedDog.healthRecord?.lastDewormingDate || selectedDog.lastDeworming) }}</div>
-                  </div>
-                </div>
-
-                <div
-                  v-if="selectedDog.healthRecord?.reviewNote"
-                  class="detail-block mt-3"
-                >
-                  <label>Phản hồi admin hồ sơ sức khỏe</label>
-                  <div class="detail-text">{{ selectedDog.healthRecord.reviewNote }}</div>
-                </div>
-
-                <div
-                  v-if="selectedDog.healthRecord?.medicalNotes"
-                  class="detail-block mt-3"
-                >
-                  <label>Ghi chú y tế</label>
-                  <div class="detail-text">{{ selectedDog.healthRecord.medicalNotes }}</div>
-                </div>
-
-                <div
-                  v-if="selectedDog.healthRecord?.vaccines?.length"
-                  class="detail-block mt-3"
-                >
-                  <label>Danh sách vaccine</label>
-                  <ul class="pl-3 mb-0">
-                    <li
-                      v-for="(vaccine, index) in selectedDog.healthRecord.vaccines"
-                      :key="`${index}-${vaccine.vaccineName}`"
-                      class="mb-1"
-                    >
-                      {{ vaccine.vaccineName || "---" }}
-                      <span v-if="vaccine.vaccineCode"> ({{ vaccine.vaccineCode }})</span>
-                      - {{ formatDateOnly(vaccine.dateInjected) }}
-                      <span v-if="vaccine.nextDueDate">
-                        - nhắc lại: {{ formatDateOnly(vaccine.nextDueDate) }}
-                      </span>
-                      <span v-if="vaccine.note"> - ghi chú: {{ vaccine.note }}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div v-else class="detail-block mt-3">
-                  <label>Danh sách vaccine</label>
-                  <div class="detail-text">Chưa có vaccine nào được cập nhật.</div>
                 </div>
               </div>
             </div>
 
             <div class="modal-footer farm-modal-footer">
-              <button class="btn btn-outline-secondary px-4" @click="closeDetailModal">Đóng</button>
+              <button class="btn btn-outline-secondary px-4 btn-sm" @click="closeDetailModal">
+                Đóng
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- POPUP CHỈNH SỬA HỒ SƠ -->
+      <!-- POPUP CHỈNH SỬA -->
       <div
         v-if="manageDog"
         class="modal fade show d-block farm-modal-backdrop"
@@ -380,54 +340,33 @@
               </button>
             </div>
 
-            <div class="modal-body p-4">
-              <div class="alert alert-warning soft-alert">
-                Khi chỉnh sửa hồ sơ, hệ thống sẽ đưa hồ sơ về trạng thái
-                <strong>Chờ duyệt</strong> để admin kiểm tra lại.
+            <div class="modal-body p-3 p-md-4">
+              <div class="alert alert-warning soft-alert py-2 px-3 mb-3">
+                Khi chỉnh sửa, hồ sơ sẽ quay về trạng thái <strong>Chờ duyệt</strong>.
               </div>
 
               <div
                 v-if="manageDog.currentFeedback"
-                class="alert alert-danger soft-alert"
+                class="alert alert-danger soft-alert py-2 px-3 mb-3"
               >
-                <strong>Phản hồi hiện tại từ admin:</strong> {{ manageDog.currentFeedback }}
+                <strong>Phản hồi admin:</strong> {{ manageDog.currentFeedback }}
               </div>
 
-              <div class="manage-tab-bar mb-4">
-                <button
-                  class="manage-tab-btn"
-                  :class="{ active: activeManageTab === 'dog' }"
-                  @click="activeManageTab = 'dog'"
-                >
-                  <i class="fas fa-dog mr-2"></i>Thông tin chó
-                </button>
+              <div class="popup-section">
+                <div class="popup-section-title">Thông tin chó</div>
 
-                <button
-                  class="manage-tab-btn"
-                  :class="{ active: activeManageTab === 'health' }"
-                  @click="activeManageTab = 'health'"
-                >
-                  <i class="fas fa-notes-medical mr-2"></i>Hồ sơ sức khỏe
-                </button>
-              </div>
+                <div class="popup-grid">
+                  <div class="popup-field">
+                    <label class="popup-label">Mã nhận diện tại trại</label>
+                    <input type="text" class="form-control popup-input" v-model="manageDog.farmDogCode" />
+                  </div>
 
-              <div v-if="activeManageTab === 'dog'">
-                <div class="row form-equal-row">
-                  <div class="col-md-6 mb-3">
+                  <div class="popup-field">
                     <label class="popup-label">Tên chó</label>
                     <input type="text" class="form-control popup-input" v-model="manageDog.name" />
                   </div>
 
-                  <div class="col-md-6 mb-3">
-                    <label class="popup-label">Giá đề xuất từ trang trại</label>
-                    <input
-                      type="number"
-                      class="form-control popup-input"
-                      v-model="manageDog.proposedPrice"
-                    />
-                  </div>
-
-                  <div class="col-md-6 mb-3">
+                  <div class="popup-field">
                     <label class="popup-label">Giống chó</label>
                     <select class="form-control popup-input" v-model="manageDog.breedId">
                       <option value="">-- Chọn giống --</option>
@@ -441,7 +380,7 @@
                     </select>
                   </div>
 
-                  <div class="col-md-6 mb-3">
+                  <div class="popup-field">
                     <label class="popup-label">Giới tính</label>
                     <select class="form-control popup-input" v-model="manageDog.gender">
                       <option value="Đực">Đực</option>
@@ -449,198 +388,130 @@
                     </select>
                   </div>
 
-                  <div class="col-md-6 mb-3">
+                  <div class="popup-field">
                     <label class="popup-label">Ngày sinh</label>
                     <input type="date" class="form-control popup-input" v-model="manageDog.birthDate" />
                   </div>
 
-                  <div class="col-md-6 mb-3">
+                  <div class="popup-field">
+                    <label class="popup-label">Màu lông</label>
+                    <input type="text" class="form-control popup-input" v-model="manageDog.coatColor" />
+                  </div>
+
+                  <div class="popup-field">
                     <label class="popup-label">Cân nặng (kg)</label>
                     <input type="number" step="0.1" class="form-control popup-input" v-model="manageDog.weight" />
                   </div>
 
-                  <div class="col-md-12 mb-3">
+                  <div class="popup-field">
+                    <label class="popup-label">Nơi sinh ra</label>
+                    <input type="text" class="form-control popup-input" v-model="manageDog.birthPlace" />
+                  </div>
+
+                  <div class="popup-field">
+                    <label class="popup-label">Tên chó bố</label>
+                    <input type="text" class="form-control popup-input" v-model="manageDog.fatherName" />
+                  </div>
+
+                  <div class="popup-field">
+                    <label class="popup-label">Tên chó mẹ</label>
+                    <input type="text" class="form-control popup-input" v-model="manageDog.motherName" />
+                  </div>
+
+                  <div class="popup-field">
+                    <label class="popup-label">Tình trạng sức khỏe</label>
+                    <select class="form-control popup-input" v-model="manageDog.healthStatus">
+                      <option value="Rất tốt">Rất tốt</option>
+                      <option value="Tốt">Tốt</option>
+                      <option value="Đang theo dõi">Đang theo dõi</option>
+                    </select>
+                  </div>
+
+                  <div class="popup-field">
+                    <label class="popup-label">Ngày tẩy giun gần nhất</label>
+                    <input type="date" class="form-control popup-input" v-model="manageDog.lastDeworming" />
+                  </div>
+
+                  <div class="popup-field popup-field-full">
+                    <label class="popup-label">Giá đề xuất từ trang trại</label>
+                    <input type="number" class="form-control popup-input" v-model="manageDog.proposedPrice" />
+                  </div>
+
+                  <div class="popup-field popup-field-full">
                     <label class="popup-label">Mô tả</label>
                     <textarea class="form-control popup-input popup-textarea" rows="3" v-model="manageDog.description"></textarea>
-                  </div>
-
-                  <div class="col-md-12 mb-3">
-                    <label class="popup-label">Ghi chú nguồn gốc</label>
-                    <textarea class="form-control popup-input popup-textarea" rows="2" v-model="manageDog.sourceNotes"></textarea>
-                  </div>
-
-                  <div class="col-md-12 mb-0">
-                    <label class="popup-label">Ghi chú sức khỏe</label>
-                    <textarea class="form-control popup-input popup-textarea" rows="2" v-model="manageDog.healthNote"></textarea>
                   </div>
                 </div>
               </div>
 
-              <div v-if="activeManageTab === 'health'">
-                <div class="row form-equal-row">
-                  <div class="col-md-6 mb-3">
-                    <label class="popup-label">Người kiểm tra</label>
-                    <input v-model="healthForm.checkedBy" type="text" class="form-control popup-input" />
-                  </div>
+              <div class="popup-section mt-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                  <div class="popup-section-title mb-0">Vaccine đã tiêm</div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-success"
+                    @click="addDogVaccineRow"
+                  >
+                    <i class="fas fa-plus mr-1"></i> Thêm vaccine
+                  </button>
+                </div>
 
-                  <div class="col-md-6 mb-3">
-                    <label class="popup-label">Ngày kiểm tra</label>
-                    <input v-model="healthForm.checkedAt" type="datetime-local" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-4 mb-3">
-                    <label class="popup-label">Cân nặng (kg)</label>
-                    <input v-model="healthForm.weight" type="number" step="0.1" min="0" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-4 mb-3">
-                    <label class="popup-label">Nhiệt độ cơ thể</label>
-                    <input v-model="healthForm.bodyTemperature" type="number" step="0.1" min="0" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-4 mb-3">
-                    <label class="popup-label">Ngày tẩy giun gần nhất</label>
-                    <input v-model="healthForm.lastDewormingDate" type="date" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-6 mb-3">
-                    <label class="popup-label">Tình trạng tổng quát</label>
-                    <input v-model="healthForm.generalCondition" type="text" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-6 mb-3">
-                    <label class="popup-label">Dấu hiệu bất thường</label>
-                    <textarea v-model="healthForm.abnormalSigns" rows="2" class="form-control popup-input popup-textarea-small"></textarea>
-                  </div>
-
-                  <div class="col-md-12 mb-3">
-                    <label class="popup-label">Ghi chú y tế</label>
-                    <textarea v-model="healthForm.medicalNotes" rows="3" class="form-control popup-input popup-textarea"></textarea>
-                  </div>
-
-                  <div class="col-md-12 mb-3">
-                    <label class="popup-label">Khuyến nghị</label>
-                    <input v-model="healthForm.recommendation" type="text" class="form-control popup-input" />
-                  </div>
-
-                  <div class="col-md-12 mt-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                      <label class="popup-label mb-2 mb-md-0">Danh sách vaccine</label>
+                <div v-if="manageDog.vaccines.length">
+                  <div
+                    v-for="(vaccine, index) in manageDog.vaccines"
+                    :key="`dog-vaccine-form-${index}`"
+                    class="vaccine-box"
+                  >
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="text-success small">Mũi vaccine {{ index + 1 }}</strong>
                       <button
                         type="button"
-                        class="btn btn-sm btn-outline-success"
-                        @click="addVaccineRow"
+                        class="btn btn-sm btn-outline-danger"
+                        @click="removeDogVaccineRow(index)"
                       >
-                        <i class="fas fa-plus mr-1"></i> Thêm vaccine
+                        <i class="fas fa-trash"></i>
                       </button>
                     </div>
-                  </div>
 
-                  <div class="col-md-12" v-if="healthForm.vaccines.length">
-                    <div
-                      v-for="(vaccine, index) in healthForm.vaccines"
-                      :key="`vaccine-${index}`"
-                      class="vaccine-box"
-                    >
-                      <div class="d-flex justify-content-between align-items-center mb-3">
-                        <strong class="text-success">Mũi vaccine {{ index + 1 }}</strong>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          @click="removeVaccineRow(index)"
-                        >
-                          <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="popup-grid popup-grid-vaccine">
+                      <div class="popup-field">
+                        <label class="popup-label">Tên vaccine</label>
+                        <select v-model="vaccine.vaccineId" class="form-control popup-input">
+                          <option value="">-- Chọn vaccine --</option>
+                          <option
+                            v-for="item in vaccinesMaster"
+                            :key="item._id || item.id"
+                            :value="item._id || item.id"
+                          >
+                            {{ item.name }}
+                          </option>
+                        </select>
                       </div>
 
-                      <div class="row form-equal-row">
-                        <div class="col-md-6 mb-3">
-                          <label class="popup-label">Tên vaccine</label>
-                          <select v-model="vaccine.vaccineId" class="form-control popup-input">
-                            <option value="">-- Chọn vaccine do admin tạo --</option>
-                            <option
-                              v-for="item in vaccinesMaster"
-                              :key="item._id || item.id"
-                              :value="item._id || item.id"
-                            >
-                              {{ item.name }}
-                            </option>
-                          </select>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                          <label class="popup-label">Ngày tiêm</label>
-                          <input
-                            v-model="vaccine.dateInjected"
-                            type="date"
-                            class="form-control popup-input"
-                          />
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                          <label class="popup-label">Ngày nhắc lại</label>
-                          <input
-                            v-model="vaccine.nextDueDate"
-                            type="date"
-                            class="form-control popup-input"
-                            :disabled="!vaccine.needsReminder"
-                          />
-                        </div>
-
-                        <div class="col-md-6 mb-3 d-flex align-items-end">
-                          <div class="custom-control custom-switch mb-2">
-                            <input
-                              :id="`vaccineReminder-${index}`"
-                              v-model="vaccine.needsReminder"
-                              type="checkbox"
-                              class="custom-control-input"
-                            />
-                            <label
-                              class="custom-control-label"
-                              :for="`vaccineReminder-${index}`"
-                            >
-                              Cần nhắc lại
-                            </label>
-                          </div>
-                        </div>
-
-                        <div class="col-md-12 mb-0">
-                          <label class="popup-label">Ghi chú vaccine</label>
-                          <textarea
-                            v-model="vaccine.note"
-                            rows="2"
-                            class="form-control popup-input popup-textarea-small"
-                            placeholder="VD: bé phản ứng tốt sau tiêm, theo dõi thêm..."
-                          ></textarea>
-                        </div>
+                      <div class="popup-field">
+                        <label class="popup-label">Ngày tiêm</label>
+                        <input
+                          v-model="vaccine.dateInjected"
+                          type="date"
+                          class="form-control popup-input"
+                        />
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div class="col-md-12" v-else>
-                    <div class="alert alert-light border text-muted">
-                      Chưa có mũi vaccine nào được thêm.
-                    </div>
-                  </div>
+                <div v-else class="empty-inline">
+                  Chưa có vaccine nào được thêm.
                 </div>
               </div>
             </div>
 
             <div class="modal-footer farm-modal-footer">
-              <button class="btn btn-outline-secondary px-4" @click="closeManageModal">Hủy</button>
-              <button
-                v-if="activeManageTab === 'dog'"
-                class="btn btn-success px-4"
-                @click="saveDogInfo"
-              >
-                Lưu thông tin chó
+              <button class="btn btn-outline-secondary px-4 btn-sm" @click="closeManageModal">
+                Hủy
               </button>
-              <button
-                v-else
-                class="btn btn-success px-4"
-                @click="saveHealthRecord"
-              >
-                {{ healthForm._id ? "Cập nhật hồ sơ sức khỏe" : "Tạo hồ sơ sức khỏe" }}
+              <button class="btn btn-success px-4 btn-sm" @click="saveDogInfo">
+                Lưu hồ sơ
               </button>
             </div>
           </div>
@@ -653,7 +524,6 @@
 <script>
 import DogService from "@/services/dog.service";
 import BreedService from "@/services/breed.service";
-import DogHealthRecordService from "@/services/dogHealthRecord.service";
 import VaccineService from "@/services/vaccine.service";
 
 export default {
@@ -670,11 +540,7 @@ export default {
       saleFilter: "Tất cả",
       selectedDog: null,
       manageDog: null,
-      activeManageTab: "dog",
       loading: false,
-
-      healthRecords: [],
-      healthForm: this.getDefaultHealthForm(),
     };
   },
 
@@ -682,11 +548,13 @@ export default {
     filteredDogs() {
       return this.dogs.filter((dog) => {
         const keyword = (this.searchText || "").toLowerCase().trim();
-        const dogName = dog.name ? dog.name.toLowerCase() : "";
-        const dogCode = dog.maCho ? dog.maCho.toLowerCase() : "";
+        const dogName = String(dog.name || "").toLowerCase();
+        const farmCode = String(dog.farmDogCode || "").toLowerCase();
 
         const matchSearch =
-          !keyword || dogName.includes(keyword) || dogCode.includes(keyword);
+          !keyword ||
+          dogName.includes(keyword) ||
+          farmCode.includes(keyword);
 
         const matchApproval =
           this.approvalFilter === "Tất cả" ||
@@ -711,53 +579,20 @@ export default {
   },
 
   methods: {
-    getFarmId() {
-      return this.currentFarm?.farmId || this.currentFarm?._id || this.currentFarm?.id || "";
-    },
-
     getEmptyVaccine() {
       return {
         vaccineId: "",
         vaccineName: "",
         dateInjected: "",
-        needsReminder: false,
-        nextDueDate: "",
-        note: "",
       };
     },
 
-    getDefaultHealthForm() {
-      return {
-        _id: "",
-        dogId: "",
-        farmId: "",
-        checkedBy: "",
-        checkedAt: "",
-        weight: "",
-        bodyTemperature: "",
-        generalCondition: "",
-        appetiteStatus: "",
-        digestiveStatus: "",
-        respiratoryStatus: "",
-        skinCondition: "",
-        mobilityStatus: "",
-        dewormed: false,
-        lastDewormingDate: "",
-        abnormalSigns: "",
-        medicalNotes: "",
-        recommendation: "",
-        reviewStatus: "Chờ duyệt",
-        reviewNote: "",
-        vaccines: [],
-      };
+    addDogVaccineRow() {
+      this.manageDog.vaccines.push(this.getEmptyVaccine());
     },
 
-    addVaccineRow() {
-      this.healthForm.vaccines.push(this.getEmptyVaccine());
-    },
-
-    removeVaccineRow(index) {
-      this.healthForm.vaccines.splice(index, 1);
+    removeDogVaccineRow(index) {
+      this.manageDog.vaccines.splice(index, 1);
     },
 
     normalizeVaccinesForForm(vaccines = []) {
@@ -767,9 +602,6 @@ export default {
         vaccineId: item?.vaccineId?._id || item?.vaccineId || "",
         vaccineName: item?.vaccineName || "",
         dateInjected: item?.dateInjected ? this.formatDateForInput(item.dateInjected) : "",
-        needsReminder: !!item?.needsReminder,
-        nextDueDate: item?.nextDueDate ? this.formatDateForInput(item.nextDueDate) : "",
-        note: item?.note || "",
       }));
     },
 
@@ -777,25 +609,22 @@ export default {
       if (!Array.isArray(vaccines)) return [];
 
       return vaccines
-        .map((item) => ({
-          vaccineId: String(item?.vaccineId || "").trim(),
-          vaccineName: String(item?.vaccineName || "").trim(),
-          dateInjected: item?.dateInjected || null,
-          needsReminder: !!item?.needsReminder,
-          nextDueDate: item?.needsReminder ? (item?.nextDueDate || null) : null,
-          note: String(item?.note || "").trim(),
-        }))
-        .filter((item) => (item.vaccineId || item.vaccineName) && item.dateInjected);
+        .map((item) => {
+          const vaccineMaster = this.vaccinesMaster.find(
+            (v) => String(v._id || v.id) === String(item?.vaccineId || "")
+          );
+
+          return {
+            vaccineId: String(item?.vaccineId || "").trim() || null,
+            vaccineName: String(item?.vaccineName || vaccineMaster?.name || "").trim(),
+            dateInjected: item?.dateInjected || null,
+          };
+        })
+        .filter((item) => item.vaccineId || item.vaccineName || item.dateInjected);
     },
 
     async loadPageData() {
-      await Promise.all([
-        this.fetchBreeds(),
-        this.fetchVaccines(),
-        this.fetchMyDogs(),
-        this.fetchHealthRecords(),
-      ]);
-      this.mergeDogsWithHealthRecords();
+      await Promise.all([this.fetchBreeds(), this.fetchVaccines(), this.fetchMyDogs()]);
     },
 
     async fetchMyDogs() {
@@ -835,33 +664,6 @@ export default {
       }
     },
 
-    async fetchHealthRecords() {
-      try {
-        const data = await DogHealthRecordService.getAll();
-        this.healthRecords = Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Lỗi tải hồ sơ sức khỏe:", error);
-        this.healthRecords = [];
-      }
-    },
-
-    mergeDogsWithHealthRecords() {
-      this.dogs = this.dogs.map((dog) => {
-        const dogId = dog._id || dog.id;
-        const latestHealthRecord = this.healthRecords
-          .filter((record) => {
-            const recordDogId = record.dogId?._id || record.dogId?.id || record.dogId;
-            return String(recordDogId) === String(dogId);
-          })
-          .sort((a, b) => new Date(b.checkedAt || b.createdAt) - new Date(a.checkedAt || a.createdAt))[0];
-
-        return {
-          ...dog,
-          healthRecord: latestHealthRecord || null,
-        };
-      });
-    },
-
     getDogImage(dog) {
       const image = dog?.image;
       if (!image) return "https://via.placeholder.com/500x350";
@@ -869,8 +671,15 @@ export default {
       return "http://localhost:3000" + image;
     },
 
+    getVaccineName(vaccineId) {
+      const item = this.vaccinesMaster.find(
+        (v) => String(v._id || v.id) === String(vaccineId || "")
+      );
+      return item?.name || "";
+    },
+
     formatCurrency(value) {
-      if (value === null || value === undefined) return "---";
+      if (value === null || value === undefined || value === "") return "---";
       return Number(value).toLocaleString("vi-VN") + " ₫";
     },
 
@@ -879,28 +688,12 @@ export default {
       return new Date(date).toLocaleDateString("vi-VN");
     },
 
-    formatDateTime(date) {
-      if (!date) return "---";
-      return new Date(date).toLocaleString("vi-VN");
-    },
-
     formatDateForInput(date) {
       const d = new Date(date);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const day = String(d.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
-    },
-
-    formatDateTimeLocal(date) {
-      if (!date) return "";
-      const d = new Date(date);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${y}-${m}-${day}T${hh}:${mm}`;
     },
 
     getApprovalStatusClass(status) {
@@ -950,63 +743,30 @@ export default {
 
       this.manageDog = {
         _id: dog._id || dog.id,
+        farmDogCode: dog.farmDogCode || "",
         name: dog.name || "",
-        proposedPrice: dog.proposedPrice || dog.price || 0,
+        proposedPrice: dog.proposedPrice || 0,
         gender: dog.gender || "Đực",
         birthDate: dog.birthDate ? this.formatDateForInput(dog.birthDate) : "",
+        coatColor: dog.coatColor || "",
         description: dog.description || "",
         breedId: dog.breedId?._id || dog.breedId?.id || dog.breedId || "",
         weight: dog.weight ?? "",
-        sourceNotes: dog.sourceNotes || "",
-        healthNote: dog.healthNote || "",
+        birthPlace: dog.birthPlace || "",
+        fatherName: dog.fatherName || "",
+        motherName: dog.motherName || "",
+        healthStatus: dog.healthStatus || "Tốt",
+        lastDeworming: dog.lastDeworming ? this.formatDateForInput(dog.lastDeworming) : "",
+        vaccines: this.normalizeVaccinesForForm(dog.vaccines || []),
         currentFeedback:
           ["Cần bổ sung", "Từ chối"].includes(dog.approvalStatus)
             ? dog.rejectionReason || ""
             : "",
       };
-
-      if (dog.healthRecord) {
-        this.healthForm = {
-          _id: dog.healthRecord._id || dog.healthRecord.id,
-          dogId: dog._id || dog.id,
-          farmId: this.getFarmId(),
-          checkedBy: dog.healthRecord.checkedBy || "",
-          checkedAt: this.formatDateTimeLocal(dog.healthRecord.checkedAt),
-          weight: dog.healthRecord.weight ?? "",
-          bodyTemperature: dog.healthRecord.bodyTemperature ?? "",
-          generalCondition: dog.healthRecord.generalCondition || "",
-          appetiteStatus: dog.healthRecord.appetiteStatus || "",
-          digestiveStatus: dog.healthRecord.digestiveStatus || "",
-          respiratoryStatus: dog.healthRecord.respiratoryStatus || "",
-          skinCondition: dog.healthRecord.skinCondition || "",
-          mobilityStatus: dog.healthRecord.mobilityStatus || "",
-          dewormed: !!dog.healthRecord.dewormed,
-          lastDewormingDate: dog.healthRecord.lastDewormingDate
-            ? this.formatDateForInput(dog.healthRecord.lastDewormingDate)
-            : "",
-          abnormalSigns: dog.healthRecord.abnormalSigns || "",
-          medicalNotes: dog.healthRecord.medicalNotes || "",
-          recommendation: dog.healthRecord.recommendation || "",
-          reviewStatus: dog.healthRecord.reviewStatus || "Chờ duyệt",
-          reviewNote: dog.healthRecord.reviewNote || "",
-          vaccines: this.normalizeVaccinesForForm(dog.healthRecord.vaccines || []),
-        };
-      } else {
-        this.healthForm = {
-          ...this.getDefaultHealthForm(),
-          dogId: dog._id || dog.id,
-          farmId: this.getFarmId(),
-          checkedAt: this.formatDateTimeLocal(new Date()),
-        };
-      }
-
-      this.activeManageTab = "dog";
     },
 
     closeManageModal() {
       this.manageDog = null;
-      this.activeManageTab = "dog";
-      this.healthForm = this.getDefaultHealthForm();
     },
 
     async saveDogInfo() {
@@ -1020,69 +780,31 @@ export default {
 
       try {
         const formData = new FormData();
+        formData.append("farmDogCode", this.manageDog.farmDogCode || "");
         formData.append("name", this.manageDog.name || "");
         formData.append("proposedPrice", this.manageDog.proposedPrice || 0);
         formData.append("gender", this.manageDog.gender || "Đực");
         formData.append("birthDate", this.manageDog.birthDate || "");
+        formData.append("coatColor", this.manageDog.coatColor || "");
         formData.append("description", this.manageDog.description || "");
         formData.append("breedId", this.manageDog.breedId || "");
+        formData.append("weight", this.manageDog.weight === "" ? "" : this.manageDog.weight);
+        formData.append("birthPlace", this.manageDog.birthPlace || "");
+        formData.append("fatherName", this.manageDog.fatherName || "");
+        formData.append("motherName", this.manageDog.motherName || "");
+        formData.append("healthStatus", this.manageDog.healthStatus || "");
+        formData.append("lastDeworming", this.manageDog.lastDeworming || "");
         formData.append(
-          "weight",
-          this.manageDog.weight === "" ? "" : this.manageDog.weight
+          "vaccines",
+          JSON.stringify(this.normalizeVaccinesForSubmit(this.manageDog.vaccines))
         );
-        formData.append("sourceNotes", this.manageDog.sourceNotes || "");
-        formData.append("healthNote", this.manageDog.healthNote || "");
 
-        await DogService.update(
-          this.manageDog._id || this.manageDog.id,
-          formData
-        );
+        await DogService.update(this.manageDog._id || this.manageDog.id, formData);
         alert("✅ Cập nhật thành công! Hồ sơ đang chờ duyệt lại.");
         this.closeManageModal();
         await this.loadPageData();
       } catch (error) {
         alert("❌ Lỗi cập nhật: " + (error.response?.data?.message || error.message));
-      }
-    },
-
-    async saveHealthRecord() {
-      if (!this.healthForm.dogId || !this.healthForm.farmId) {
-        alert("Vui lòng nhập đủ thông tin bắt buộc của hồ sơ sức khỏe.");
-        return;
-      }
-
-      try {
-        const payload = {
-          dogId: this.healthForm.dogId,
-          farmId: this.healthForm.farmId,
-          checkedBy: this.healthForm.checkedBy,
-          checkedAt: this.healthForm.checkedAt,
-          weight: this.healthForm.weight === "" ? null : Number(this.healthForm.weight),
-          bodyTemperature:
-            this.healthForm.bodyTemperature === ""
-              ? null
-              : Number(this.healthForm.bodyTemperature),
-          generalCondition: this.healthForm.generalCondition,
-          abnormalSigns: this.healthForm.abnormalSigns,
-          medicalNotes: this.healthForm.medicalNotes,
-          recommendation: this.healthForm.recommendation,
-          dewormed: !!this.healthForm.dewormed,
-          lastDewormingDate: this.healthForm.lastDewormingDate || null,
-          vaccines: this.normalizeVaccinesForSubmit(this.healthForm.vaccines),
-        };
-
-        if (this.healthForm._id) {
-          await DogHealthRecordService.update(this.healthForm._id, payload);
-          alert("✅ Cập nhật hồ sơ sức khỏe thành công và đã gửi lại admin duyệt.");
-        } else {
-          await DogHealthRecordService.create(payload);
-          alert("✅ Tạo hồ sơ sức khỏe thành công và đã gửi admin duyệt.");
-        }
-
-        this.closeManageModal();
-        await this.loadPageData();
-      } catch (error) {
-        alert("❌ Lỗi lưu hồ sơ sức khỏe: " + (error.response?.data?.message || error.message));
       }
     },
   },
@@ -1102,14 +824,87 @@ export default {
 </script>
 
 <style scoped>
-.table td,
-.table th {
-  vertical-align: middle;
+.farm-dogs-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 24%),
+    linear-gradient(180deg, #f7fbf8 0%, #edf5ef 100%);
+  padding: 24px 14px;
 }
 
-.dashboard-filter-card,
+.page-shell {
+  max-width: 1380px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.page-subtitle {
+  color: #6b7280;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-card,
+.content-card {
+  background: #fff;
+  border: 1px solid #e5eee7;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.035);
+}
+
+.filter-card {
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
 .stat-card {
-  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e5eee7;
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
+}
+
+.stat-label {
+  color: #6b7280;
+  font-size: 0.92rem;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.empty-box {
+  text-align: center;
+  color: #6b7280;
+  padding: 56px 20px;
 }
 
 .dashboard-table {
@@ -1119,7 +914,9 @@ export default {
 .dashboard-table thead th {
   font-weight: 700;
   white-space: nowrap;
-  background: #f8f9fa;
+  background: #f8faf8;
+  color: #64748b;
+  border-top: none;
 }
 
 .dashboard-table td,
@@ -1128,7 +925,7 @@ export default {
 }
 
 .action-col {
-  min-width: 160px;
+  min-width: 150px;
 }
 
 .image-col {
@@ -1136,15 +933,15 @@ export default {
 }
 
 .code-col {
-  min-width: 110px;
+  min-width: 130px;
 }
 
 .name-col {
-  min-width: 160px;
+  min-width: 150px;
 }
 
 .breed-col {
-  min-width: 150px;
+  min-width: 140px;
 }
 
 .price-col {
@@ -1152,18 +949,18 @@ export default {
 }
 
 .approval-col {
-  min-width: 220px;
+  min-width: 230px;
 }
 
 .sale-col {
-  min-width: 170px;
+  min-width: 160px;
 }
 
 .dog-thumb {
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #e9ecef;
 }
 
@@ -1175,19 +972,15 @@ export default {
 }
 
 .action-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   border: 1px solid #dfe5e8;
   background: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-}
-
-.action-btn i {
-  font-size: 14px;
 }
 
 .action-btn:disabled {
@@ -1219,12 +1012,12 @@ export default {
 }
 
 .farm-modal-content {
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
 }
 
 .farm-modal-header {
-  background: linear-gradient(135deg, #1f8a5b, #18734c);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   color: #fff;
   border-bottom: none;
   padding: 16px 20px;
@@ -1242,62 +1035,35 @@ export default {
 
 .farm-modal-footer {
   border-top: 1px solid #edf2ef;
-  padding: 14px 20px 18px;
+  padding: 12px 18px 16px;
 }
 
-.popup-label {
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.popup-input {
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid #dfe5e8;
-}
-
-.popup-input:focus {
-  border-color: #198754;
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.12);
-}
-
-.popup-textarea {
-  min-height: 96px;
-  resize: vertical;
-}
-
-.popup-textarea-small {
-  min-height: 72px;
-  resize: vertical;
+.detail-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
 }
 
 .detail-image {
   width: 100%;
-  max-height: 280px;
+  height: 260px;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 16px;
+  border: 1px solid #e6ece8;
+  background: #f8faf8;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.compact-grid .detail-item {
-  min-height: 84px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  gap: 10px;
 }
 
 .detail-item,
 .detail-block {
   border: 1px solid #e6ece8;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: #fafdfb;
 }
 
@@ -1306,7 +1072,14 @@ export default {
   display: block;
   font-weight: 700;
   color: #198754;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  font-size: 0.88rem;
+}
+
+.detail-item div,
+.detail-text {
+  font-size: 0.94rem;
+  color: #334155;
 }
 
 .detail-text {
@@ -1314,63 +1087,118 @@ export default {
   word-break: break-word;
 }
 
-.health-section {
-  border-top: 1px solid #edf2ef;
-  padding-top: 20px;
-}
-
 .soft-alert {
   border-radius: 12px;
+  font-size: 0.93rem;
+}
+
+.popup-section {
+  background: #fff;
+  border: 1px solid #e6ece8;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.popup-section-title {
+  font-weight: 800;
+  color: #15803d;
+  margin-bottom: 12px;
+  font-size: 0.98rem;
+}
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.popup-grid-vaccine {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.popup-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-field-full {
+  grid-column: 1 / -1;
+}
+
+.popup-label {
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 6px;
+  display: block;
+  font-size: 0.9rem;
+}
+
+.popup-input {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid #dfe5e8;
+  font-size: 0.95rem;
+}
+
+.popup-input:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.18rem rgba(25, 135, 84, 0.12);
+}
+
+.popup-textarea {
+  min-height: 88px;
+  resize: vertical;
 }
 
 .vaccine-box {
   border: 1px solid #e6ece8;
   border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
   background: #fafdfb;
 }
 
-.form-equal-row .col-md-6,
-.form-equal-row .col-md-4,
-.form-equal-row .col-md-12 {
-  display: flex;
-  flex-direction: column;
-}
-
-.manage-tab-bar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.manage-tab-btn {
-  border: 1px solid #dfe5e8;
-  background: #fff;
-  color: #374151;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-weight: 700;
-  transition: all 0.2s ease;
-}
-
-.manage-tab-btn.active {
-  background: #198754;
-  color: #fff;
-  border-color: #198754;
+.empty-inline {
+  border: 1px dashed #d7e6da;
+  border-radius: 12px;
+  padding: 12px;
+  color: #6b7280;
+  background: #f8faf8;
 }
 
 .modal {
   overflow-y: auto;
 }
 
+@media (max-width: 1199.98px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 991.98px) {
-  .detail-grid {
+  .detail-layout {
     grid-template-columns: 1fr;
   }
 
-  .compact-grid .detail-item {
-    min-height: unset;
+  .detail-grid,
+  .popup-grid,
+  .popup-grid-vaccine {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-image {
+    height: 240px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .farm-dogs-page {
+    padding: 16px 10px;
   }
 }
 </style>

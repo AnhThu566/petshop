@@ -1,387 +1,337 @@
 <template>
   <div class="farm-dog-form-page">
     <div class="form-shell">
-      <div class="card border-0 shadow-lg form-popup-card">
-        <div class="card-header form-header">
-          <div class="d-flex justify-content-between align-items-start flex-wrap">
-            <div class="d-flex align-items-start">
-              <router-link
-                to="/farm/dashboard"
-                class="btn btn-sm btn-light text-success mr-3 back-btn"
-              >
-                <i class="fas fa-arrow-left mr-1"></i> Trở về
-              </router-link>
+      <div class="form-card">
+        <div class="form-header">
+          <div class="header-left">
+            <router-link to="/farm/dashboard" class="back-btn">
+              <i class="fas fa-arrow-left"></i>
+              <span>Trở về</span>
+            </router-link>
 
-              <div>
-                <h4 class="mb-1 font-weight-bold">
-                  <i class="fas fa-paw mr-2"></i>GỬI HỒ SƠ CHÓ CHO HỆ THỐNG
-                </h4>
-                <div class="header-subtitle">
-                  Trang trại cung cấp hồ sơ ban đầu, admin sẽ kiểm duyệt và chốt bán chính thức trên hệ thống
-                </div>
-              </div>
+            <div>
+              <h2 class="form-title">Gửi hồ sơ chó</h2>
+              <p class="form-subtitle">
+                Trang trại cung cấp hồ sơ ban đầu, admin sẽ kiểm duyệt và chốt giá bán chính thức.
+              </p>
             </div>
+          </div>
 
-            <div class="status-chip mt-2 mt-lg-0">
-              <i class="fas fa-shield-alt mr-2"></i>Chờ kiểm duyệt
-            </div>
+          <div class="status-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>Chờ kiểm duyệt</span>
           </div>
         </div>
 
-        <div class="card-body form-body">
-          <form @submit.prevent="submitDogProfile">
-            <div class="row no-gutters">
-              <div class="col-lg-8 form-left">
-                <div class="content-scroll">
-                  <div class="section-card">
-                    <div class="section-title">
-                      <span class="section-dot"></span>
-                      Thông tin cơ bản
-                    </div>
+        <form class="form-body" @submit.prevent="submitDogProfile">
+          <div class="main-layout">
+            <div class="main-left">
+              <div class="section-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Thông tin cơ bản
+                </div>
 
-                    <div class="form-grid two-col">
-                      <div class="form-item full">
-                        <label class="form-label">
-                          Tên bé chó <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          class="form-control form-control-uniform"
-                          v-model.trim="dogLocal.name"
-                          placeholder="Ví dụ: Bé LuLu"
-                          required
-                        />
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Giống chó <span class="text-danger">*</span>
-                        </label>
-                        <select
-                          class="form-control form-control-uniform"
-                          v-model="dogLocal.breedId"
-                          required
-                        >
-                          <option value="" disabled>-- Chọn giống chó --</option>
-                          <option
-                            v-for="breed in breeds"
-                            :key="breed.id || breed._id"
-                            :value="breed.id || breed._id"
-                          >
-                            {{ breed.name }}
-                          </option>
-                        </select>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Giới tính <span class="text-danger">*</span>
-                        </label>
-                        <select
-                          class="form-control form-control-uniform"
-                          v-model="dogLocal.gender"
-                          required
-                        >
-                          <option value="Đực">Đực</option>
-                          <option value="Cái">Cái</option>
-                        </select>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Ngày sinh <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          class="form-control form-control-uniform"
-                          v-model="dogLocal.birthDate"
-                          :max="today"
-                          required
-                        />
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Cân nặng (kg) <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            class="form-control form-control-uniform"
-                            v-model="dogLocal.weight"
-                            placeholder="2.5"
-                            required
-                          />
-                          <div class="input-group-append">
-                            <span class="input-group-text unit-box">kg</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Tình trạng sức khỏe <span class="text-danger">*</span>
-                        </label>
-                        <select
-                          class="form-control form-control-uniform"
-                          v-model="dogLocal.healthStatus"
-                          required
-                        >
-                          <option value="Rất tốt">Rất tốt</option>
-                          <option value="Tốt">Tốt</option>
-                          <option value="Đang theo dõi">Đang theo dõi</option>
-                        </select>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">Ngày tẩy giun gần nhất</label>
-                        <input
-                          type="date"
-                          class="form-control form-control-uniform"
-                          v-model="dogLocal.lastDeworming"
-                          :max="today"
-                        />
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">
-                          Giá đề xuất từ trang trại (VNĐ) <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          class="form-control form-control-uniform price-input"
-                          v-model="dogLocal.proposedPrice"
-                          placeholder="Ví dụ: 5000000"
-                          min="1"
-                          required
-                        />
-                      </div>
-                    </div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Mã nhận diện tại trại <span>*</span></label>
+                    <input
+                      v-model.trim="dogLocal.farmDogCode"
+                      type="text"
+                      class="form-control"
+                      placeholder="Ví dụ: TRAI01-CHO03"
+                      required
+                    />
                   </div>
 
-                  <div class="section-card">
-                    <div class="section-title">
-                      <span class="section-dot"></span>
-                      Thông tin mô tả
-                    </div>
-
-                    <div class="form-grid one-col">
-                      <div class="form-item">
-                        <label class="form-label">Mô tả bé chó</label>
-                        <textarea
-                          class="form-control form-control-uniform textarea-uniform"
-                          v-model.trim="dogLocal.description"
-                          rows="3"
-                          placeholder="Tính cách, đặc điểm nổi bật, thói quen..."
-                        ></textarea>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">Ghi chú nguồn gốc</label>
-                        <textarea
-                          class="form-control form-control-uniform textarea-uniform"
-                          v-model.trim="dogLocal.sourceNotes"
-                          rows="3"
-                          placeholder="Ví dụ: sinh tại trại, có thông tin bố mẹ, giấy tờ kèm theo..."
-                        ></textarea>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label">Ghi chú sức khỏe</label>
-                        <textarea
-                          class="form-control form-control-uniform textarea-uniform"
-                          v-model.trim="dogLocal.healthNote"
-                          rows="3"
-                          placeholder="Ví dụ: ăn uống tốt, cần theo dõi nhẹ, lưu ý chăm sóc..."
-                        ></textarea>
-                      </div>
-                    </div>
+                  <div class="field">
+                    <label>Tên chó <span>*</span></label>
+                    <input
+                      v-model.trim="dogLocal.name"
+                      type="text"
+                      class="form-control"
+                      placeholder="Ví dụ: Bé LuLu"
+                      required
+                    />
                   </div>
 
-                  <div class="section-card">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
-                      <div class="section-title mb-0">
-                        <span class="section-dot"></span>
-                        Vaccine ban đầu
-                      </div>
-
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-vaccine-add"
-                        @click="addVaccineRow"
+                  <div class="field">
+                    <label>Giống chó <span>*</span></label>
+                    <select v-model="dogLocal.breedId" class="form-control" required>
+                      <option value="" disabled>-- Chọn giống chó --</option>
+                      <option
+                        v-for="breed in breeds"
+                        :key="breed.id || breed._id"
+                        :value="breed.id || breed._id"
                       >
-                        <i class="fas fa-plus mr-1"></i> Thêm vaccine
-                      </button>
-                    </div>
-
-                    <div v-if="dogLocal.vaccines.length">
-                      <div
-                        v-for="(vaccine, index) in dogLocal.vaccines"
-                        :key="`vaccine-${index}`"
-                        class="vaccine-card"
-                      >
-                        <div class="vaccine-header">
-                          <strong class="text-success">
-                            <i class="fas fa-syringe mr-2"></i>Mũi vaccine {{ index + 1 }}
-                          </strong>
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            @click="removeVaccineRow(index)"
-                          >
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
-
-                        <div class="form-grid two-col">
-                          <div class="form-item">
-                            <label class="form-label">Tên vaccine</label>
-                            <select v-model="vaccine.vaccineId" class="form-control form-control-uniform">
-                              <option value="">-- Chọn vaccine do admin tạo --</option>
-                              <option
-                                v-for="item in vaccinesMaster"
-                                :key="item._id || item.id"
-                                :value="item._id || item.id"
-                              >
-                                {{ item.name }}
-                              </option>
-                            </select>
-                          </div>
-
-                          <div class="form-item">
-                            <label class="form-label">Ngày tiêm</label>
-                            <input
-                              type="date"
-                              class="form-control form-control-uniform"
-                              v-model="vaccine.dateInjected"
-                              :max="today"
-                            />
-                          </div>
-
-                          <div class="form-item">
-                            <label class="form-label d-block">Nhắc lại</label>
-                            <div class="reminder-switch-box">
-                              <div class="custom-control custom-switch">
-                                <input
-                                  :id="`needsReminder-${index}`"
-                                  v-model="vaccine.needsReminder"
-                                  type="checkbox"
-                                  class="custom-control-input"
-                                />
-                                <label
-                                  class="custom-control-label"
-                                  :for="`needsReminder-${index}`"
-                                >
-                                  Cần nhắc lại
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div class="form-item">
-                            <label class="form-label">Ngày nhắc lại</label>
-                            <input
-                              type="date"
-                              class="form-control form-control-uniform"
-                              v-model="vaccine.nextDueDate"
-                              :disabled="!vaccine.needsReminder"
-                            />
-                          </div>
-
-                          <div class="form-item full">
-                            <label class="form-label">Ghi chú vaccine</label>
-                            <textarea
-                              class="form-control form-control-uniform textarea-uniform"
-                              rows="2"
-                              v-model.trim="vaccine.note"
-                              placeholder="Ví dụ: bé phản ứng tốt sau tiêm..."
-                            ></textarea>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-else class="empty-vaccine-box">
-                      <i class="fas fa-notes-medical mr-2"></i>
-                      Chưa thêm vaccine nào. Bạn có thể gửi hồ sơ trước rồi bổ sung sau.
-                    </div>
+                        {{ breed.name }}
+                      </option>
+                    </select>
                   </div>
 
-                  <div class="note-box">
-                    <div class="note-title">
-                      <i class="fas fa-info-circle mr-2"></i>Lưu ý
-                    </div>
-                    <ul class="mb-0 pl-3 text-muted">
-                      <li>Hồ sơ sẽ ở trạng thái <strong>Chờ duyệt</strong> sau khi gửi.</li>
-                      <li>Admin sẽ kiểm tra, chốt giá bán chính thức và phản hồi nếu cần bổ sung.</li>
-                    </ul>
+                  <div class="field">
+                    <label>Giới tính <span>*</span></label>
+                    <select v-model="dogLocal.gender" class="form-control" required>
+                      <option value="Đực">Đực</option>
+                      <option value="Cái">Cái</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>Ngày sinh <span>*</span></label>
+                    <input
+                      v-model="dogLocal.birthDate"
+                      type="date"
+                      class="form-control"
+                      :max="today"
+                      required
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Màu lông <span>*</span></label>
+                    <input
+                      v-model.trim="dogLocal.coatColor"
+                      type="text"
+                      class="form-control"
+                      placeholder="Ví dụ: Vàng trắng"
+                      required
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Cân nặng (kg) <span>*</span></label>
+                    <input
+                      v-model="dogLocal.weight"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      class="form-control"
+                      placeholder="Ví dụ: 2.5"
+                      required
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Nơi sinh ra <span>*</span></label>
+                    <input
+                      v-model.trim="dogLocal.birthPlace"
+                      type="text"
+                      class="form-control"
+                      placeholder="Ví dụ: Trại Cần Thơ"
+                      required
+                    />
                   </div>
                 </div>
               </div>
 
-              <div class="col-lg-4 form-right">
-                <div class="side-panel">
-                  <div class="section-card right-card">
-                    <div class="section-title">
-                      <span class="section-dot"></span>
-                      Ảnh đại diện hồ sơ
-                    </div>
+              <div class="section-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Nguồn gốc và mô tả
+                </div>
 
-                    <div class="image-preview-box">
-                      <img
-                        v-if="previewImage"
-                        :src="previewImage"
-                        alt="Preview"
-                        class="preview-image"
-                      />
-                      <div v-else class="preview-placeholder">
-                        <i class="fas fa-image fa-4x mb-3 opacity-25"></i>
-                        <p class="small mb-0">Chọn một ảnh rõ ràng của bé chó</p>
-                      </div>
-                    </div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Tên chó bố</label>
+                    <input
+                      v-model.trim="dogLocal.fatherName"
+                      type="text"
+                      class="form-control"
+                      placeholder="Nhập tên chó bố"
+                    />
+                  </div>
 
-                    <div class="custom-file text-left mt-3">
-                      <input
-                        type="file"
-                        class="custom-file-input"
-                        id="dogImage"
-                        @change="handleFileUpload"
-                        accept="image/*"
-                      />
-                      <label class="custom-file-label text-truncate" for="dogImage">
-                        {{ selectedFileName || "Tải ảnh bé chó lên..." }}
-                      </label>
-                    </div>
+                  <div class="field">
+                    <label>Tên chó mẹ</label>
+                    <input
+                      v-model.trim="dogLocal.motherName"
+                      type="text"
+                      class="form-control"
+                      placeholder="Nhập tên chó mẹ"
+                    />
+                  </div>
 
-                    <div class="image-hint mt-3">
-                      Ảnh là bắt buộc để admin kiểm duyệt hồ sơ.
-                    </div>
+                  <div class="field field-full">
+                    <label>Mô tả chó</label>
+                    <textarea
+                      v-model.trim="dogLocal.description"
+                      class="form-control textarea"
+                      rows="4"
+                      placeholder="Mô tả đặc điểm, tính cách, thói quen, điểm nổi bật..."
+                    ></textarea>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="submit-bar">
-              <router-link
-                to="/farm/dashboard"
-                class="btn btn-outline-secondary submit-btn-secondary"
-              >
-                HỦY BỎ
-              </router-link>
+              <div class="section-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Hồ sơ sức khỏe
+                </div>
 
-              <button
-                type="submit"
-                class="btn submit-btn-primary"
-                :disabled="isSubmitting"
-              >
-                <i class="fas fa-paper-plane mr-2"></i>
-                {{ isSubmitting ? "ĐANG XỬ LÝ..." : "GỬI HỒ SƠ" }}
-              </button>
-            </div>
-          </form>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Tình trạng sức khỏe <span>*</span></label>
+                    <select v-model="dogLocal.healthStatus" class="form-control" required>
+                      <option value="Rất tốt">Rất tốt</option>
+                      <option value="Tốt">Tốt</option>
+                      <option value="Đang theo dõi">Đang theo dõi</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>Ngày tẩy giun gần nhất</label>
+                    <input
+                      v-model="dogLocal.lastDeworming"
+                      type="date"
+                      class="form-control"
+                      :max="today"
+                    />
+                  </div>
+
+<div class="field field-full">
+  <div class="vaccine-head">
+    <label class="mb-0">Vaccine đã tiêm</label>
+    <button type="button" class="btn-add-outline" @click="addVaccineRow">
+      <i class="fas fa-plus"></i>
+      <span>Thêm vaccine</span>
+    </button>
+  </div>
+
+  <div v-if="dogLocal.vaccines.length" class="vaccine-list">
+    <div
+      v-for="(item, index) in dogLocal.vaccines"
+      :key="`vaccine-${index}`"
+      class="vaccine-row"
+    >
+      <div class="vaccine-grid">
+        <div class="field">
+          <label>Tên vaccine</label>
+          <select v-model="item.vaccineId" class="form-control">
+            <option value="">-- Chọn vaccine --</option>
+            <option
+              v-for="vaccine in vaccinesMaster"
+              :key="vaccine._id || vaccine.id"
+              :value="vaccine._id || vaccine.id"
+            >
+              {{ vaccine.name }}
+            </option>
+          </select>
         </div>
+
+        <div class="field">
+          <label>Ngày tiêm</label>
+          <input
+            v-model="item.dateInjected"
+            type="date"
+            class="form-control"
+            :max="today"
+          />
+        </div>
+      </div>
+
+      <div class="vaccine-row-actions">
+        <button
+          type="button"
+          class="btn-remove-vaccine"
+          @click="removeVaccineRow(index)"
+        >
+          <i class="fas fa-trash-alt"></i>
+          <span>Xóa</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p v-else class="empty-state">Chưa có vaccine nào được thêm.</p>
+</div>
+                </div>
+              </div>
+
+              <div class="section-card highlight-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Giá đề xuất
+                </div>
+
+                <div class="form-grid one-col">
+                  <div class="field">
+                    <label>Giá đề xuất từ trang trại (VNĐ) <span>*</span></label>
+                    <input
+                      v-model="dogLocal.proposedPrice"
+                      type="number"
+                      min="1"
+                      class="form-control price-input"
+                      placeholder="Ví dụ: 5000000"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="main-right">
+              <div class="section-card sticky-card image-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Ảnh đại diện
+                </div>
+
+                <div class="image-box">
+                  <img
+                    v-if="previewImage"
+                    :src="previewImage"
+                    alt="Preview"
+                    class="preview-image"
+                  />
+                  <div v-else class="image-placeholder">
+                    <i class="fas fa-image"></i>
+                    <p>Chọn ảnh rõ mặt và toàn thân của bé chó</p>
+                  </div>
+                </div>
+
+                <label class="upload-btn">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleFileUpload"
+                    hidden
+                  />
+                  <i class="fas fa-upload"></i>
+                  <span>{{ selectedFileName || "Tải ảnh lên" }}</span>
+                </label>
+
+                <div class="side-note">
+                  Ảnh là bắt buộc để admin kiểm duyệt hồ sơ.
+                </div>
+              </div>
+
+              <div class="section-card note-card">
+                <div class="section-title">
+                  <span class="section-dot"></span>
+                  Lưu ý
+                </div>
+                <ul class="note-list">
+                  <li>Hồ sơ sau khi gửi sẽ chuyển sang trạng thái <strong>Chờ duyệt</strong>.</li>
+                  <li>Admin có thể yêu cầu bổ sung, từ chối hoặc duyệt mở bán.</li>
+                  <li>Giá bán chính thức do admin chốt.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="submit-bar">
+            <router-link to="/farm/dashboard" class="btn-cancel">
+              Hủy bỏ
+            </router-link>
+
+            <button type="submit" class="btn-submit" :disabled="isSubmitting">
+              <i class="fas fa-paper-plane"></i>
+              <span>{{ isSubmitting ? "Đang xử lý..." : "Gửi hồ sơ" }}</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -390,7 +340,6 @@
 <script>
 import BreedService from "@/services/breed.service";
 import DogService from "@/services/dog.service";
-import DogHealthRecordService from "@/services/dogHealthRecord.service";
 import VaccineService from "@/services/vaccine.service";
 
 export default {
@@ -399,39 +348,33 @@ export default {
   data() {
     return {
       dogLocal: {
+        farmDogCode: "",
         name: "",
         breedId: "",
         gender: "Đực",
-        proposedPrice: "",
-        description: "",
-        farmId: "",
         birthDate: "",
+        coatColor: "",
         weight: "",
+        birthPlace: "",
+        fatherName: "",
+        motherName: "",
+        description: "",
         healthStatus: "Tốt",
         lastDeworming: "",
-        sourceNotes: "",
-        healthNote: "",
         vaccines: [],
+        proposedPrice: "",
+        farmId: "",
       },
       breeds: [],
+      vaccinesMaster: [],
       currentUser: null,
       currentFarm: null,
-      vaccinesMaster: [],
       selectedFile: null,
       selectedFileName: "",
       previewImage: null,
       isSubmitting: false,
       today: new Date().toISOString().split("T")[0],
     };
-  },
-
-  computed: {
-    selectedBreedName() {
-      const breed = this.breeds.find(
-        (item) => String(item.id || item._id) === String(this.dogLocal.breedId || "")
-      );
-      return breed?.name || "---";
-    },
   },
 
   async created() {
@@ -444,12 +387,11 @@ export default {
       ]);
 
       this.breeds = Array.isArray(breedData) ? breedData : [];
-      this.vaccinesMaster = (Array.isArray(vaccineData) ? vaccineData : []).filter(
-        (item) => item?.status === "Hoạt động"
-      );
+      this.vaccinesMaster = Array.isArray(vaccineData)
+        ? vaccineData.filter((item) => item?.status === "Hoạt động")
+        : [];
     } catch (error) {
-      console.log(error);
-      alert("Không thể tải dữ liệu giống chó hoặc vaccine.");
+      alert("Không thể tải danh sách giống chó hoặc vaccine.");
     }
   },
 
@@ -459,9 +401,6 @@ export default {
         vaccineId: "",
         vaccineName: "",
         dateInjected: "",
-        needsReminder: false,
-        nextDueDate: "",
-        note: "",
       };
     },
 
@@ -483,15 +422,12 @@ export default {
           );
 
           return {
-            vaccineId: String(item?.vaccineId || "").trim(),
+            vaccineId: item?.vaccineId || null,
             vaccineName: String(item?.vaccineName || vaccineMaster?.name || "").trim(),
             dateInjected: item?.dateInjected || null,
-            needsReminder: !!item?.needsReminder,
-            nextDueDate: item?.needsReminder ? (item?.nextDueDate || null) : null,
-            note: String(item?.note || "").trim(),
           };
         })
-        .filter((item) => (item.vaccineId || item.vaccineName) && item.dateInjected);
+        .filter((item) => item.vaccineId || item.vaccineName || item.dateInjected);
     },
 
     loadCurrentFarm() {
@@ -533,17 +469,22 @@ export default {
 
     validateForm() {
       if (!this.dogLocal.farmId) {
-        alert("Lỗi: Tài khoản của bạn chưa được liên kết với trang trại nào.");
+        alert("Tài khoản của bạn chưa được liên kết với trang trại.");
         return false;
       }
 
       if (!this.selectedFile) {
-        alert("Vui lòng chọn hình ảnh cho bé chó.");
+        alert("Vui lòng chọn ảnh đại diện cho bé chó.");
+        return false;
+      }
+
+      if (!this.dogLocal.farmDogCode?.trim()) {
+        alert("Vui lòng nhập mã nhận diện tại trại.");
         return false;
       }
 
       if (!this.dogLocal.name?.trim()) {
-        alert("Vui lòng nhập tên bé chó.");
+        alert("Vui lòng nhập tên chó.");
         return false;
       }
 
@@ -562,13 +503,23 @@ export default {
         return false;
       }
 
-      if (Number(this.dogLocal.proposedPrice) <= 0) {
-        alert("Giá đề xuất phải lớn hơn 0.");
+      if (!this.dogLocal.coatColor?.trim()) {
+        alert("Vui lòng nhập màu lông.");
         return false;
       }
 
-      if (Number(this.dogLocal.weight) < 0) {
+      if (Number(this.dogLocal.weight) < 0 || this.dogLocal.weight === "") {
         alert("Cân nặng không hợp lệ.");
+        return false;
+      }
+
+      if (!this.dogLocal.birthPlace?.trim()) {
+        alert("Vui lòng nhập nơi sinh ra.");
+        return false;
+      }
+
+      if (!this.dogLocal.healthStatus?.trim()) {
+        alert("Vui lòng chọn tình trạng sức khỏe.");
         return false;
       }
 
@@ -589,6 +540,16 @@ export default {
       const normalizedVaccines = this.normalizeVaccinesForSubmit(this.dogLocal.vaccines);
 
       for (const vaccine of normalizedVaccines) {
+        if (!vaccine.vaccineId && !vaccine.vaccineName) {
+          alert("Vui lòng chọn tên vaccine.");
+          return false;
+        }
+
+        if (!vaccine.dateInjected) {
+          alert("Vui lòng chọn ngày tiêm cho vaccine.");
+          return false;
+        }
+
         if (vaccine.dateInjected > this.today) {
           alert("Ngày tiêm vaccine không được lớn hơn hôm nay.");
           return false;
@@ -598,15 +559,11 @@ export default {
           alert("Ngày tiêm vaccine không được nhỏ hơn ngày sinh.");
           return false;
         }
+      }
 
-        if (
-          vaccine.needsReminder &&
-          vaccine.nextDueDate &&
-          vaccine.nextDueDate < vaccine.dateInjected
-        ) {
-          alert("Ngày nhắc lại không được nhỏ hơn ngày tiêm.");
-          return false;
-        }
+      if (Number(this.dogLocal.proposedPrice) <= 0) {
+        alert("Giá đề xuất phải lớn hơn 0.");
+        return false;
       }
 
       return true;
@@ -614,24 +571,27 @@ export default {
 
     resetForm() {
       this.dogLocal = {
+        farmDogCode: "",
         name: "",
         breedId: "",
         gender: "Đực",
-        proposedPrice: "",
+        birthDate: "",
+        coatColor: "",
+        weight: "",
+        birthPlace: "",
+        fatherName: "",
+        motherName: "",
         description: "",
+        healthStatus: "Tốt",
+        lastDeworming: "",
+        vaccines: [],
+        proposedPrice: "",
         farmId:
           this.currentFarm?.farmId ||
           this.currentFarm?._id ||
           this.currentFarm?.id ||
           this.currentUser?.farmId ||
           "",
-        birthDate: "",
-        weight: "",
-        healthStatus: "Tốt",
-        lastDeworming: "",
-        sourceNotes: "",
-        healthNote: "",
-        vaccines: [],
       };
 
       this.selectedFile = null;
@@ -653,46 +613,28 @@ export default {
           this.dogLocal.farmId;
 
         const formData = new FormData();
+        formData.append("farmDogCode", this.dogLocal.farmDogCode.trim());
         formData.append("name", this.dogLocal.name.trim());
         formData.append("breedId", this.dogLocal.breedId);
         formData.append("gender", this.dogLocal.gender);
-        formData.append("proposedPrice", this.dogLocal.proposedPrice);
-        formData.append("description", this.dogLocal.description || "");
-        formData.append("farmId", realFarmId);
-        formData.append("image", this.selectedFile);
         formData.append("birthDate", this.dogLocal.birthDate);
+        formData.append("coatColor", this.dogLocal.coatColor.trim());
         formData.append("weight", this.dogLocal.weight);
+        formData.append("birthPlace", this.dogLocal.birthPlace.trim());
+        formData.append("fatherName", this.dogLocal.fatherName || "");
+        formData.append("motherName", this.dogLocal.motherName || "");
+        formData.append("description", this.dogLocal.description || "");
         formData.append("healthStatus", this.dogLocal.healthStatus);
         formData.append("lastDeworming", this.dogLocal.lastDeworming || "");
-        formData.append("sourceNotes", this.dogLocal.sourceNotes || "");
-        formData.append("healthNote", this.dogLocal.healthNote || "");
+        formData.append("proposedPrice", this.dogLocal.proposedPrice);
+        formData.append("farmId", realFarmId);
+        formData.append("image", this.selectedFile);
+        formData.append(
+          "vaccines",
+          JSON.stringify(this.normalizeVaccinesForSubmit(this.dogLocal.vaccines))
+        );
 
-        const createdResponse = await DogService.create(formData);
-        const newestDog = createdResponse?.dog || createdResponse || null;
-        const normalizedVaccines = this.normalizeVaccinesForSubmit(this.dogLocal.vaccines);
-
-        if (newestDog) {
-          await DogHealthRecordService.create({
-            dogId: newestDog._id || newestDog.id,
-            farmId: realFarmId,
-            checkedBy: "Chủ trại cung cấp ban đầu",
-            checkedAt: new Date().toISOString(),
-            weight: Number(this.dogLocal.weight),
-            bodyTemperature: null,
-            generalCondition: this.dogLocal.healthStatus || "",
-            appetiteStatus: "",
-            digestiveStatus: "",
-            respiratoryStatus: "",
-            skinCondition: "",
-            mobilityStatus: "",
-            dewormed: !!this.dogLocal.lastDeworming,
-            lastDewormingDate: this.dogLocal.lastDeworming || null,
-            abnormalSigns: "",
-            medicalNotes: this.dogLocal.healthNote || "",
-            recommendation: "",
-            vaccines: normalizedVaccines,
-          });
-        }
+        await DogService.create(formData);
 
         alert("🎉 Đã gửi hồ sơ chó thành công! Hồ sơ đang chờ admin duyệt.");
         this.resetForm();
@@ -710,223 +652,282 @@ export default {
 <style scoped>
 .farm-dog-form-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f5f8f6 0%, #eef4f0 100%);
-  padding: 24px 12px;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 28%),
+    linear-gradient(180deg, #f7fbf8 0%, #edf5ef 100%);
+  padding: 28px 14px;
 }
 
 .form-shell {
-  max-width: 1220px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
-.form-popup-card {
-  border-radius: 26px;
+.form-card {
+  background: #ffffff;
+  border-radius: 28px;
   overflow: hidden;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e7efe9;
 }
 
 .form-header {
-  background: linear-gradient(135deg, #1ea65a, #148a49);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 28px 30px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
   color: #fff;
-  border-bottom: none;
-  padding: 22px 26px;
 }
 
-.header-subtitle {
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.status-chip {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-weight: 700;
-  font-size: 0.9rem;
+.header-left {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
 }
 
 .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-decoration: none;
   font-weight: 700;
-  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+.form-title {
+  margin: 0 0 6px;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.form-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
 }
 
 .form-body {
-  padding: 0;
-}
-
-.form-left,
-.form-right {
   background: #fff;
 }
 
-.form-left {
+.main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(320px, 0.95fr);
+  gap: 0;
+}
+
+.main-left {
+  padding: 26px;
   border-right: 1px solid #edf2ee;
-}
-
-.content-scroll {
-  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
-.side-panel {
-  padding: 24px;
+.main-right {
+  padding: 26px;
+  background: linear-gradient(180deg, #fbfdfb 0%, #f6faf7 100%);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .section-card {
   background: #fff;
-  border: 1px solid #e8f0ea;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 10px 24px rgba(20, 138, 73, 0.04);
+  border: 1px solid #e5eee7;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.035);
 }
 
-.right-card {
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+.highlight-card {
+  background: linear-gradient(180deg, #fcfefc 0%, #f4fbf6 100%);
+  border-color: #dceede;
+}
+
+.image-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcf9 100%);
+}
+
+.sticky-card {
+  position: sticky;
+  top: 18px;
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 1rem;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef4ef;
   font-weight: 800;
   color: #15803d;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #edf4ef;
+  font-size: 1.02rem;
 }
 
 .section-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
-  background: #1ea65a;
-  display: inline-block;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
 }
 
 .form-grid {
   display: grid;
-  gap: 16px;
-}
-
-.form-grid.two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .form-grid.one-col {
   grid-template-columns: 1fr;
 }
 
-.form-item.full {
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-full {
   grid-column: 1 / -1;
 }
 
-.form-label {
+.field label {
   font-weight: 700;
   color: #334155;
   margin-bottom: 8px;
-  display: block;
+  font-size: 0.95rem;
 }
 
-.form-control-uniform {
-  min-height: 46px;
-  border-radius: 14px;
-  border: 1px solid #dce7df;
+.field label span {
+  color: #dc2626;
+}
+
+.form-control {
+  min-height: 48px;
+  border-radius: 15px;
+  border: 1px solid #dbe7dd;
   box-shadow: none;
+  padding: 11px 14px;
+  transition: all 0.2s ease;
+  background: #fff;
 }
 
-.form-control-uniform:focus {
-  border-color: #1ea65a;
-  box-shadow: 0 0 0 3px rgba(30, 166, 90, 0.12);
+.form-control:hover {
+  border-color: #bfd6c4;
 }
 
-.textarea-uniform {
-  min-height: 110px;
+.form-control:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+
+.textarea {
+  min-height: 120px;
   resize: vertical;
   padding-top: 12px;
 }
 
-.unit-box {
-  border-radius: 0 14px 14px 0;
-  border-color: #dce7df;
-  background: #f3f7f4;
-}
-
 .price-input {
-  font-weight: 700;
-  color: #dc2626;
-}
-
-.btn-vaccine-add {
-  background: #eaf8ef;
-  color: #15803d;
-  border: 1px solid #cae9d4;
-  border-radius: 10px;
-  font-weight: 700;
-}
-
-.btn-vaccine-add:hover {
-  background: #dff4e7;
-  color: #126c33;
-}
-
-.vaccine-card {
-  border: 1px solid #e5eee7;
-  background: #fbfefc;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 14px;
-}
-
-.vaccine-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.reminder-switch-box {
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px solid #dce7df;
-  border-radius: 14px;
-  background: #fff;
-}
-
-.empty-vaccine-box {
-  padding: 16px;
-  border-radius: 14px;
-  background: #f8faf8;
-  color: #6b7280;
-  border: 1px dashed #d6e5da;
-}
-
-.note-box {
-  background: #f8fcf9;
-  border: 1px solid #dcefe1;
-  border-radius: 18px;
-  padding: 16px 18px;
-}
-
-.note-title {
   font-weight: 800;
-  color: #15803d;
-  margin-bottom: 10px;
+  color: #dc2626;
+  font-size: 1.05rem;
 }
 
-.image-preview-box {
-  height: 320px;
+.vaccine-input-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.btn-add {
+  border: none;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  min-height: 48px;
+  box-shadow: 0 10px 20px rgba(21, 128, 61, 0.16);
+}
+
+.btn-add:hover {
+  opacity: 0.96;
+  transform: translateY(-1px);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #ccefd8;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.tag-item button {
+  border: none;
+  background: transparent;
+  color: #166534;
+  padding: 0;
+  line-height: 1;
+}
+
+.empty-state {
+  margin: 12px 0 0;
+  color: #6b7280;
+  background: #f8faf8;
+  border: 1px dashed #d7e6da;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.image-box {
+  height: 330px;
   border-radius: 20px;
   border: 1px dashed #cfe3d4;
-  background: linear-gradient(180deg, #f8fbf9, #f1f7f3);
+  background: linear-gradient(180deg, #f9fcfa, #eff7f1);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -939,110 +940,236 @@ export default {
   object-fit: cover;
 }
 
-.preview-placeholder {
+.image-placeholder {
   text-align: center;
-  color: #8a9391;
+  color: #8b9590;
   padding: 20px;
 }
 
-.custom-file-label {
-  border-radius: 12px;
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  border-color: #dce7df;
+.image-placeholder i {
+  font-size: 3.2rem;
+  margin-bottom: 12px;
+  opacity: 0.35;
 }
 
-.custom-file-label::after {
-  content: "Chọn ảnh" !important;
-  background-color: #28a745;
-  color: white;
-  border-radius: 0 12px 12px 0;
-}
-
-.image-hint {
-  color: #6b7280;
-  font-size: 0.92rem;
+.image-placeholder p {
+  margin: 0;
   line-height: 1.5;
 }
 
+.upload-btn {
+  margin-top: 16px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 22px rgba(21, 128, 61, 0.15);
+}
+
+.upload-btn:hover {
+  opacity: 0.96;
+  transform: translateY(-1px);
+}
+
+.side-note {
+  margin-top: 14px;
+  color: #6b7280;
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+.note-card {
+  background: #ffffff;
+}
+
+.note-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+}
+
+.note-list li + li {
+  margin-top: 8px;
+}
+
 .submit-bar {
-  padding: 22px 24px 24px;
-  border-top: 1px solid #edf2ee;
-  background: #fff;
   display: flex;
   justify-content: center;
   gap: 14px;
   flex-wrap: wrap;
+  padding: 24px 26px 28px;
+  border-top: 1px solid #edf2ee;
+  background: #fff;
 }
 
-.submit-btn-primary {
-  min-width: 220px;
-  border-radius: 12px;
+.btn-cancel,
+.btn-submit {
+  min-width: 190px;
+  min-height: 50px;
+  border-radius: 15px;
   padding: 12px 24px;
   font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg, #17a34a, #15803d);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
   border: none;
-  box-shadow: 0 10px 24px rgba(21, 128, 61, 0.18);
+  transition: all 0.2s ease;
 }
 
-.submit-btn-primary:hover {
+.btn-cancel {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #d8e2dc;
+}
+
+.btn-cancel:hover {
+  text-decoration: none;
+  color: #334155;
+  background: #f8faf9;
+  transform: translateY(-1px);
+}
+
+.btn-submit {
   color: #fff;
-  opacity: 0.96;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.16);
 }
 
-.submit-btn-secondary {
-  min-width: 180px;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-weight: 700;
+.btn-submit:hover {
+  transform: translateY(-1px);
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 @media (max-width: 991.98px) {
-  .form-left {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .main-left {
     border-right: none;
     border-bottom: 1px solid #edf2ee;
   }
 
-  .content-scroll,
-  .side-panel {
-    padding: 18px;
-  }
-
-  .form-grid.two-col {
-    grid-template-columns: 1fr;
-  }
-
-  .image-preview-box {
-    height: 280px;
+  .sticky-card {
+    position: static;
   }
 }
 
-@media (max-width: 575.98px) {
-  .farm-dog-form-page {
-    padding: 10px;
-  }
-
-  .form-header {
-    padding: 18px;
-  }
-
-  .content-scroll,
-  .side-panel,
+@media (max-width: 767.98px) {
+  .form-header,
+  .main-left,
+  .main-right,
   .submit-bar {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
-  .section-card {
-    padding: 16px;
-    border-radius: 16px;
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
-  .submit-btn-primary,
-  .submit-btn-secondary {
+  .vaccine-input-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .image-box {
+    height: 260px;
+  }
+
+  .btn-cancel,
+  .btn-submit {
     width: 100%;
+  }
+
+  .header-left {
+    flex-direction: column;
+  }
+}
+
+.vaccine-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-add-outline {
+  border: 1px solid #cfe7d6;
+  background: #effaf2;
+  color: #15803d;
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-add-outline:hover {
+  background: #e7f7ec;
+}
+
+.vaccine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vaccine-row {
+  border: 1px solid #dcecdf;
+  background: #fbfefc;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.vaccine-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
+  gap: 14px;
+}
+
+.vaccine-row-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-remove-vaccine {
+  border: 1px solid #f1c9c9;
+  background: #fff5f5;
+  color: #b91c1c;
+  border-radius: 12px;
+  min-height: 38px;
+  padding: 0 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-remove-vaccine:hover {
+  background: #feecec;
+}
+
+@media (max-width: 767.98px) {
+  .vaccine-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

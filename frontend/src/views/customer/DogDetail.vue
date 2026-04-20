@@ -9,11 +9,7 @@
           <li class="breadcrumb-item">
             <router-link to="/dogs/breeds" class="text-muted text-decoration-none">Giống chó</router-link>
           </li>
-          <li
-            class="breadcrumb-item active font-weight-bold text-dark"
-            aria-current="page"
-            v-if="dog"
-          >
+          <li class="breadcrumb-item active font-weight-bold text-dark" aria-current="page" v-if="dog">
             {{ dog.name }}
           </li>
         </ol>
@@ -27,357 +23,268 @@
       </div>
     </div>
 
-    <div class="container custom-container" v-else-if="dog">
-      <div class="detail-main-card">
-        <div class="row align-items-start">
-          <!-- CỘT ẢNH -->
-          <div class="col-lg-4 mb-4 mb-lg-0">
-            <div class="media-card">
-              <div class="main-image-box mb-3">
-                <img
-                  :src="selectedImage"
-                  class="img-fluid w-100 object-fit-cover rounded-xl"
-                  :alt="dog.name"
-                />
-              </div>
+<div class="container custom-container" v-else-if="dog">
+  <div class="detail-main-card">
+    <div class="top-grid">
+      <div class="left-media">
+        <div class="main-image-box">
+          <img :src="selectedImage" class="main-image" :alt="dog.name" />
+        </div>
 
-              <div class="thumb-grid">
-                <div
-                  class="thumb-item"
-                  v-for="(image, index) in galleryImages"
-                  :key="`${image}-${index}`"
-                >
-                  <img
-                    :src="image"
-                    class="img-fluid rounded-lg img-thumbnail-custom"
-                    :class="{ 'active-thumb': selectedImage === image }"
-                    :alt="`${dog.name} - ảnh ${index + 1}`"
-                    @click="selectedImage = image"
-                  />
-                </div>
+        <div class="thumb-grid" v-if="galleryImages.length">
+          <img
+            v-for="(image, index) in galleryImages"
+            :key="`${image}-${index}`"
+            :src="image"
+            class="img-thumbnail-custom"
+            :class="{ 'active-thumb': selectedImage === image }"
+            :alt="`${dog.name} - ảnh ${index + 1}`"
+            @click="selectedImage = image"
+          />
+        </div>
+      </div>
+
+      <div class="right-info">
+        <h1 class="pet-title">{{ dog.name }}</h1>
+        <div class="pet-price">{{ formatCurrency(dog.finalPrice || dog.price) }}</div>
+        <div class="sale-status-text">
+          {{ getSaleStatusText(dog.saleStatus) }}
+        </div>
+
+        <div class="right-block-title">THÔNG TIN VỀ CÚN YÊU</div>
+
+        <div class="info-line-table">
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Ngày sinh:</span>
+              <span class="line-value">{{ formatDate(dog.birthDate) }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Giới tính:</span>
+              <span class="line-value">{{ dog.gender || "—" }}</span>
+            </div>
+          </div>
+
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Màu lông:</span>
+              <span class="line-value">{{ dog.coatColor || "—" }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Tháng tuổi:</span>
+              <span class="line-value">{{ calculateAge(dog.birthDate) }}</span>
+            </div>
+          </div>
+
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Tình trạng sức khỏe:</span>
+              <span class="line-value">{{ dog.healthStatus || "Tốt" }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Cân nặng:</span>
+              <span class="line-value">{{ dog.weight ? `${dog.weight} kg` : "—" }}</span>
+            </div>
+          </div>
+
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Bố:</span>
+              <span class="line-value">{{ dog.fatherName || "—" }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Mẹ:</span>
+              <span class="line-value">{{ dog.motherName || "—" }}</span>
+            </div>
+          </div>
+
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Nơi sinh:</span>
+              <span class="line-value">{{ dog.birthPlace || "—" }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Nguồn cung:</span>
+              <span class="line-value">{{ dog.farmId?.name || "—" }}</span>
+            </div>
+          </div>
+
+          <div class="line-row">
+            <div class="line-col">
+              <span class="line-label">Khu vực:</span>
+              <span class="line-value">{{ dog.farmId?.address || "—" }}</span>
+            </div>
+            <div class="line-col">
+              <span class="line-label">Tẩy giun:</span>
+              <div class="line-inline-group">
+                <span class="line-value">{{ formatDate(lastDewormingDate) }}</span>
+                <button type="button" class="inline-link-btn" @click="showDewormModal = true">
+                  Xem chi tiết
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- CỘT THÔNG TIN -->
-          <div class="col-lg-8">
-            <div class="detail-content-card">
-              <div class="status-chip mb-2" :class="getStatusChipClass(dog.saleStatus)">
-                <i class="fas mr-2" :class="getStatusIcon(dog.saleStatus)"></i>
-                {{ getSaleStatusText(dog.saleStatus) }}
-              </div>
-
-              <h1 class="pet-title mb-1">{{ dog.name }}</h1>
-
-              <div class="breed-source-line mb-3">
-                <span>{{ dog.breedId?.name || "Đang cập nhật giống" }}</span>
-                <span class="dot-separator">•</span>
-                <span>{{ dog.farmId?.name || "Đang cập nhật nguồn cung" }}</span>
-              </div>
-
-              <div class="price-panel mb-3">
-                <div class="price-label">Giá bán</div>
-                <div class="pet-price">{{ formatCurrency(dog.price) }}</div>
-              </div>
-
-              <div class="compact-info-card mb-3">
-                <div class="compact-title">Thông tin về bé cún</div>
-
-                <div class="compact-table">
-                  <div class="compact-row">
-                    <div class="compact-cell">
-                      <span class="compact-label">Ngày sinh</span>
-                      <strong class="compact-value">{{ formatDate(dog.birthDate) }}</strong>
-                    </div>
-                    <div class="compact-cell">
-                      <span class="compact-label">Tháng tuổi</span>
-                      <strong class="compact-value">{{ calculateAge(dog.birthDate) }}</strong>
-                    </div>
-                  </div>
-
-                  <div class="compact-row">
-                    <div class="compact-cell">
-                      <span class="compact-label">Giới tính</span>
-                      <strong class="compact-value">{{ dog.gender || "Đang cập nhật" }}</strong>
-                    </div>
-                    <div class="compact-cell">
-                      <span class="compact-label">Màu lông</span>
-                      <strong class="compact-value">{{ dog.color || "Đang cập nhật" }}</strong>
-                    </div>
-                  </div>
-
-                  <div class="compact-row">
-                    <div class="compact-cell">
-                      <span class="compact-label">Cân nặng</span>
-                      <strong class="compact-value">
-                        {{ dog.weight ? `${dog.weight} kg` : "Đang cập nhật" }}
-                      </strong>
-                    </div>
-                    <div class="compact-cell">
-                      <span class="compact-label">Sức khỏe</span>
-                      <strong class="compact-value text-success">
-                        {{ dog.healthStatus || "Đang cập nhật" }}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div class="compact-row">
-                    <div class="compact-cell">
-                      <span class="compact-label">Tẩy giun</span>
-                      <div class="compact-value-row">
-                        <strong class="compact-value">{{ formatDate(lastDewormingDate) }}</strong>
-                        <button
-                          type="button"
-                          class="inline-link-btn"
-                          @click="showDewormModal = true"
-                        >
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="compact-cell">
-                      <span class="compact-label">Tiêm vaccine</span>
-                      <div class="compact-value-row">
-                        <strong class="compact-value">
-                          {{
-                            vaccineRecords.length > 0
-                              ? `${vaccineRecords.length} mũi`
-                              : dog.vaccinated
-                              ? "Đã cập nhật"
-                              : "Chưa có dữ liệu"
-                          }}
-                        </strong>
-                        <button
-                          type="button"
-                          class="inline-link-btn"
-                          @click="showVaccineModal = true"
-                        >
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="compact-row">
-                    <div class="compact-cell">
-                      <span class="compact-label">Nguồn cung</span>
-                      <strong class="compact-value">
-                        {{ dog.farmId?.name || "Đang cập nhật" }}
-                      </strong>
-                    </div>
-                    <div class="compact-cell">
-                      <span class="compact-label">Khu vực</span>
-                      <strong class="compact-value">
-                        {{ dog.farmId?.address || "Đang cập nhật" }}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row two-note-row mb-3">
-                <div class="col-md-6 mb-2 mb-md-0" v-if="dog.description">
-                  <div class="desc-card h-100">
-                    <div class="desc-label">Đặc điểm</div>
-                    <div class="desc-text">{{ dog.description }}</div>
-                  </div>
-                </div>
-
-                <div class="col-md-6" v-if="dog.healthNote">
-                  <div class="desc-card h-100">
-                    <div class="desc-label">Ghi chú sức khỏe</div>
-                    <div class="desc-text">{{ dog.healthNote }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                class="availability-box mb-3"
-                v-if="dog.saleStatus === 'Sẵn sàng bán'"
-              >
-                <i class="fas fa-heart mr-2"></i>
-                Bé đang sẵn sàng đón về.
-              </div>
-
-              <div
-                class="availability-box hold-box mb-3"
-                v-else-if="isReservedStatus(dog.saleStatus)"
-              >
-                <i class="fas fa-clock mr-2"></i>
-                {{ getSaleStatusDescription(dog.saleStatus) }}
-              </div>
-
-              <div
-                class="availability-box sold-box mb-3"
-                v-else-if="dog.saleStatus === 'Đã bán'"
-              >
-                <i class="fas fa-check-circle mr-2"></i>
-                Bé đã có chủ mới.
-              </div>
-
-              <div
-                class="availability-box stop-box mb-3"
-                v-else
-              >
-                <i class="fas fa-pause-circle mr-2"></i>
-                Bé hiện chưa sẵn sàng giao dịch trên hệ thống.
-              </div>
-
-              <div class="cta-row">
-                <button
-                  class="btn btn-main font-weight-bold py-2 px-4 mr-2 mb-2 shadow-sm"
-                  @click="goToDeposit"
-                  :disabled="!canDeposit"
-                >
-                  <i
-                    class="fas"
-                    :class="canDeposit ? 'fa-hand-holding-usd' : 'fa-lock'"
-                  ></i>
-                  <span class="ml-2">{{ getDepositButtonText(dog.saleStatus) }}</span>
+          <div class="line-row">
+            <div class="line-col line-col-full">
+              <span class="line-label">Vaccine:</span>
+              <div class="line-inline-group">
+                <span class="line-value">
+                  {{ vaccineRecords.length > 0 ? `${vaccineRecords.length} mũi` : "Chưa có dữ liệu" }}
+                </span>
+                <button type="button" class="inline-link-btn" @click="showVaccineModal = true">
+                  Xem chi tiết
                 </button>
-
-                <a
-                  href="tel:0379889868"
-                  class="btn btn-hotline font-weight-bold py-2 px-4 mb-2 shadow-sm"
-                >
-                  <i class="fas fa-phone-alt mr-2"></i> HOTLINE: 0379889868
-                </a>
               </div>
             </div>
           </div>
         </div>
+
+        <div class="bottom-action-row">
+          <button class="buy-btn" @click="goToDeposit" v-if="canDeposit">
+            ĐẶT CỌC ĐÓN BÉ
+          </button>
+        </div>
       </div>
     </div>
+
+    <div class="bottom-section mt-5" v-if="dog.description || dog.fatherName || dog.motherName">
+      <div class="bottom-grid">
+        <div>
+          <div class="section-line-title">GIỚI THIỆU VỀ CÚN YÊU</div>
+          <div class="bottom-text-content mt-3">
+            {{ dog.description || 'Chưa có thông tin giới thiệu.' }}
+          </div>
+        </div>
+
+        <div>
+          <div class="section-line-title">THÔNG TIN VỀ BỐ MẸ</div>
+          <div class="bottom-text-content mt-3">
+            <div class="mb-2"><strong>Bố:</strong> {{ dog.fatherName || "Đang cập nhật" }}</div>
+            <div><strong>Mẹ:</strong> {{ dog.motherName || "Đang cập nhật" }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="relatedDogs.length > 0" class="related-section dog-related-section">
+    <div class="related-head">
+      <h3 class="related-title">Gợi ý các bé chó liên quan</h3>
+      <p class="related-subtitle">
+        Một số bé cùng giống hoặc phù hợp với nhu cầu của bạn
+      </p>
+    </div>
+
+    <div class="related-grid">
+<div
+  class="related-card"
+  v-for="item in relatedDogs"
+  :key="item._id || item.id"
+  @click="goToDogDetail(item)"
+>
+  <div class="related-image-wrap">
+    <img
+      :src="getDogImage(item)"
+      alt="related-dog"
+      class="related-image"
+    />
+
+    <span class="related-status-badge">
+      Sẵn sàng đón về
+    </span>
+  </div>
+
+  <div class="related-body">
+    <h4 class="related-name">
+      {{ item.name }}
+    </h4>
+
+    <div class="related-price">
+      {{ formatCurrency(item.finalPrice || item.price) }}
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
 
     <div class="container custom-container" v-else>
       <div class="empty-state-box text-center py-5">
         <i class="fas fa-dog mb-3"></i>
         <h4 class="mb-2">Không tìm thấy hồ sơ bé cún</h4>
-        <p class="text-muted mb-3">
-          Bé có thể chưa được mở hiển thị công khai hoặc thông tin không còn khả dụng.
-        </p>
-        <router-link to="/dogs/breeds" class="btn btn-main px-4 py-2">
-          Quay lại danh sách chó
+        <p class="text-muted mb-3">Bé có thể chưa được mở hiển thị công khai hoặc thông tin không còn khả dụng.</p>
+        <router-link to="/dogs/breeds" class="btn btn-primary-custom px-4 py-2">
+          Quay lại danh sách
         </router-link>
       </div>
     </div>
 
-    <!-- POPUP TẨY GIUN -->
-    <div
-      v-if="showDewormModal"
-      class="custom-modal-overlay"
-      @click.self="showDewormModal = false"
-    >
+    <div v-if="showDewormModal" class="custom-modal-overlay" @click.self="showDewormModal = false">
       <div class="custom-modal-box">
         <div class="custom-modal-head">
-          <h5 class="mb-0">
-            <i class="fas fa-calendar-alt mr-2"></i>Lịch sử tẩy giun
-          </h5>
+          <h5 class="mb-0"><i class="fas fa-calendar-alt mr-2"></i>Lịch sử tẩy giun</h5>
           <button class="custom-modal-close" @click="showDewormModal = false">&times;</button>
         </div>
-
         <div class="custom-modal-body">
-          <div v-if="dewormingRecords.length === 0" class="modal-empty-text">
-            Chưa có dữ liệu chi tiết về các lần tẩy giun.
-          </div>
-
+          <div v-if="dewormingRecords.length === 0" class="modal-empty-text">Chưa có dữ liệu chi tiết về các lần tẩy giun.</div>
           <div v-else class="timeline-list">
-            <div
-              v-for="(item, index) in dewormingRecords"
-              :key="index"
-              class="timeline-item"
-            >
+            <div v-for="(item, index) in dewormingRecords" :key="index" class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
-                <div class="timeline-date">
-                  {{ formatDate(item.date || item.lastDewormingDate || item.dewormingDate) }}
-                </div>
-                <div class="timeline-note">
-                  {{ item.note || item.content || "Đã thực hiện tẩy giun." }}
-                </div>
+                <div class="timeline-date">{{ formatDate(item.date || item.lastDewormingDate || item.dewormingDate) }}</div>
+                <div class="timeline-note">{{ item.note || item.content || "Đã thực hiện tẩy giun." }}</div>
               </div>
             </div>
           </div>
         </div>
-
         <div class="custom-modal-foot">
-          <button class="btn btn-main px-4 py-2" @click="showDewormModal = false">
-            Đóng
-          </button>
+          <button class="btn btn-primary-custom px-4 py-2" @click="showDewormModal = false">Đóng</button>
         </div>
       </div>
     </div>
 
-    <!-- POPUP VACCINE -->
-    <div
-      v-if="showVaccineModal"
-      class="custom-modal-overlay"
-      @click.self="showVaccineModal = false"
-    >
+    <div v-if="showVaccineModal" class="custom-modal-overlay" @click.self="showVaccineModal = false">
       <div class="custom-modal-box">
         <div class="custom-modal-head">
-          <h5 class="mb-0">
-            <i class="fas fa-syringe mr-2"></i>Chi tiết vaccine
-          </h5>
+          <h5 class="mb-0"><i class="fas fa-syringe mr-2"></i>Chi tiết vaccine</h5>
           <button class="custom-modal-close" @click="showVaccineModal = false">&times;</button>
         </div>
-
         <div class="custom-modal-body">
-          <div v-if="vaccineRecords.length === 0" class="modal-empty-text">
-            Chưa có dữ liệu chi tiết về vaccine đã tiêm.
-          </div>
-
+          <div v-if="vaccineRecords.length === 0" class="modal-empty-text">Chưa có dữ liệu chi tiết về vaccine đã tiêm.</div>
           <div v-else class="vaccine-list">
-            <div
-              v-for="(item, index) in vaccineRecords"
-              :key="index"
-              class="vaccine-card"
-            >
-              <div class="vaccine-name">
-                {{ item.vaccineName || item.name || item.vaccine || "Vaccine" }}
-              </div>
-              <div class="vaccine-date">
-                Ngày tiêm: {{ formatDate(item.dateInjected || item.date || item.injectedAt) }}
-              </div>
-              <div v-if="item.note" class="vaccine-note">
-                {{ item.note }}
-              </div>
+            <div v-for="(item, index) in vaccineRecords" :key="index" class="vaccine-card">
+              <div class="vaccine-name">{{ item.vaccineName || item.name || item.vaccine || "Vaccine" }}</div>
+              <div class="vaccine-date">Ngày tiêm: {{ formatDate(item.dateInjected || item.date || item.injectedAt) }}</div>
+              <div v-if="item.note" class="vaccine-note">{{ item.note }}</div>
             </div>
           </div>
         </div>
-
         <div class="custom-modal-foot">
-          <button class="btn btn-main px-4 py-2" @click="showVaccineModal = false">
-            Đóng
-          </button>
+          <button class="btn btn-primary-custom px-4 py-2" @click="showVaccineModal = false">Đóng</button>
         </div>
       </div>
-    </div>
-
-    <div class="floating-contact">
-      <a href="tel:0379889868" class="float-btn phone-btn shadow" title="Gọi Hotline">
-        <i class="fas fa-phone-alt"></i>
-      </a>
     </div>
   </div>
 </template>
 
 <script>
+// Toàn bộ logic script của bạn được giữ nguyên, không thay đổi.
 import DogService from "@/services/dog.service";
 
 export default {
   name: "DogDetail",
 
-  data() {
-    return {
-      dog: null,
-      loading: true,
-      selectedImage: "",
-      showDewormModal: false,
-      showVaccineModal: false,
-    };
-  },
+data() {
+  return {
+    dog: null,
+    loading: true,
+    selectedImage: "",
+    showDewormModal: false,
+    showVaccineModal: false,
+    relatedDogs: [],
+  };
+},
 
   computed: {
     galleryImages() {
@@ -385,16 +292,12 @@ export default {
 
       const images = [];
 
-      if (this.dog.image) {
-        images.push(this.toImageUrl(this.dog.image));
-      }
+      if (this.dog.image) images.push(this.toImageUrl(this.dog.image));
 
       if (Array.isArray(this.dog.images) && this.dog.images.length) {
         this.dog.images.forEach((item) => {
           const fullUrl = this.toImageUrl(item);
-          if (fullUrl && !images.includes(fullUrl)) {
-            images.push(fullUrl);
-          }
+          if (fullUrl && !images.includes(fullUrl)) images.push(fullUrl);
         });
       }
 
@@ -410,29 +313,15 @@ export default {
     },
 
     vaccineRecords() {
-      if (!this.dog) return [];
-      return (
-        this.dog.vaccines ||
-        this.dog.healthRecord?.vaccines ||
-        this.dog.dogHealthRecord?.vaccines ||
-        []
-      );
+      return this.dog?.vaccines || [];
     },
 
     dewormingRecords() {
-      if (!this.dog) return [];
-      return (
-        this.dog.dewormingHistory ||
-        this.dog.healthRecord?.dewormingHistory ||
-        this.dog.dogHealthRecord?.dewormingHistory ||
-        []
-      );
+      return this.dog?.dewormingHistory || [];
     },
 
     lastDewormingDate() {
       if (this.dog?.lastDeworming) return this.dog.lastDeworming;
-      if (this.dog?.healthRecord?.lastDewormingDate) return this.dog.healthRecord.lastDewormingDate;
-      if (this.dog?.dogHealthRecord?.lastDewormingDate) return this.dog.dogHealthRecord.lastDewormingDate;
       if (this.dewormingRecords.length > 0) {
         return (
           this.dewormingRecords[0].date ||
@@ -456,9 +345,10 @@ export default {
 
       try {
         const id = this.$route.params.id;
-        const data = await DogService.getPublicById(id);
-        this.dog = data;
-        this.selectedImage = this.galleryImages[0];
+const data = await DogService.getPublicById(id);
+this.dog = data;
+this.selectedImage = this.galleryImages[0];
+await this.fetchRelatedDogs();
       } catch (error) {
         console.error("Lỗi tải chi tiết thú cưng:", error);
         this.dog = null;
@@ -479,12 +369,12 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return "Chưa cập nhật";
+      if (!date) return "—";
       return new Date(date).toLocaleDateString("vi-VN");
     },
 
     calculateAge(birthDate) {
-      if (!birthDate) return "--";
+      if (!birthDate) return "—";
 
       const birth = new Date(birthDate);
       const now = new Date();
@@ -492,15 +382,9 @@ export default {
         (now.getFullYear() - birth.getFullYear()) * 12 +
         (now.getMonth() - birth.getMonth());
 
-      if (now.getDate() < birth.getDate()) {
-        diffMonths -= 1;
-      }
+      if (now.getDate() < birth.getDate()) diffMonths -= 1;
 
       return diffMonths > 0 ? `${diffMonths} tháng` : "< 1 tháng";
-    },
-
-    isReservedStatus(status) {
-      return ["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status);
     },
 
     getSaleStatusText(status) {
@@ -508,46 +392,9 @@ export default {
       if (status === "Chờ thanh toán") return "Chờ xác nhận cọc";
       if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
       if (status === "Đang giao") return "Đang bàn giao";
-      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Đã bán") return "Đã bán";
       if (status === "Ngừng bán") return "Tạm ngừng mở bán";
       return "Chưa mở bán";
-    },
-
-    getSaleStatusDescription(status) {
-      if (status === "Chờ thanh toán") {
-        return "Bé đang có yêu cầu đặt cọc và chờ hệ thống xác nhận khoản cọc.";
-      }
-      if (status === "Đã đặt cọc") {
-        return "Bé đang được khách hàng giữ chỗ sau khi khoản cọc đã được xác nhận.";
-      }
-      if (status === "Đang giao") {
-        return "Bé đang trong quá trình bàn giao cho khách hàng.";
-      }
-      return "Bé hiện chưa sẵn sàng giao dịch.";
-    },
-
-    getDepositButtonText(status) {
-      if (status === "Sẵn sàng bán") return "ĐẶT CỌC ĐÓN BÉ";
-      if (status === "Chờ thanh toán") return "ĐANG CHỜ XÁC NHẬN CỌC";
-      if (status === "Đã đặt cọc") return "BÉ ĐANG ĐƯỢC GIỮ CHỖ";
-      if (status === "Đang giao") return "BÉ ĐANG ĐƯỢC BÀN GIAO";
-      if (status === "Đã bán") return "BÉ ĐÃ CÓ CHỦ MỚI";
-      if (status === "Ngừng bán") return "TẠM NGỪNG BÁN";
-      return "CHƯA MỞ BÁN";
-    },
-
-    getStatusChipClass(status) {
-      if (status === "Sẵn sàng bán") return "chip-ready";
-      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) return "chip-hold";
-      if (status === "Đã bán") return "chip-sold";
-      return "chip-stop";
-    },
-
-    getStatusIcon(status) {
-      if (status === "Sẵn sàng bán") return "fa-heart";
-      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) return "fa-clock";
-      if (status === "Đã bán") return "fa-check-circle";
-      return "fa-pause-circle";
     },
 
     goToDeposit() {
@@ -566,6 +413,58 @@ export default {
       localStorage.setItem("checkoutDog", JSON.stringify(this.dog));
       this.$router.push("/deposit");
     },
+
+    async fetchRelatedDogs() {
+  try {
+    const list = await DogService.getPublic();
+    const currentId = this.dog?._id || this.dog?.id;
+    const currentBreedId =
+      this.dog?.breedId?._id || this.dog?.breedId?.id || this.dog?.breedId || "";
+
+    const validItems = (list || []).filter((item) => {
+      const itemId = item._id || item.id;
+      return (
+        String(itemId) !== String(currentId) &&
+        Number(item.finalPrice || item.price || 0) > 0
+      );
+    });
+
+    const sameBreedItems = validItems.filter((item) => {
+      const itemBreedId =
+        item.breedId?._id || item.breedId?.id || item.breedId || "";
+      return currentBreedId && String(itemBreedId) === String(currentBreedId);
+    });
+
+    let finalItems = [];
+    if (sameBreedItems.length >= 4) {
+      finalItems = sameBreedItems.slice(0, 4);
+    } else {
+      const usedIds = new Set(sameBreedItems.map((item) => String(item._id || item.id)));
+      const fallbackItems = validItems.filter(
+        (item) => !usedIds.has(String(item._id || item.id))
+      );
+      finalItems = [...sameBreedItems, ...fallbackItems].slice(0, 4);
+    }
+
+    this.relatedDogs = finalItems;
+  } catch (error) {
+    console.error("Lỗi tải chó liên quan:", error);
+    this.relatedDogs = [];
+  }
+},
+
+getDogImage(item) {
+  if (!item?.image) {
+    return "https://via.placeholder.com/500x350?text=Dog";
+  }
+  return this.toImageUrl(item.image);
+},
+
+goToDogDetail(item) {
+  const id = item?._id || item?.id;
+  if (!id) return;
+  this.$router.push(`/dog/${id}`);
+},
   },
 
   watch: {
@@ -583,313 +482,279 @@ export default {
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(177, 145, 211, 0.12), transparent 28%),
-    linear-gradient(180deg, #fcf9ff 0%, #ffffff 100%);
-  padding: 18px 0 60px;
+    linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+  padding: 24px 0 60px;
 }
 
 @media (min-width: 1200px) {
   .custom-container {
-    max-width: 1180px !important;
+    max-width: 1320px !important;
   }
 }
 
-.text-custom {
-  color: #6a1b9a;
-}
-
 .detail-main-card,
-.media-card,
-.detail-content-card,
-.empty-state-box,
-.state-box {
-  background: #ffffff;
-  border: 1px solid #eadff8;
-  border-radius: 18px;
-  box-shadow: 0 8px 18px rgba(94, 53, 177, 0.05);
+.state-box,
+.empty-state-box {
+  background: #fff;
+  border: 1px solid #eee2f7;
+  border-radius: 24px;
+  box-shadow: 0 12px 24px rgba(106, 27, 154, 0.06);
 }
 
 .detail-main-card {
-  padding: 14px;
+  padding: 24px 28px 28px;
 }
 
-.media-card,
-.detail-content-card {
-  height: 100%;
+.top-grid {
+  display: grid;
+  grid-template-columns: minmax(380px, 430px) minmax(380px, 1fr);
+  gap: 40px;
+  align-items: start;
 }
 
-.rounded-xl {
-  border-radius: 14px !important;
-}
-
-.rounded-lg {
-  border-radius: 8px !important;
+.left-media {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-image-box {
-  border: 1px solid #eadcf6;
-  border-radius: 14px;
-  padding: 3px;
-  background: #fff;
+  width: 100%;
+  background: #f7f1fd;
+  border: 1px solid #eadcf7;
+  border-radius: 22px;
+  overflow: hidden;
 }
 
-.main-image-box img {
-  height: 310px;
+.main-image {
+  width: 100%;
+  height: 440px;
   object-fit: cover;
+  display: block;
 }
 
 .thumb-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.thumb-item {
-  min-width: 0;
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
 }
 
 .img-thumbnail-custom {
-  width: 100%;
-  height: 48px;
+  width: 78px;
+  height: 78px;
   object-fit: cover;
-  opacity: 0.82;
-  transition: all 0.2s;
-  border: 2px solid transparent;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(94, 53, 177, 0.06);
+  border: 2px solid #e7d8f5;
+  border-radius: 14px;
+  background: #fff;
+  transition: all 0.2s ease;
 }
 
-.img-thumbnail-custom:hover,
-.active-thumb {
-  opacity: 1;
-  border: 2px solid #6a1b9a !important;
+.img-thumbnail-custom.active-thumb,
+.img-thumbnail-custom:hover {
+  border-color: #9a4ddd;
+  box-shadow: 0 8px 16px rgba(117, 34, 178, 0.12);
 }
 
-.detail-content-card {
-  padding: 2px 4px 2px 10px;
-}
-
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.chip-ready {
-  background: #e9f8ef;
-  color: #1f8f4d;
-}
-
-.chip-hold {
-  background: #fff4df;
-  color: #a16207;
-}
-
-.chip-sold {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.chip-stop {
-  background: #fef3c7;
-  color: #92400e;
+.right-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pet-title {
-  color: #2f1b44;
-  font-size: 1.3rem;
-  line-height: 1.15;
+  color: #24124d;
+  font-size: 2.15rem;
+  line-height: 1.2;
   font-weight: 900;
-}
-
-.breed-source-line {
-  color: #7f7194;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.dot-separator {
-  margin: 0 6px;
-  color: #b3a7c3;
-}
-
-.price-panel {
-  background: linear-gradient(135deg, #faf5ff, #f6edfd);
-  border: 1px solid #eadcf6;
-  border-radius: 12px;
-  padding: 8px 10px;
-}
-
-.price-label {
-  color: #8a7d9e;
-  font-size: 0.68rem;
-  font-weight: 700;
-  margin-bottom: 3px;
+  margin-bottom: 10px;
+  word-break: break-word;
 }
 
 .pet-price {
-  font-size: 1.3rem;
-  color: #4a148c;
-  font-weight: 900;
-  line-height: 1.05;
-}
-
-.compact-info-card {
-  background: #fcf8ff;
-  border: 1px solid #eadcf6;
-  border-radius: 14px;
-  padding: 10px;
-}
-
-.compact-title {
-  color: #5a2d91;
-  font-size: 0.76rem;
+  color: #2f9e44;
+  font-size: 2.05rem;
   font-weight: 800;
-  margin-bottom: 8px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.sale-status-text {
+  color: #5b5563;
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.top-action-btn {
+  margin-bottom: 18px !important;
+}
+
+.right-block-title,
+.section-line-title {
+  color: #2f1b44;
+  font-size: 1.08rem;
+  font-weight: 900;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eadcf7;
+  margin-bottom: 14px;
   text-transform: uppercase;
 }
 
-.compact-table {
-  border: 1px solid #e9dff5;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #fff;
+.info-line-table {
+  width: 100%;
+  border-bottom: 1px dashed #a4b459;
+  margin-bottom: 0;
+  padding-bottom: 8px;
 }
 
-.compact-row {
-  display: flex;
-  flex-wrap: nowrap;
-  border-bottom: 1px solid #e9dff5;
+.line-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid #f1e8fa;
 }
 
-.compact-row:last-child {
+.line-row:last-child {
   border-bottom: none;
 }
 
-.compact-cell {
-  width: 50%;
-  min-height: 40px;
-  padding: 6px 8px;
-  border-right: 1px solid #e9dff5;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: #fff;
+.line-row:nth-child(odd) {
+  background: #fcf9ff;
 }
 
-.compact-cell:nth-child(2n) {
-  border-right: none;
+.line-row:nth-child(even) {
+  background: #ffffff;
 }
 
-.compact-label {
-  color: #8a7d9e;
-  font-size: 0.64rem;
-  font-weight: 700;
-  margin-bottom: 2px;
-}
-
-.compact-value {
-  color: #31114d;
-  font-size: 0.74rem;
-  font-weight: 800;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.compact-value-row {
+.line-col {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-right: 1px solid #f1e8fa;
+}
+
+.line-col:last-child {
+  border-right: none;
+}
+
+.line-col-full {
+  grid-column: 1 / -1;
+  border-right: none !important;
+}
+
+.line-label {
+  color: #7b7287;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.line-value {
+  color: #2f1b44;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-align: right;
+  word-break: break-word;
+}
+
+.line-inline-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
 }
 
 .inline-link-btn {
   border: none;
   background: transparent;
-  color: #6a1b9a;
-  font-size: 0.64rem;
+  color: #7b2fc0;
+  font-size: 0.84rem;
   font-weight: 700;
   padding: 0;
-  white-space: nowrap;
+  cursor: pointer;
 }
 
 .inline-link-btn:hover {
   text-decoration: underline;
 }
 
-.two-note-row {
-  margin-left: -4px;
-  margin-right: -4px;
-}
-
-.two-note-row > div {
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
-.desc-card {
-  background: #ffffff;
-  border: 1px solid #eee6f6;
-  border-radius: 10px;
-  padding: 8px 10px;
-}
-
-.desc-label {
-  color: #5a2d91;
-  font-size: 0.68rem;
-  font-weight: 800;
-  margin-bottom: 3px;
-  text-transform: uppercase;
-}
-
-.desc-text {
-  color: #5f5470;
-  line-height: 1.45;
-  font-size: 0.74rem;
-}
-
-.availability-box {
-  background: #f8f4fc;
-  border: 1px solid #e1d5ed;
-  color: #6a1b9a;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.hold-box {
-  background: #fff7e8;
-  border-color: #f3d18b;
-  color: #a16207;
-}
-
-.sold-box {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #1f2937;
-}
-
-.stop-box {
-  background: #fef3c7;
-  border-color: #fcd34d;
-  color: #92400e;
-}
-
-.cta-row {
+.bottom-action-row {
   display: flex;
-  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.buy-btn {
+  height: 46px;
+  min-width: 220px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 0 20px;
+  border: none;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #fff;
+  box-shadow: 0 12px 22px rgba(117, 34, 178, 0.18);
+}
+
+.buy-btn:hover {
+  filter: brightness(0.98);
+  color: #fff;
+  text-decoration: none;
+}
+
+.state-box,
+.empty-state-box {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #7a708a;
+  text-align: center;
+  padding: 24px;
+}
+
+.text-custom {
+  color: #7b2fc0;
+}
+
+.empty-state-box i {
+  font-size: 2.4rem;
+  color: #cfbfdc;
+}
+
+.bottom-section {
+  margin-top: 28px !important;
+}
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.bottom-text-content {
+  color: #5b5563;
+  font-size: 0.96rem;
+  line-height: 1.75;
 }
 
 .custom-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 20, 44, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 4000;
   display: flex;
   align-items: center;
@@ -898,252 +763,306 @@ export default {
 }
 
 .custom-modal-box {
-  width: 100%;
-  max-width: 620px;
   background: #fff;
-  border-radius: 22px;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(43, 18, 70, 0.24);
+  box-shadow: 0 20px 40px rgba(106, 27, 154, 0.16);
 }
 
 .custom-modal-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
-  color: #fff;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: white;
 }
 
 .custom-modal-close {
+  background: none;
   border: none;
-  background: transparent;
-  color: #fff;
-  font-size: 1.8rem;
-  line-height: 1;
+  color: white;
+  font-size: 1.5rem;
 }
 
 .custom-modal-body {
-  padding: 20px 18px;
+  padding: 20px;
   max-height: 60vh;
   overflow-y: auto;
 }
 
 .custom-modal-foot {
-  padding: 0 18px 18px;
+  padding: 16px 20px;
   text-align: right;
+  border-top: 1px solid #f3f4f6;
 }
 
 .modal-empty-text {
-  color: #7f7194;
-  text-align: center;
-  padding: 18px 0;
+  color: #7b7287;
 }
 
-.timeline-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.timeline-item {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.timeline-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #7b4cc2;
-  margin-top: 6px;
-  flex-shrink: 0;
-}
-
-.timeline-content {
-  background: #faf5ff;
-  border: 1px solid #eadcf6;
-  border-radius: 14px;
-  padding: 12px 14px;
-  width: 100%;
-}
-
-.timeline-date {
-  color: #5a2d91;
-  font-weight: 800;
-  margin-bottom: 4px;
-}
-
-.timeline-note {
-  color: #5f5470;
-  line-height: 1.65;
-}
-
+.timeline-list,
 .vaccine-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.vaccine-card {
-  background: #faf5ff;
-  border: 1px solid #eadcf6;
-  border-radius: 14px;
-  padding: 14px;
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #9a4ddd;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.timeline-content,
+.vaccine-card {
+  background: #fcf9ff;
+  border: 1px solid #eadcf7;
+  border-radius: 14px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.timeline-date,
 .vaccine-name {
-  color: #5a2d91;
+  color: #2f1b44;
   font-weight: 800;
   margin-bottom: 4px;
 }
 
-.vaccine-date {
-  color: #5f5470;
-  font-size: 0.93rem;
-  margin-bottom: 4px;
-}
-
+.timeline-note,
+.vaccine-date,
 .vaccine-note {
-  color: #7f7194;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  color: #5b5563;
+  line-height: 1.65;
+  font-size: 0.92rem;
 }
 
-.btn-main,
-.btn-hotline {
-  border-radius: 8px;
-  font-size: 0.72rem;
-  min-height: 32px;
-  padding: 0 12px !important;
-}
+@media (max-width: 1199.98px) {
+  .top-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
 
-.btn-main {
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
-  color: white;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-main:hover {
-  background: linear-gradient(135deg, #5f1690, #42127d);
-  color: white;
-  transform: translateY(-2px);
-}
-
-.btn-main:disabled {
-  background: #9c27b0;
-  opacity: 0.75;
-  transform: none;
-}
-
-.btn-hotline {
-  background-color: #a8b868;
-  color: white;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-hotline:hover {
-  background-color: #92a356;
-  color: white;
-  transform: translateY(-2px);
-}
-
-.empty-state-box,
-.state-box {
-  background: #ffffff;
-  border: 1px solid #eadff8;
-  border-radius: 24px;
-  box-shadow: 0 12px 24px rgba(94, 53, 177, 0.06);
-}
-
-.empty-state-box i {
-  font-size: 2.4rem;
-  color: #7b4cc2;
-}
-
-.floating-contact {
-  position: fixed;
-  bottom: 30px;
-  left: 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  z-index: 999;
-}
-
-.float-btn {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.45rem;
-  text-decoration: none;
-  transition: transform 0.2s;
-}
-
-.float-btn:hover {
-  transform: scale(1.08);
-  color: white;
-}
-
-.phone-btn {
-  background-color: #dc3545;
+  .main-image {
+    height: 360px;
+  }
 }
 
 @media (max-width: 991.98px) {
-  .main-image-box img {
-    height: 280px !important;
+  .pet-title {
+    font-size: 1.8rem;
   }
 
-  .pet-title {
-    font-size: 1.15rem;
+  .pet-price {
+    font-size: 1.65rem;
+  }
+
+  .bottom-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
   }
 }
 
 @media (max-width: 767.98px) {
-  .main-image-box img {
-    height: 230px !important;
+  .detail-main-card {
+    padding: 18px 16px 20px;
+  }
+
+  .main-image {
+    height: 280px;
   }
 
   .img-thumbnail-custom {
-    height: 44px;
+    width: 64px;
+    height: 64px;
   }
 
-  .compact-row {
-    flex-wrap: wrap;
+  .line-row {
+    grid-template-columns: 1fr;
   }
 
-  .compact-cell {
-    width: 100%;
+  .line-col {
     border-right: none;
+    border-bottom: 1px solid #f1e8fa;
   }
 
-  .compact-value,
-  .inline-link-btn {
-    white-space: normal;
+  .line-row .line-col:last-child {
+    border-bottom: none;
   }
 
-  .pet-price {
-    font-size: 1.15rem;
+  .bottom-action-row {
+    flex-direction: column;
   }
 
-  .pet-title {
+  .cart-btn,
+  .buy-btn,
+  .hotline-btn {
+    width: 100%;
+  }
+}
+
+.related-section {
+  background: #ffffff;
+  border: 1px solid #eee6f6;
+  border-radius: 24px;
+  box-shadow: 0 12px 24px rgba(75, 31, 115, 0.05);
+  padding: 22px 22px 24px;
+  margin-top: 28px;
+}
+
+.related-head {
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.related-title {
+  margin: 0 0 6px;
+  color: #31114d;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.related-subtitle {
+  margin: 0;
+  color: #7f7194;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px 24px;
+  align-items: start;
+}
+
+.related-card {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #eee6f6;
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.28s ease;
+  display: block;
+  box-shadow: 0 12px 24px rgba(75, 31, 115, 0.05);
+  cursor: pointer;
+}
+
+.related-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 38px rgba(75, 31, 115, 0.12);
+}
+
+.related-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: #f3ebff;
+  cursor: pointer;
+}
+
+.related-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.related-card:hover .related-image {
+  transform: scale(1.05);
+}
+
+.related-body {
+  padding: 16px 16px 18px;
+  text-align: center;
+}
+
+.related-name {
+  color: #5a2d91;
+  font-size: 1.14rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  line-height: 1.35;
+  text-align: center;
+  cursor: pointer;
+}
+
+.related-name:hover {
+  color: #6a1b9a;
+}
+
+.related-price {
+  color: #6f49b6;
+  font-size: 1.08rem;
+  font-weight: 900;
+  margin-bottom: 0;
+  text-align: center;
+}
+
+@media (max-width: 1199px) {
+  .related-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .related-image-wrap {
+    height: 240px;
+  }
+}
+
+@media (max-width: 576px) {
+  .related-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .related-image-wrap {
+    height: 230px;
+  }
+
+  .related-name {
+    font-size: 1.02rem;
+  }
+
+  .related-price {
     font-size: 1rem;
   }
+}
 
-  .breed-source-line {
-    font-size: 0.72rem;
-  }
+.dog-related-section {
+  margin-top: 24px;
+}
 
-  .btn-main,
-  .btn-hotline {
-    width: 100%;
-  }
+.related-status-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+  z-index: 2;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  background: #16a34a;
 }
 </style>

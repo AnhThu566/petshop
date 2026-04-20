@@ -1,5 +1,4 @@
 const Dog = require("../models/dog.model");
-const DogHealthRecord = require("../models/dogHealthRecord.model");
 const DogHistory = require("../models/dogHistory.model");
 
 const APPROVAL_STATUS = ["Chờ duyệt", "Cần bổ sung", "Đã duyệt", "Từ chối"];
@@ -24,6 +23,7 @@ const PUBLIC_SALE_STATUSES = [
 const lockStatuses = ["Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"];
 
 const basicEditableFields = [
+  "farmDogCode",
   "name",
   "gender",
   "proposedPrice",
@@ -31,10 +31,14 @@ const basicEditableFields = [
   "breedId",
   "weight",
   "birthDate",
+  "coatColor",
+  "birthPlace",
+  "fatherName",
+  "motherName",
   "healthStatus",
   "lastDeworming",
-  "sourceNotes",
-  "healthNote",
+  "vaccines",
+  "images",
 ];
 
 const getActorInfo = (req) => {
@@ -82,6 +86,100 @@ const parseBoolean = (value) => {
   return undefined;
 };
 
+const parseArrayField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => String(item || "").trim())
+          .filter(Boolean);
+      }
+    } catch (_) {}
+
+    return trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const parseVaccineField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => ({
+        vaccineId: item?.vaccineId || null,
+        vaccineName: String(item?.vaccineName || "").trim(),
+        dateInjected: item?.dateInjected || null,
+      }))
+      .filter((item) => item.vaccineId || item.vaccineName || item.dateInjected);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => ({
+            vaccineId: item?.vaccineId || null,
+            vaccineName: String(item?.vaccineName || "").trim(),
+            dateInjected: item?.dateInjected || null,
+          }))
+          .filter((item) => item.vaccineId || item.vaccineName || item.dateInjected);
+      }
+    } catch (_) {
+      return [];
+    }
+  }
+
+  return [];
+};
+
+const validateVaccines = (vaccines = [], birthDate = null) => {
+  const today = new Date();
+  const birth = birthDate ? new Date(birthDate) : null;
+
+  for (const item of vaccines) {
+    if (!item.vaccineId && !item.vaccineName) {
+      return "Mỗi vaccine phải có tên vaccine";
+    }
+
+    if (!item.dateInjected) {
+      return "Vui lòng nhập ngày tiêm cho vaccine";
+    }
+
+    const injectedDate = new Date(item.dateInjected);
+
+    if (Number.isNaN(injectedDate.getTime())) {
+      return "Ngày tiêm vaccine không hợp lệ";
+    }
+
+    if (injectedDate > today) {
+      return "Ngày tiêm vaccine không được ở tương lai";
+    }
+
+    if (birth && injectedDate < birth) {
+      return "Ngày tiêm vaccine không được nhỏ hơn ngày sinh";
+    }
+  }
+
+  return null;
+};
+
 const ensureFarmPermission = (req, farmId) => {
   if (!isFarmRole(req)) return "Chỉ trang trại mới được thao tác hồ sơ chó";
 
@@ -99,24 +197,31 @@ const populateDogQuery = (query) =>
     .populate("breedId", "name")
     .populate("reviewedBy", "username fullName role");
 
-const generateDogCode = async () => {
-  const lastDog = await Dog.findOne().sort({ createdAt: -1, maCho: -1 });
-  let nextCode = "TC001";
+const generateSystemDogCode = async () => {
+  const dogs = await Dog.find({
+    systemDogCode: { $exists: true, $ne: null, $ne: "" },
+  })
+    .select("systemDogCode")
+    .lean();
 
-  if (lastDog?.maCho) {
-    const lastNumber = parseInt(String(lastDog.maCho).replace("TC", ""), 10);
-    if (!Number.isNaN(lastNumber)) {
-      nextCode = `TC${String(lastNumber + 1).padStart(3, "0")}`;
+  let maxNumber = 0;
+
+  for (const dog of dogs) {
+    const code = String(dog.systemDogCode || "").toUpperCase();
+    const match = code.match(/^DOG(\d+)$/);
+    if (match) {
+      const number = parseInt(match[1], 10);
+      if (!Number.isNaN(number) && number > maxNumber) {
+        maxNumber = number;
+      }
     }
   }
 
-  return nextCode;
+  return `DOG${String(maxNumber + 1).padStart(4, "0")}`;
 };
 
 const hasAnyBasicChange = (payload) =>
-  basicEditableFields.some(
-    (field) => payload[field] !== undefined && payload[field] !== null
-  );
+  basicEditableFields.some((field) => payload[field] !== undefined);
 
 const buildPublicDogFilter = () => ({
   approvalStatus: "Đã duyệt",
@@ -147,18 +252,24 @@ exports.create = async (req, res) => {
     }
 
     const {
+      farmDogCode,
       name,
       gender,
       proposedPrice,
       description,
       breedId,
       weight,
+      birthDate,
+      coatColor,
+      birthPlace,
+      fatherName,
+      motherName,
       healthStatus,
       lastDeworming,
-      birthDate,
-      sourceNotes,
-      healthNote,
     } = req.body;
+
+    const vaccines = parseVaccineField(req.body.vaccines);
+    const images = parseArrayField(req.body.images);
 
     const finalFarmId = req.user?.farmId || req.body.farmId;
 
@@ -169,18 +280,29 @@ exports.create = async (req, res) => {
     }
 
     if (
+      !farmDogCode ||
       !name ||
       !gender ||
-      !finalFarmId ||
       !breedId ||
       !birthDate ||
+      !coatColor ||
+      !birthPlace ||
+      !healthStatus ||
       proposedPrice === undefined ||
       proposedPrice === null ||
-      Number(proposedPrice) <= 0
+      Number(proposedPrice) <= 0 ||
+      weight === undefined ||
+      weight === null ||
+      Number(weight) < 0
     ) {
       return res.status(400).send({
         message: "Thiếu hoặc sai thông tin bắt buộc để tạo hồ sơ chó",
       });
+    }
+
+    const vaccineError = validateVaccines(vaccines, birthDate);
+    if (vaccineError) {
+      return res.status(400).send({ message: vaccineError });
     }
 
     if (!req.file) {
@@ -189,29 +311,41 @@ exports.create = async (req, res) => {
       });
     }
 
+    const existedFarmDogCode = await Dog.findOne({
+      farmId: finalFarmId,
+      farmDogCode: String(farmDogCode).trim().toUpperCase(),
+    });
+
+    if (existedFarmDogCode) {
+      return res.status(400).send({
+        message: "Mã nhận diện tại trại đã tồn tại trong trang trại này",
+      });
+    }
+
     const imagePath = `/uploads/${req.file.filename}`;
-    const maCho = await generateDogCode();
-    const parsedProposedPrice = Number(proposedPrice);
 
     const newDog = new Dog({
-      maCho,
+      farmDogCode: String(farmDogCode).trim().toUpperCase(),
+      systemDogCode: null,
       name: String(name).trim(),
       gender: String(gender).trim(),
-      price: parsedProposedPrice,
-      proposedPrice: parsedProposedPrice,
+      proposedPrice: Number(proposedPrice),
+      finalPrice: null,
       description: String(description || "").trim(),
       farmId: finalFarmId,
       breedId,
       image: imagePath,
-      weight: weight === "" || weight === undefined ? null : Number(weight),
+      images,
+      weight: Number(weight),
       birthDate,
+      coatColor: String(coatColor).trim(),
+      birthPlace: String(birthPlace).trim(),
+      fatherName: String(fatherName || "").trim(),
+      motherName: String(motherName || "").trim(),
       healthStatus: String(healthStatus || "").trim(),
       lastDeworming: lastDeworming || null,
-      sourceNotes: String(sourceNotes || "").trim(),
-      healthNote: String(healthNote || "").trim(),
+      vaccines,
 
-      vaccinated: false,
-      sourceVerified: false,
       approvalStatus: "Chờ duyệt",
       saleStatus: "Chưa mở bán",
       isPublished: false,
@@ -308,7 +442,9 @@ exports.findAll = async (req, res) => {
       });
     }
 
-    const dogs = await populateDogQuery(Dog.find(filter).sort({ createdAt: -1 }));
+    const dogs = await populateDogQuery(
+      Dog.find(filter).sort({ createdAt: -1 })
+    );
 
     return res.send(dogs);
   } catch (error) {
@@ -374,7 +510,14 @@ exports.updateApprovalStatus = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { approvalStatus, rejectionReason, price, saleStatus, isPublished } = req.body;
+    const {
+      approvalStatus,
+      rejectionReason,
+      finalPrice,
+      saleStatus,
+      isPublished,
+      systemDogCode,
+    } = req.body;
 
     if (!APPROVAL_STATUS.includes(approvalStatus)) {
       return res.status(400).send({
@@ -391,7 +534,8 @@ exports.updateApprovalStatus = async (req, res) => {
 
     const oldApprovalStatus = dog.approvalStatus;
     const oldSaleStatus = dog.saleStatus;
-    const oldPrice = dog.price;
+    const oldFinalPrice = dog.finalPrice;
+    const oldSystemDogCode = dog.systemDogCode;
 
     if (
       (approvalStatus === "Cần bổ sung" || approvalStatus === "Từ chối") &&
@@ -406,16 +550,33 @@ exports.updateApprovalStatus = async (req, res) => {
       const nextPublished = parseBoolean(isPublished);
       const targetSaleStatus = saleStatus || "Sẵn sàng bán";
 
-      if (price === undefined || price === null || Number(price) <= 0) {
+      if (
+        finalPrice === undefined ||
+        finalPrice === null ||
+        Number(finalPrice) <= 0
+      ) {
         return res.status(400).send({
           message: "Vui lòng nhập giá bán chính thức hợp lệ",
         });
       }
 
-      if (Number(price) < Number(dog.proposedPrice || 0)) {
-        return res.status(400).send({
-          message: "Giá bán chính thức không được nhỏ hơn giá đề xuất từ trang trại",
+      if (!systemDogCode && !dog.systemDogCode) {
+        dog.systemDogCode = await generateSystemDogCode();
+      } else if (systemDogCode) {
+        const normalizedCode = String(systemDogCode).trim().toUpperCase();
+
+        const duplicatedCode = await Dog.findOne({
+          _id: { $ne: dog._id },
+          systemDogCode: normalizedCode,
         });
+
+        if (duplicatedCode) {
+          return res.status(400).send({
+            message: "Mã chó hệ thống đã tồn tại",
+          });
+        }
+
+        dog.systemDogCode = normalizedCode;
       }
 
       if (targetSaleStatus !== "Sẵn sàng bán") {
@@ -424,9 +585,8 @@ exports.updateApprovalStatus = async (req, res) => {
         });
       }
 
-
       dog.approvalStatus = "Đã duyệt";
-      dog.price = Number(price);
+      dog.finalPrice = Number(finalPrice);
       dog.saleStatus = "Sẵn sàng bán";
       dog.isPublished = nextPublished === undefined ? true : nextPublished;
       dog.rejectionReason = "";
@@ -444,6 +604,7 @@ exports.updateApprovalStatus = async (req, res) => {
       dog.saleStatus = "Chưa mở bán";
       dog.isPublished = false;
       dog.rejectionReason = String(rejectionReason || "").trim();
+      dog.finalPrice = null;
     }
 
     if (approvalStatus === "Chờ duyệt") {
@@ -451,6 +612,7 @@ exports.updateApprovalStatus = async (req, res) => {
       dog.saleStatus = "Chưa mở bán";
       dog.isPublished = false;
       dog.rejectionReason = "";
+      dog.finalPrice = null;
     }
 
     dog.reviewedAt = new Date();
@@ -485,13 +647,23 @@ exports.updateApprovalStatus = async (req, res) => {
       });
     }
 
-    if (oldPrice !== dog.price) {
+    if (oldFinalPrice !== dog.finalPrice) {
       await createDogHistory({
         dogId: dog._id,
-        oldStatus: String(oldPrice || ""),
-        newStatus: String(dog.price || ""),
+        oldStatus: String(oldFinalPrice || ""),
+        newStatus: String(dog.finalPrice || ""),
         req,
         note: "Admin cập nhật giá bán chính thức",
+      });
+    }
+
+    if (oldSystemDogCode !== dog.systemDogCode) {
+      await createDogHistory({
+        dogId: dog._id,
+        oldStatus: String(oldSystemDogCode || ""),
+        newStatus: String(dog.systemDogCode || ""),
+        req,
+        note: "Admin cấp mã chó hệ thống",
       });
     }
 
@@ -545,6 +717,12 @@ exports.updateSaleStatus = async (req, res) => {
       });
     }
 
+    if (!dog.finalPrice || Number(dog.finalPrice) <= 0) {
+      return res.status(400).send({
+        message: "Chó chưa có giá bán cuối cùng nên chưa thể cập nhật trạng thái bán",
+      });
+    }
+
     const oldSaleStatus = dog.saleStatus;
 
     if (oldSaleStatus === saleStatus) {
@@ -577,11 +755,7 @@ exports.updateSaleStatus = async (req, res) => {
       dog.isPublished = false;
     }
 
-    if (
-      ["Sẵn sàng bán", "Chờ thanh toán", "Đã đặt cọc", "Đang giao", "Đã bán"].includes(
-        saleStatus
-      )
-    ) {
+    if (PUBLIC_SALE_STATUSES.includes(saleStatus)) {
       dog.isPublished = true;
     }
 
@@ -632,11 +806,16 @@ exports.update = async (req, res) => {
 
     if (lockStatuses.includes(dog.saleStatus)) {
       return res.status(400).send({
-        message: "Không thể chỉnh sửa hồ sơ vì bé chó đang trong quá trình giao dịch hoặc đã bán",
+        message:
+          "Không thể chỉnh sửa hồ sơ vì bé chó đang trong quá trình giao dịch hoặc đã bán",
       });
     }
 
-    if (!["Chờ duyệt", "Cần bổ sung", "Từ chối", "Đã duyệt"].includes(dog.approvalStatus)) {
+    if (
+      !["Chờ duyệt", "Cần bổ sung", "Từ chối", "Đã duyệt"].includes(
+        dog.approvalStatus
+      )
+    ) {
       return res.status(400).send({
         message:
           "Chỉ được chỉnh sửa hồ sơ khi đang chờ duyệt, cần bổ sung, bị từ chối hoặc đã duyệt nhưng chưa giao dịch",
@@ -650,28 +829,60 @@ exports.update = async (req, res) => {
     delete updateData.saleStatus;
     delete updateData.rejectionReason;
     delete updateData.isPublished;
-    delete updateData.sourceVerified;
-    delete updateData.maCho;
     delete updateData.reviewedAt;
     delete updateData.reviewedBy;
-    delete updateData.price;
-    delete updateData.vaccinated;
+    delete updateData.systemDogCode;
+    delete updateData.finalPrice;
     delete updateData.depositAmount;
 
     if (updateData.proposedPrice !== undefined) {
       updateData.proposedPrice =
-        updateData.proposedPrice === ""
-          ? null
-          : Number(updateData.proposedPrice);
-    }
-
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+        updateData.proposedPrice === "" ? null : Number(updateData.proposedPrice);
     }
 
     if (updateData.weight !== undefined) {
       updateData.weight =
         updateData.weight === "" ? null : Number(updateData.weight);
+    }
+
+    if (updateData.farmDogCode !== undefined) {
+      updateData.farmDogCode = String(updateData.farmDogCode)
+        .trim()
+        .toUpperCase();
+
+      const duplicatedFarmCode = await Dog.findOne({
+        _id: { $ne: dog._id },
+        farmId: dog.farmId,
+        farmDogCode: updateData.farmDogCode,
+      });
+
+      if (duplicatedFarmCode) {
+        return res.status(400).send({
+          message: "Mã nhận diện tại trại đã tồn tại trong trang trại này",
+        });
+      }
+    }
+
+    if (updateData.vaccines !== undefined) {
+      updateData.vaccines = parseVaccineField(updateData.vaccines);
+
+      const vaccineBirthDate = updateData.birthDate || dog.birthDate;
+      const vaccineError = validateVaccines(
+        updateData.vaccines,
+        vaccineBirthDate
+      );
+
+      if (vaccineError) {
+        return res.status(400).send({ message: vaccineError });
+      }
+    }
+
+    if (updateData.images !== undefined) {
+      updateData.images = parseArrayField(updateData.images);
+    }
+
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`;
     }
 
     const changedBasicInfo = hasAnyBasicChange(updateData) || !!req.file;
@@ -684,20 +895,20 @@ exports.update = async (req, res) => {
       updateData.saleStatus = "Chưa mở bán";
       updateData.isPublished = false;
       updateData.rejectionReason = "";
-      updateData.sourceVerified = false;
       updateData.reviewedAt = null;
       updateData.reviewedBy = null;
-
-      if (updateData.proposedPrice !== undefined && updateData.proposedPrice !== null) {
-        updateData.price = updateData.proposedPrice;
-      }
+      updateData.finalPrice = null;
     }
 
     const oldApprovalStatus = dog.approvalStatus;
     const oldSaleStatus = dog.saleStatus;
 
     const updatedDog = await populateDogQuery(
-      Dog.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true })
+      Dog.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      )
     );
 
     if (!updatedDog) {
@@ -759,7 +970,9 @@ exports.getHistory = async (req, res) => {
       });
     }
 
-    const histories = await DogHistory.find({ dogId: id }).sort({ createdAt: -1 });
+    const histories = await DogHistory.find({ dogId: id }).sort({
+      createdAt: -1,
+    });
 
     return res.send(histories);
   } catch (error) {

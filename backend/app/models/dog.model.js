@@ -20,14 +20,53 @@ const ACTIVE_PUBLIC_SALE_STATUSES = [
   "Đã bán",
 ];
 
+const vaccineItemSchema = new mongoose.Schema(
+  {
+    vaccineId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vaccine",
+      default: null,
+    },
+    vaccineName: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: [150, "Tên vaccine không được vượt quá 150 ký tự"],
+    },
+    dateInjected: {
+      type: Date,
+      default: null,
+      validate: {
+        validator: function (value) {
+          return !value || value <= new Date();
+        },
+        message: "Ngày tiêm vaccine không được ở tương lai",
+      },
+    },
+  },
+  { _id: false }
+);
+
 const dogSchema = new mongoose.Schema(
   {
-    maCho: {
+    // Mã nhận diện tại trại - do trang trại nhập
+    farmDogCode: {
       type: String,
-      required: [true, "Mã chó là bắt buộc"],
-      unique: true,
+      required: [true, "Mã nhận diện tại trại là bắt buộc"],
       trim: true,
       uppercase: true,
+      maxlength: [50, "Mã nhận diện tại trại không được vượt quá 50 ký tự"],
+    },
+
+    // Mã chó hệ thống - do admin/hệ thống cấp
+    systemDogCode: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+      maxlength: [50, "Mã chó hệ thống không được vượt quá 50 ký tự"],
     },
 
     name: {
@@ -61,49 +100,28 @@ const dogSchema = new mongoose.Schema(
       trim: true,
     },
 
-    price: {
-      type: Number,
-      required: [true, "Giá bán là bắt buộc"],
-      min: [1, "Giá bán phải lớn hơn 0"],
-    },
-
-    proposedPrice: {
-      type: Number,
-      default: null,
-      min: [0, "Giá đề xuất không hợp lệ"],
-    },
-
-    depositAmount: {
-      type: Number,
-      default: null,
-      min: [0, "Tiền cọc không được âm"],
+    birthDate: {
+      type: Date,
+      required: [true, "Ngày sinh là bắt buộc"],
       validate: {
         validator: function (value) {
-          return value == null || this.price == null || Number(value) <= Number(this.price);
+          return value <= new Date();
         },
-        message: "Tiền cọc không được lớn hơn giá bán",
+        message: "Ngày sinh không được ở tương lai",
       },
     },
 
-    description: {
+    coatColor: {
       type: String,
+      required: [true, "Màu lông là bắt buộc"],
       trim: true,
-      default: "",
-      maxlength: [3000, "Mô tả không được vượt quá 3000 ký tự"],
+      maxlength: [100, "Màu lông không được vượt quá 100 ký tự"],
     },
 
-    sourceNotes: {
-      type: String,
-      trim: true,
-      default: "",
-      maxlength: [2000, "Thông tin nguồn gốc không được vượt quá 2000 ký tự"],
-    },
-
-    healthNote: {
-      type: String,
-      trim: true,
-      default: "",
-      maxlength: [2000, "Ghi chú sức khỏe không được vượt quá 2000 ký tự"],
+    weight: {
+      type: Number,
+      required: [true, "Cân nặng là bắt buộc"],
+      min: [0, "Cân nặng không được âm"],
     },
 
     image: {
@@ -117,33 +135,44 @@ const dogSchema = new mongoose.Schema(
       default: [],
     },
 
-    birthDate: {
-      type: Date,
-      required: [true, "Ngày sinh là bắt buộc"],
-      validate: {
-        validator: function (value) {
-          return value <= new Date();
-        },
-        message: "Ngày sinh không được ở tương lai",
-      },
+    birthPlace: {
+      type: String,
+      required: [true, "Nơi sinh ra là bắt buộc"],
+      trim: true,
+      maxlength: [255, "Nơi sinh ra không được vượt quá 255 ký tự"],
     },
 
-    weight: {
-      type: Number,
-      min: [0, "Cân nặng không được âm"],
-      default: null,
+    fatherName: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [100, "Tên chó bố không được vượt quá 100 ký tự"],
+    },
+
+    motherName: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [100, "Tên chó mẹ không được vượt quá 100 ký tự"],
+    },
+
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [3000, "Mô tả chó không được vượt quá 3000 ký tự"],
     },
 
     healthStatus: {
       type: String,
+      required: [true, "Tình trạng sức khỏe là bắt buộc"],
       trim: true,
-      default: "Tốt",
       maxlength: [500, "Tình trạng sức khỏe không được vượt quá 500 ký tự"],
     },
 
-    vaccinated: {
-      type: Boolean,
-      default: false,
+    vaccines: {
+      type: [vaccineItemSchema],
+      default: [],
     },
 
     lastDeworming: {
@@ -157,10 +186,30 @@ const dogSchema = new mongoose.Schema(
       },
     },
 
-    sourceVerified: {
-      type: Boolean,
-      default: false,
-      index: true,
+    // Giá do trang trại đề xuất
+    proposedPrice: {
+      type: Number,
+      required: [true, "Giá đề xuất là bắt buộc"],
+      min: [1, "Giá đề xuất phải lớn hơn 0"],
+    },
+
+    // Giá cuối cùng do admin chốt
+    finalPrice: {
+      type: Number,
+      default: null,
+      min: [1, "Giá bán cuối cùng phải lớn hơn 0"],
+    },
+
+    depositAmount: {
+      type: Number,
+      default: null,
+      min: [0, "Tiền cọc không được âm"],
+      validate: {
+        validator: function (value) {
+          return value == null || this.finalPrice == null || Number(value) <= Number(this.finalPrice);
+        },
+        message: "Tiền cọc không được lớn hơn giá bán cuối cùng",
+      },
     },
 
     approvalStatus: {
@@ -212,21 +261,44 @@ const dogSchema = new mongoose.Schema(
   }
 );
 
+dogSchema.index({ farmId: 1, farmDogCode: 1 }, { unique: true });
 dogSchema.index({ farmId: 1, breedId: 1 });
 dogSchema.index({ approvalStatus: 1, saleStatus: 1, isPublished: 1 });
 dogSchema.index({ farmId: 1, approvalStatus: 1, saleStatus: 1 });
 dogSchema.index({ breedId: 1, approvalStatus: 1, saleStatus: 1 });
 
 dogSchema.pre("validate", function () {
+  if (typeof this.farmDogCode === "string") {
+    this.farmDogCode = this.farmDogCode.trim().toUpperCase();
+  }
+
+  if (typeof this.systemDogCode === "string" && this.systemDogCode) {
+    this.systemDogCode = this.systemDogCode.trim().toUpperCase();
+  }
+
   if (typeof this.name === "string") this.name = this.name.trim();
+  if (typeof this.coatColor === "string") this.coatColor = this.coatColor.trim();
+  if (typeof this.birthPlace === "string") this.birthPlace = this.birthPlace.trim();
+  if (typeof this.fatherName === "string") this.fatherName = this.fatherName.trim();
+  if (typeof this.motherName === "string") this.motherName = this.motherName.trim();
   if (typeof this.description === "string") this.description = this.description.trim();
   if (typeof this.healthStatus === "string") this.healthStatus = this.healthStatus.trim();
   if (typeof this.rejectionReason === "string") this.rejectionReason = this.rejectionReason.trim();
-  if (typeof this.sourceNotes === "string") this.sourceNotes = this.sourceNotes.trim();
-  if (typeof this.healthNote === "string") this.healthNote = this.healthNote.trim();
+
+  if (!this.farmDogCode) {
+    throw new Error("Mã nhận diện tại trại là bắt buộc");
+  }
 
   if (!this.name) {
     throw new Error("Tên chó là bắt buộc");
+  }
+
+  if (!this.coatColor) {
+    throw new Error("Màu lông là bắt buộc");
+  }
+
+  if (!this.birthPlace) {
+    throw new Error("Nơi sinh ra là bắt buộc");
   }
 
   if (this.birthDate && this.birthDate > new Date()) {
@@ -241,17 +313,25 @@ dogSchema.pre("validate", function () {
     throw new Error("Ngày tẩy giun không được nhỏ hơn ngày sinh");
   }
 
-  if (this.proposedPrice !== null && this.proposedPrice !== undefined && this.proposedPrice < 0) {
-    throw new Error("Giá đề xuất không hợp lệ");
+  if (this.weight != null && this.weight < 0) {
+    throw new Error("Cân nặng không được âm");
   }
 
-  if (this.depositAmount !== null && this.depositAmount !== undefined) {
+  if (this.proposedPrice != null && this.proposedPrice < 1) {
+    throw new Error("Giá đề xuất phải lớn hơn 0");
+  }
+
+  if (this.finalPrice != null && this.finalPrice < 1) {
+    throw new Error("Giá bán cuối cùng phải lớn hơn 0");
+  }
+
+  if (this.depositAmount != null) {
     if (this.depositAmount < 0) {
       throw new Error("Tiền cọc không được âm");
     }
 
-    if (this.price !== null && this.price !== undefined && Number(this.depositAmount) > Number(this.price)) {
-      throw new Error("Tiền cọc không được lớn hơn giá bán");
+    if (this.finalPrice != null && Number(this.depositAmount) > Number(this.finalPrice)) {
+      throw new Error("Tiền cọc không được lớn hơn giá bán cuối cùng");
     }
   }
 
@@ -273,16 +353,18 @@ dogSchema.pre("validate", function () {
     throw new Error("Chỉ chó đã duyệt mới được hiển thị trên website");
   }
 
-  if (
-    ACTIVE_PUBLIC_SALE_STATUSES.includes(this.saleStatus) &&
-    this.approvalStatus !== "Đã duyệt"
-  ) {
+  if (ACTIVE_PUBLIC_SALE_STATUSES.includes(this.saleStatus) && this.approvalStatus !== "Đã duyệt") {
     throw new Error("Chó chưa được duyệt thì không được chuyển sang trạng thái bán");
+  }
+
+  if (ACTIVE_PUBLIC_SALE_STATUSES.includes(this.saleStatus) && !this.finalPrice) {
+    throw new Error("Phải có giá bán cuối cùng trước khi mở bán");
   }
 
   if (this.approvalStatus === "Từ chối") {
     this.isPublished = false;
     this.saleStatus = "Chưa mở bán";
+    this.finalPrice = null;
   }
 
   if (this.approvalStatus === "Cần bổ sung") {
@@ -293,6 +375,7 @@ dogSchema.pre("validate", function () {
   if (this.approvalStatus === "Chờ duyệt") {
     this.isPublished = false;
     this.saleStatus = "Chưa mở bán";
+    this.finalPrice = null;
   }
 
   if (["Chưa mở bán", "Ngừng bán"].includes(this.saleStatus)) {
@@ -310,10 +393,53 @@ dogSchema.pre("validate", function () {
   } else {
     this.images = [];
   }
+
+  if (Array.isArray(this.vaccines)) {
+    this.vaccines = this.vaccines
+      .map((item) => ({
+        vaccineId: item?.vaccineId || null,
+        vaccineName: String(item?.vaccineName || "").trim(),
+        dateInjected: item?.dateInjected || null,
+      }))
+      .filter((item) => item.vaccineId || item.vaccineName || item.dateInjected);
+
+    for (const vaccine of this.vaccines) {
+      if (!vaccine.vaccineId && !vaccine.vaccineName) {
+        throw new Error("Mỗi vaccine phải có tên vaccine hoặc vaccineId");
+      }
+
+      if (vaccine.dateInjected && vaccine.dateInjected > new Date()) {
+        throw new Error("Ngày tiêm vaccine không được ở tương lai");
+      }
+
+      if (vaccine.dateInjected && this.birthDate && vaccine.dateInjected < this.birthDate) {
+        throw new Error("Ngày tiêm vaccine không được nhỏ hơn ngày sinh");
+      }
+    }
+  } else {
+    this.vaccines = [];
+  }
+});
+
+dogSchema.virtual("ageInMonths").get(function () {
+  if (!this.birthDate) return null;
+
+  const now = new Date();
+  const birth = new Date(this.birthDate);
+
+  let months =
+    (now.getFullYear() - birth.getFullYear()) * 12 +
+    (now.getMonth() - birth.getMonth());
+
+  if (now.getDate() < birth.getDate()) {
+    months -= 1;
+  }
+
+  return months >= 0 ? months : 0;
 });
 
 dogSchema.method("toJSON", function () {
-  const { __v, _id, ...object } = this.toObject();
+  const { __v, _id, ...object } = this.toObject({ virtuals: true });
   object.id = _id;
   return object;
 });
