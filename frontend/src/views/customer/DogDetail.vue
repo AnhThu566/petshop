@@ -23,191 +23,224 @@
       </div>
     </div>
 
-<div class="container custom-container" v-else-if="dog">
-  <div class="detail-main-card">
-    <div class="top-grid">
-      <div class="left-media">
-        <div class="main-image-box">
-          <img :src="selectedImage" class="main-image" :alt="dog.name" />
+    <div class="container custom-container" v-else-if="dog">
+      <div class="detail-main-card">
+        <div class="top-grid">
+          <div class="left-media">
+            <div class="main-image-box">
+              <img :src="selectedImage" class="main-image" :alt="dog.name" />
+            </div>
+
+            <div class="thumb-grid" v-if="galleryImages.length">
+              <img
+                v-for="(image, index) in galleryImages"
+                :key="`${image}-${index}`"
+                :src="image"
+                class="img-thumbnail-custom"
+                :class="{ 'active-thumb': selectedImage === image }"
+                :alt="`${dog.name} - ảnh ${index + 1}`"
+                @click="selectedImage = image"
+              />
+            </div>
+          </div>
+
+          <div class="right-info">
+            <div class="title-status-row">
+              <div class="title-wrap">
+                <h1 class="pet-title">{{ dog.name }}</h1>
+                <div class="pet-price">{{ formatCurrency(dog.finalPrice || dog.price) }}</div>
+              </div>
+
+              <span class="sale-status-badge" :class="saleStatusClass">
+                {{ saleStatusLabel }}
+              </span>
+            </div>
+
+            <div class="sale-status-text">
+              {{ getSaleStatusText(dog.saleStatus) }}
+            </div>
+
+            <div
+              v-if="actionHint"
+              class="action-hint"
+              :class="{ disabled: !canDeposit }"
+            >
+              {{ actionHint }}
+            </div>
+
+            <div class="right-block-title">THÔNG TIN VỀ CÚN YÊU</div>
+
+            <div class="info-line-table">
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Ngày sinh:</span>
+                  <span class="line-value">{{ formatDate(dog.birthDate) }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Giới tính:</span>
+                  <span class="line-value">{{ dog.gender || "—" }}</span>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Màu lông:</span>
+                  <span class="line-value">{{ dog.coatColor || "—" }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Tháng tuổi:</span>
+                  <span class="line-value">{{ calculateAge(dog.birthDate) }}</span>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Tình trạng sức khỏe:</span>
+                  <span class="line-value">{{ dog.healthStatus || "Tốt" }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Cân nặng:</span>
+                  <span class="line-value">{{ dog.weight ? `${dog.weight} kg` : "—" }}</span>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Bố:</span>
+                  <span class="line-value">{{ dog.fatherName || "—" }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Mẹ:</span>
+                  <span class="line-value">{{ dog.motherName || "—" }}</span>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Nơi sinh:</span>
+                  <span class="line-value">{{ dog.birthPlace || "—" }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Nguồn cung:</span>
+                  <span class="line-value">{{ dog.farmId?.name || "—" }}</span>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col">
+                  <span class="line-label">Khu vực:</span>
+                  <span class="line-value">{{ dog.farmId?.address || "—" }}</span>
+                </div>
+                <div class="line-col">
+                  <span class="line-label">Tẩy giun:</span>
+                  <div class="line-inline-group">
+                    <span class="line-value">{{ formatDate(lastDewormingDate) }}</span>
+                    <button type="button" class="inline-link-btn" @click="showDewormModal = true">
+                      Xem chi tiết
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="line-row">
+                <div class="line-col line-col-full">
+                  <span class="line-label">Vaccine:</span>
+                  <div class="line-inline-group">
+                    <span class="line-value">
+                      {{ vaccineRecords.length > 0 ? `${vaccineRecords.length} mũi` : "Chưa có dữ liệu" }}
+                    </span>
+                    <button type="button" class="inline-link-btn" @click="showVaccineModal = true">
+                      Xem chi tiết
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bottom-action-row">
+              <button
+                v-if="canDeposit"
+                class="buy-btn"
+                @click="goToDeposit"
+              >
+                ĐẶT CỌC ĐÓN BÉ
+              </button>
+
+              <button
+                v-else
+                class="buy-btn disabled-btn"
+                type="button"
+                disabled
+              >
+                {{ actionButtonText }}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="thumb-grid" v-if="galleryImages.length">
-          <img
-            v-for="(image, index) in galleryImages"
-            :key="`${image}-${index}`"
-            :src="image"
-            class="img-thumbnail-custom"
-            :class="{ 'active-thumb': selectedImage === image }"
-            :alt="`${dog.name} - ảnh ${index + 1}`"
-            @click="selectedImage = image"
-          />
-        </div>
-      </div>
+        <div class="bottom-section mt-5" v-if="dog.description || dog.fatherName || dog.motherName">
+          <div class="bottom-grid">
+            <div>
+              <div class="section-line-title">GIỚI THIỆU VỀ CÚN YÊU</div>
+              <div class="bottom-text-content mt-3">
+                {{ dog.description || 'Chưa có thông tin giới thiệu.' }}
+              </div>
+            </div>
 
-      <div class="right-info">
-        <h1 class="pet-title">{{ dog.name }}</h1>
-        <div class="pet-price">{{ formatCurrency(dog.finalPrice || dog.price) }}</div>
-        <div class="sale-status-text">
-          {{ getSaleStatusText(dog.saleStatus) }}
-        </div>
-
-        <div class="right-block-title">THÔNG TIN VỀ CÚN YÊU</div>
-
-        <div class="info-line-table">
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Ngày sinh:</span>
-              <span class="line-value">{{ formatDate(dog.birthDate) }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Giới tính:</span>
-              <span class="line-value">{{ dog.gender || "—" }}</span>
-            </div>
-          </div>
-
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Màu lông:</span>
-              <span class="line-value">{{ dog.coatColor || "—" }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Tháng tuổi:</span>
-              <span class="line-value">{{ calculateAge(dog.birthDate) }}</span>
-            </div>
-          </div>
-
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Tình trạng sức khỏe:</span>
-              <span class="line-value">{{ dog.healthStatus || "Tốt" }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Cân nặng:</span>
-              <span class="line-value">{{ dog.weight ? `${dog.weight} kg` : "—" }}</span>
-            </div>
-          </div>
-
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Bố:</span>
-              <span class="line-value">{{ dog.fatherName || "—" }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Mẹ:</span>
-              <span class="line-value">{{ dog.motherName || "—" }}</span>
-            </div>
-          </div>
-
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Nơi sinh:</span>
-              <span class="line-value">{{ dog.birthPlace || "—" }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Nguồn cung:</span>
-              <span class="line-value">{{ dog.farmId?.name || "—" }}</span>
-            </div>
-          </div>
-
-          <div class="line-row">
-            <div class="line-col">
-              <span class="line-label">Khu vực:</span>
-              <span class="line-value">{{ dog.farmId?.address || "—" }}</span>
-            </div>
-            <div class="line-col">
-              <span class="line-label">Tẩy giun:</span>
-              <div class="line-inline-group">
-                <span class="line-value">{{ formatDate(lastDewormingDate) }}</span>
-                <button type="button" class="inline-link-btn" @click="showDewormModal = true">
-                  Xem chi tiết
-                </button>
+            <div>
+              <div class="section-line-title">THÔNG TIN VỀ BỐ MẸ</div>
+              <div class="bottom-text-content mt-3">
+                <div class="mb-2"><strong>Bố:</strong> {{ dog.fatherName || "Đang cập nhật" }}</div>
+                <div><strong>Mẹ:</strong> {{ dog.motherName || "Đang cập nhật" }}</div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="line-row">
-            <div class="line-col line-col-full">
-              <span class="line-label">Vaccine:</span>
-              <div class="line-inline-group">
-                <span class="line-value">
-                  {{ vaccineRecords.length > 0 ? `${vaccineRecords.length} mũi` : "Chưa có dữ liệu" }}
-                </span>
-                <button type="button" class="inline-link-btn" @click="showVaccineModal = true">
-                  Xem chi tiết
-                </button>
+      <div v-if="relatedDogs.length > 0" class="related-section dog-related-section">
+        <div class="related-head">
+          <h3 class="related-title">Gợi ý các bé chó liên quan</h3>
+          <p class="related-subtitle">
+            Một số bé cùng giống hoặc phù hợp với nhu cầu của bạn
+          </p>
+        </div>
+
+        <div class="related-grid">
+          <div
+            class="related-card"
+            v-for="item in relatedDogs"
+            :key="item._id || item.id"
+            @click="goToDogDetail(item)"
+          >
+            <div class="related-image-wrap">
+              <img
+                :src="getDogImage(item)"
+                alt="related-dog"
+                class="related-image"
+              />
+
+              <span
+                class="related-status-badge"
+                :class="getStatusClass(item.saleStatus)"
+              >
+                {{ getSaleStatusText(item.saleStatus) }}
+              </span>
+            </div>
+
+            <div class="related-body">
+              <h4 class="related-name">
+                {{ item.name }}
+              </h4>
+
+              <div class="related-price">
+                {{ formatCurrency(item.finalPrice || item.price) }}
               </div>
             </div>
           </div>
         </div>
-
-        <div class="bottom-action-row">
-          <button class="buy-btn" @click="goToDeposit" v-if="canDeposit">
-            ĐẶT CỌC ĐÓN BÉ
-          </button>
-        </div>
       </div>
     </div>
-
-    <div class="bottom-section mt-5" v-if="dog.description || dog.fatherName || dog.motherName">
-      <div class="bottom-grid">
-        <div>
-          <div class="section-line-title">GIỚI THIỆU VỀ CÚN YÊU</div>
-          <div class="bottom-text-content mt-3">
-            {{ dog.description || 'Chưa có thông tin giới thiệu.' }}
-          </div>
-        </div>
-
-        <div>
-          <div class="section-line-title">THÔNG TIN VỀ BỐ MẸ</div>
-          <div class="bottom-text-content mt-3">
-            <div class="mb-2"><strong>Bố:</strong> {{ dog.fatherName || "Đang cập nhật" }}</div>
-            <div><strong>Mẹ:</strong> {{ dog.motherName || "Đang cập nhật" }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div v-if="relatedDogs.length > 0" class="related-section dog-related-section">
-    <div class="related-head">
-      <h3 class="related-title">Gợi ý các bé chó liên quan</h3>
-      <p class="related-subtitle">
-        Một số bé cùng giống hoặc phù hợp với nhu cầu của bạn
-      </p>
-    </div>
-
-    <div class="related-grid">
-<div
-  class="related-card"
-  v-for="item in relatedDogs"
-  :key="item._id || item.id"
-  @click="goToDogDetail(item)"
->
-  <div class="related-image-wrap">
-    <img
-      :src="getDogImage(item)"
-      alt="related-dog"
-      class="related-image"
-    />
-
-    <span class="related-status-badge">
-      Sẵn sàng đón về
-    </span>
-  </div>
-
-  <div class="related-body">
-    <h4 class="related-name">
-      {{ item.name }}
-    </h4>
-
-    <div class="related-price">
-      {{ formatCurrency(item.finalPrice || item.price) }}
-    </div>
-  </div>
-</div>
-    </div>
-  </div>
-</div>
 
     <div class="container custom-container" v-else>
       <div class="empty-state-box text-center py-5">
@@ -269,22 +302,21 @@
 </template>
 
 <script>
-// Toàn bộ logic script của bạn được giữ nguyên, không thay đổi.
 import DogService from "@/services/dog.service";
 
 export default {
   name: "DogDetail",
 
-data() {
-  return {
-    dog: null,
-    loading: true,
-    selectedImage: "",
-    showDewormModal: false,
-    showVaccineModal: false,
-    relatedDogs: [],
-  };
-},
+  data() {
+    return {
+      dog: null,
+      loading: true,
+      selectedImage: "",
+      showDewormModal: false,
+      showVaccineModal: false,
+      relatedDogs: [],
+    };
+  },
 
   computed: {
     galleryImages() {
@@ -309,8 +341,60 @@ data() {
     },
 
     canDeposit() {
-      return this.dog?.saleStatus === "Sẵn sàng bán";
+      return (
+        this.dog?.saleStatus === "Sẵn sàng bán" &&
+        this.dog?.approvalStatus === "Đã duyệt" &&
+        this.dog?.isPublished !== false
+      );
     },
+
+    saleStatusLabel() {
+      return this.getSaleStatusText(this.dog?.saleStatus);
+    },
+
+    saleStatusClass() {
+      return this.getStatusClass(this.dog?.saleStatus);
+    },
+
+    actionButtonText() {
+  const status = this.dog?.saleStatus;
+
+  if (status === "Đã bán") {
+    return "BÉ ĐÃ BÁN";
+  }
+
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "ĐÃ CÓ NGƯỜI ĐẶT";
+  }
+
+  if (status === "Ngừng bán") {
+    return "TẠM NGỪNG MỞ BÁN";
+  }
+
+  return "CHƯA MỞ BÁN";
+},
+
+actionHint() {
+  const status = this.dog?.saleStatus;
+
+  if (status === "Sẵn sàng bán") {
+    return "Bé hiện vẫn còn nhận đặt cọc.";
+  }
+
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "Bé hiện đã có khách khác đặt trước.";
+  }
+
+  if (status === "Đã bán") {
+    return "Bé đã hoàn tất giao dịch.";
+  }
+
+  if (status === "Ngừng bán") {
+    return "Bé đang được tạm ngừng mở bán trong thời điểm này.";
+  }
+
+  return "Bé hiện chưa đủ điều kiện để nhận đặt cọc.";
+},
 
     vaccineRecords() {
       return this.dog?.vaccines || [];
@@ -345,10 +429,10 @@ data() {
 
       try {
         const id = this.$route.params.id;
-const data = await DogService.getPublicById(id);
-this.dog = data;
-this.selectedImage = this.galleryImages[0];
-await this.fetchRelatedDogs();
+        const data = await DogService.getPublicById(id);
+        this.dog = data;
+        this.selectedImage = this.galleryImages[0];
+        await this.fetchRelatedDogs();
       } catch (error) {
         console.error("Lỗi tải chi tiết thú cưng:", error);
         this.dog = null;
@@ -387,84 +471,105 @@ await this.fetchRelatedDogs();
       return diffMonths > 0 ? `${diffMonths} tháng` : "< 1 tháng";
     },
 
-    getSaleStatusText(status) {
-      if (status === "Sẵn sàng bán") return "Sẵn sàng đón về";
-      if (status === "Chờ thanh toán") return "Chờ xác nhận cọc";
-      if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
-      if (status === "Đang giao") return "Đang bàn giao";
-      if (status === "Đã bán") return "Đã bán";
-      if (status === "Ngừng bán") return "Tạm ngừng mở bán";
-      return "Chưa mở bán";
-    },
+getSaleStatusText(status) {
+  if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "Đã có người đặt";
+  }
+  if (status === "Đã bán") return "Đã bán";
+  if (status === "Ngừng bán") return "Tạm ngừng mở bán";
+  return "Chưa mở bán";
+},
+
+getStatusClass(status) {
+  if (status === "Sẵn sàng bán") return "status-ready";
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "status-deposited";
+  }
+  if (status === "Đã bán") return "status-sold";
+  if (status === "Ngừng bán") return "status-stop";
+  return "status-default";
+},
 
     goToDeposit() {
       if (!this.dog || !this.canDeposit) {
-        alert("Bé chó này hiện chưa sẵn sàng để đặt cọc.");
+        alert(this.actionHint || "Bé chó này hiện chưa sẵn sàng để đặt cọc.");
         return;
       }
 
       const user = JSON.parse(localStorage.getItem("user") || "null");
+
       if (!user) {
         alert("Vui lòng đăng nhập để thực hiện đặt cọc.");
-        this.$router.push("/login");
+        this.$router.push({
+          path: "/login",
+          query: {
+            redirect: `/deposit?dogId=${this.dog._id || this.dog.id}`,
+          },
+        });
         return;
       }
 
       localStorage.setItem("checkoutDog", JSON.stringify(this.dog));
-      this.$router.push("/deposit");
+      this.$router.push({
+        path: "/deposit",
+        query: {
+          dogId: this.dog._id || this.dog.id,
+        },
+      });
     },
 
     async fetchRelatedDogs() {
-  try {
-    const list = await DogService.getPublic();
-    const currentId = this.dog?._id || this.dog?.id;
-    const currentBreedId =
-      this.dog?.breedId?._id || this.dog?.breedId?.id || this.dog?.breedId || "";
+      try {
+        const list = await DogService.getPublic();
+        const currentId = this.dog?._id || this.dog?.id;
+        const currentBreedId =
+          this.dog?.breedId?._id || this.dog?.breedId?.id || this.dog?.breedId || "";
 
-    const validItems = (list || []).filter((item) => {
-      const itemId = item._id || item.id;
-      return (
-        String(itemId) !== String(currentId) &&
-        Number(item.finalPrice || item.price || 0) > 0
-      );
-    });
+        const validItems = (list || []).filter((item) => {
+          const itemId = item._id || item.id;
+          return (
+            String(itemId) !== String(currentId) &&
+            Number(item.finalPrice || item.price || 0) > 0
+          );
+        });
 
-    const sameBreedItems = validItems.filter((item) => {
-      const itemBreedId =
-        item.breedId?._id || item.breedId?.id || item.breedId || "";
-      return currentBreedId && String(itemBreedId) === String(currentBreedId);
-    });
+        const sameBreedItems = validItems.filter((item) => {
+          const itemBreedId =
+            item.breedId?._id || item.breedId?.id || item.breedId || "";
+          return currentBreedId && String(itemBreedId) === String(currentBreedId);
+        });
 
-    let finalItems = [];
-    if (sameBreedItems.length >= 4) {
-      finalItems = sameBreedItems.slice(0, 4);
-    } else {
-      const usedIds = new Set(sameBreedItems.map((item) => String(item._id || item.id)));
-      const fallbackItems = validItems.filter(
-        (item) => !usedIds.has(String(item._id || item.id))
-      );
-      finalItems = [...sameBreedItems, ...fallbackItems].slice(0, 4);
-    }
+        let finalItems = [];
+        if (sameBreedItems.length >= 4) {
+          finalItems = sameBreedItems.slice(0, 4);
+        } else {
+          const usedIds = new Set(sameBreedItems.map((item) => String(item._id || item.id)));
+          const fallbackItems = validItems.filter(
+            (item) => !usedIds.has(String(item._id || item.id))
+          );
+          finalItems = [...sameBreedItems, ...fallbackItems].slice(0, 4);
+        }
 
-    this.relatedDogs = finalItems;
-  } catch (error) {
-    console.error("Lỗi tải chó liên quan:", error);
-    this.relatedDogs = [];
-  }
-},
+        this.relatedDogs = finalItems;
+      } catch (error) {
+        console.error("Lỗi tải chó liên quan:", error);
+        this.relatedDogs = [];
+      }
+    },
 
-getDogImage(item) {
-  if (!item?.image) {
-    return "https://via.placeholder.com/500x350?text=Dog";
-  }
-  return this.toImageUrl(item.image);
-},
+    getDogImage(item) {
+      if (!item?.image) {
+        return "https://via.placeholder.com/500x350?text=Dog";
+      }
+      return this.toImageUrl(item.image);
+    },
 
-goToDogDetail(item) {
-  const id = item?._id || item?.id;
-  if (!id) return;
-  this.$router.push(`/dog/${id}`);
-},
+    goToDogDetail(item) {
+      const id = item?._id || item?.id;
+      if (!id) return;
+      this.$router.push(`/dog/${id}`);
+    },
   },
 
   watch: {
@@ -563,6 +668,18 @@ goToDogDetail(item) {
   flex-direction: column;
 }
 
+.title-status-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.title-wrap {
+  min-width: 0;
+}
+
 .pet-title {
   color: #24124d;
   font-size: 2.15rem;
@@ -580,15 +697,74 @@ goToDogDetail(item) {
   margin-bottom: 4px;
 }
 
+.sale-status-badge {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
 .sale-status-text {
   color: #5b5563;
   font-size: 0.98rem;
   font-weight: 600;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
-.top-action-btn {
-  margin-bottom: 18px !important;
+.action-hint {
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f6ffed;
+  color: #2f6b1f;
+  border: 1px solid #cdebbd;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.action-hint.disabled {
+  background: #fff8e6;
+  color: #8a6116;
+  border-color: #f2dfb0;
+}
+
+.status-ready {
+  background: #ecfdf3;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-pending {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.status-deposited {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.status-sold {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.status-stop {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.status-default {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
 }
 
 .right-block-title,
@@ -712,6 +888,15 @@ goToDogDetail(item) {
   filter: brightness(0.98);
   color: #fff;
   text-decoration: none;
+}
+
+.disabled-btn,
+.disabled-btn:hover {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+  color: #ffffff;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: none;
 }
 
 .state-box,
@@ -873,6 +1058,11 @@ goToDogDetail(item) {
     grid-template-columns: 1fr;
     gap: 28px;
   }
+
+  .title-status-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -906,9 +1096,7 @@ goToDogDetail(item) {
     flex-direction: column;
   }
 
-  .cart-btn,
-  .buy-btn,
-  .hotline-btn {
+  .buy-btn {
     width: 100%;
   }
 }
@@ -1063,6 +1251,41 @@ goToDogDetail(item) {
   color: #ffffff;
   z-index: 2;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.related-status-badge.status-ready {
   background: #16a34a;
+  color: #fff;
+  border: none;
+}
+
+.related-status-badge.status-pending {
+  background: #f97316;
+  color: #fff;
+  border: none;
+}
+
+.related-status-badge.status-deposited {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+}
+
+.related-status-badge.status-sold {
+  background: #6b7280;
+  color: #fff;
+  border: none;
+}
+
+.related-status-badge.status-stop {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+}
+
+.related-status-badge.status-default {
+  background: #64748b;
+  color: #fff;
+  border: none;
 }
 </style>

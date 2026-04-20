@@ -17,8 +17,8 @@
       </div>
 
       <div class="account-note">
-        Quản lý hồ sơ, lịch sử đặt cọc, hồ sơ chó đã mua, lịch nhắc chăm sóc,
-        đơn phụ kiện và lịch dịch vụ tại đây.
+        Quản lý hồ sơ cá nhân, lịch sử đặt cọc, hồ sơ chó đã mua, theo dõi sau bán,
+        lịch nhắc chăm sóc, thông báo, đơn phụ kiện và lịch dịch vụ tại đây.
       </div>
     </div>
 
@@ -40,20 +40,6 @@
       <router-link to="/my-dogs" class="menu-item-link text-decoration-none">
         <div class="menu-item" :class="{ active: $route.path === '/my-dogs' }">
           <span><i class="fas fa-dog mr-2"></i> Hồ sơ chó đã mua</span>
-          <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-      </router-link>
-
-      <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
-        <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
-          <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
-          <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-      </router-link>
-
-      <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
-        <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
-          <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
           <i class="fas fa-chevron-right menu-arrow"></i>
         </div>
       </router-link>

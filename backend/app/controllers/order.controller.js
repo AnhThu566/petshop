@@ -3,10 +3,11 @@ const Dog = require("../models/dog.model");
 const ApiError = require("../api-error");
 const OrderHistory = require("../models/orderHistory.model");
 const DogHistory = require("../models/dogHistory.model");
-const DogCareRecord = require("../models/dogCareRecord.model");
-const DogReminder = require("../models/dogReminder.model");
-const Notification = require("../models/notification.model");
-const DogHealthRecord = require("../models/dogHealthRecord.model");
+
+
+const axios = require("axios");
+const crypto = require("crypto");
+const qs = require("qs");
 
 const getActorInfo = (req) => {
   const actorId = req.user?._id || req.user?.id || null;
@@ -77,6 +78,7 @@ const VALID_ORDER_STATUSES = [
 
 const normalizePhone = (value) => String(value || "").trim();
 const normalizeText = (value) => String(value || "").trim();
+const getDogSalePrice = (dog) => Number(dog?.finalPrice || dog?.price || 0);
 
 const isDogReservable = (dog) => {
   return (
@@ -87,164 +89,220 @@ const isDogReservable = (dog) => {
   );
 };
 
-const createDogCareRecordAfterSale = async ({ order, dog, req }) => {
-  const actorId = req.user?._id || req.user?.id || null;
 
-  const existed = await DogCareRecord.findOne({
-    dogId: dog._id,
-    customerId: order.userId,
-    orderId: order._id,
-  });
+/* =========================
+   ZALOPAY HELPERS
+========================= */
 
-  if (existed) {
-    return existed;
-  }
-
-  const careRecord = await DogCareRecord.create({
-    dogId: dog._id,
-    customerId: order.userId,
-    orderId: order._id,
-    farmId: order.farmId,
-    title: `Hồ sơ chăm sóc sau bán - ${dog.name}`,
-    description: `Hồ sơ theo dõi chăm sóc sau bán cho bé ${dog.name}`,
-    status: "Đang theo dõi",
-    createdBy: actorId,
-  });
-
-  return careRecord;
+const ZALOPAY_CONFIG = {
+  appId: process.env.ZALOPAY_APP_ID,
+  key1: process.env.ZALOPAY_KEY1,
+  key2: process.env.ZALOPAY_KEY2,
+  createOrderUrl:
+    process.env.ZALOPAY_CREATE_ORDER_URL || "https://sb-openapi.zalopay.vn/v2/create",
+  queryOrderUrl:
+    process.env.ZALOPAY_QUERY_ORDER_URL || "https://sb-openapi.zalopay.vn/v2/query",
+  callbackUrl: process.env.ZALOPAY_CALLBACK_URL || "",
+  returnUrl: process.env.FRONTEND_ZALOPAY_RETURN_URL || "",
 };
 
-const createInitialDogReminders = async ({ order, dog, careRecord, req }) => {
-  const actorId = req.user?._id || req.user?.id || null;
+const generateAppTransId = () => {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const random = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  return `${yy}${mm}${dd}_${random}`;
+};
 
-  const reminders = [
+const createHmacSHA256 = (data, key) =>
+  crypto.createHmac("sha256", key).update(data).digest("hex");
+
+const createZaloPayOrder = async ({ order, dog, userId }) => {
+  if (!ZALOPAY_CONFIG.appId || !ZALOPAY_CONFIG.key1 || !ZALOPAY_CONFIG.key2) {
+    throw new Error("Thiếu cấu hình ZaloPay trong biến môi trường");
+  }
+
+  const app_trans_id = generateAppTransId();
+  const app_time = Date.now();
+  const amount = Math.round(Number(order.depositAmount || 0));
+
+  if (!amount || amount <= 0) {
+    throw new Error("Số tiền đặt cọc không hợp lệ để tạo thanh toán ZaloPay");
+  }
+
+  const item = JSON.stringify([
     {
-      reminderType: "Tái khám",
-      title: `Tái khám sau bàn giao cho bé ${dog.name}`,
-      description: "Nhắc khách đưa bé quay lại tái khám sau khi nhận chó.",
-      reminderDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      isRecurring: false,
-      repeatEveryDays: 0,
+      id: String(dog._id),
+      name: `Dat coc cho ${dog.name || "Pet"}`,
+      price: amount,
+      quantity: 1,
     },
-  ];
+  ]);
 
-  const latestHealthRecord = await DogHealthRecord.findOne({ dogId: dog._id }).sort({
-    checkedAt: -1,
-    createdAt: -1,
+  const embed_data = JSON.stringify({
+    redirecturl: ZALOPAY_CONFIG.returnUrl || "",
+    preferred_payment_method: [],
   });
 
-  if (latestHealthRecord?.nextDewormingDate) {
-    reminders.push({
-      reminderType: "Tẩy giun",
-      title: `Nhắc tẩy giun cho bé ${dog.name}`,
-      description: "Nhắc khách tẩy giun định kỳ cho bé.",
-      reminderDate: latestHealthRecord.nextDewormingDate,
-      isRecurring: true,
-      repeatEveryDays: 30,
-    });
-  } else {
-    reminders.push({
-      reminderType: "Tẩy giun",
-      title: `Nhắc tẩy giun định kỳ cho bé ${dog.name}`,
-      description: "Nhắc khách theo dõi lịch tẩy giun định kỳ sau bán.",
-      reminderDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      isRecurring: true,
-      repeatEveryDays: 30,
-    });
-  }
+  const orderPayload = {
+    app_id: Number(ZALOPAY_CONFIG.appId),
+    app_user: String(userId || "petshop_customer"),
+    app_time,
+    amount,
+    app_trans_id,
+    item,
+    embed_data,
+    description: `PetShop dat coc ${app_trans_id}`,
+    bank_code: "",
+    callback_url: ZALOPAY_CONFIG.callbackUrl,
+  };
 
-  if (latestHealthRecord?.vaccines?.length) {
-    for (const vaccine of latestHealthRecord.vaccines) {
-      if (vaccine?.needsReminder && vaccine?.nextDueDate) {
-        reminders.push({
-          reminderType: "Tiêm vaccine",
-          title: `Nhắc ${vaccine.vaccineName} cho bé ${dog.name}`,
-          description:
-            vaccine.note || `Nhắc lịch tiêm vaccine ${vaccine.vaccineName}.`,
-          reminderDate: vaccine.nextDueDate,
-          isRecurring: false,
-          repeatEveryDays: 0,
-        });
-      }
+  const dataForMac = [
+    orderPayload.app_id,
+    orderPayload.app_trans_id,
+    orderPayload.app_user,
+    orderPayload.amount,
+    orderPayload.app_time,
+    orderPayload.embed_data,
+    orderPayload.item,
+  ].join("|");
+
+  orderPayload.mac = createHmacSHA256(dataForMac, ZALOPAY_CONFIG.key1);
+
+  const response = await axios.post(
+    ZALOPAY_CONFIG.createOrderUrl,
+    qs.stringify(orderPayload),
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      timeout: 15000,
     }
-  }
+  );
 
-  const created = [];
+  return {
+    zaloRaw: response.data,
+    appTransId: app_trans_id,
+  };
+};
 
-  for (const item of reminders) {
-    const existed = await DogReminder.findOne({
+const markOrderPaidByZaloPay = async ({
+  order,
+  dog,
+  zpTransId,
+  reqLike = {},
+}) => {
+  const oldStatus = order.status;
+  const oldPaymentStatus = order.paymentStatus;
+  const oldDogSaleStatus = dog.saleStatus;
+
+  order.status = "Đã nhận cọc";
+  order.paymentStatus = "Đã xác nhận";
+  order.paymentMethod = "ZaloPay";
+  order.paymentProvider = "ZALOPAY";
+  order.paymentTransactionId = String(zpTransId || "");
+  order.paidAt = new Date();
+  order.callbackAt = new Date();
+
+  dog.saleStatus = "Đã đặt cọc";
+  dog.isPublished = true;
+
+  await order.save();
+  await dog.save();
+
+  await createOrderHistory({
+    orderId: order._id,
+    oldStatus,
+    newStatus: order.status,
+    oldPaymentStatus,
+    newPaymentStatus: order.paymentStatus,
+    req: reqLike,
+    note: "ZaloPay callback xác nhận thanh toán cọc thành công",
+  });
+
+  if (oldDogSaleStatus !== dog.saleStatus) {
+    await createDogHistory({
       dogId: dog._id,
-      customerId: order.userId,
-      orderId: order._id,
-      reminderType: item.reminderType,
-      title: item.title,
+      oldStatus: oldDogSaleStatus,
+      newStatus: dog.saleStatus,
+      req: reqLike,
+      note: "Đồng bộ trạng thái chó sau khi ZaloPay thanh toán thành công",
     });
-
-    if (!existed) {
-      const reminder = await DogReminder.create({
-        dogId: dog._id,
-        customerId: order.userId,
-        orderId: order._id,
-        careRecordId: careRecord?._id || null,
-        reminderType: item.reminderType,
-        title: item.title,
-        description: item.description,
-        reminderDate: item.reminderDate,
-        status: "Chờ nhắc",
-        isRecurring: item.isRecurring,
-        repeatEveryDays: item.repeatEveryDays,
-        createdBy: actorId,
-      });
-
-      created.push(reminder);
-    }
   }
-
-  return created;
 };
 
-const createCustomerNotificationAfterSale = async ({ order, dog }) => {
-  return await Notification.create({
-    userId: order.userId,
-    title: `Hoàn tất bàn giao bé ${dog.name}`,
-    message:
-      `Đơn hàng của bạn đã hoàn thành. Hệ thống đã tạo hồ sơ theo dõi sau bán ` +
-      `và lịch nhắc chăm sóc cho bé ${dog.name}.`,
-    type: "DOG_CARE_UPDATE",
-    targetRole: "customer",
-    relatedId: String(order._id),
-    relatedModel: "Order",
+const revertPendingZaloPayOrderIfNeeded = async ({
+  order,
+  dog,
+  reason = "Thanh toán thất bại hoặc hết hạn",
+  reqLike = {},
+}) => {
+  const oldStatus = order.status;
+  const oldPaymentStatus = order.paymentStatus;
+  const oldDogSaleStatus = dog.saleStatus;
+
+  if (order.status === "Đã hủy" || order.status === "Hoàn thành") return;
+
+  order.status = "Đã hủy";
+  order.paymentStatus = "Thanh toán thất bại";
+
+  dog.saleStatus = "Sẵn sàng bán";
+  dog.isPublished = true;
+
+  await order.save();
+  await dog.save();
+
+  await createOrderHistory({
+    orderId: order._id,
+    oldStatus,
+    newStatus: order.status,
+    oldPaymentStatus,
+    newPaymentStatus: order.paymentStatus,
+    req: reqLike,
+    reason,
+    note: "Tự động hủy đơn cọc ZaloPay chưa thanh toán thành công",
   });
+
+  if (oldDogSaleStatus !== dog.saleStatus) {
+    await createDogHistory({
+      dogId: dog._id,
+      oldStatus: oldDogSaleStatus,
+      newStatus: dog.saleStatus,
+      req: reqLike,
+      note: "Hoàn trạng thái mở bán vì thanh toán ZaloPay không thành công",
+    });
+  }
 };
 
-// 1. Khách tạo đơn đặt cọc
+/* =========================
+   1. KHÓA LUỒNG ĐẶT CỌC THỦ CÔNG
+========================= */
+
 exports.createDeposit = async (req, res, next) => {
+  return next(
+    new ApiError(400, "Hệ thống chỉ hỗ trợ đặt cọc chó qua ZaloPay.")
+  );
+};
+
+/* =========================
+   1B. KHÁCH TẠO ĐƠN ĐẶT CỌC BẰNG ZALOPAY
+========================= */
+
+exports.createDepositZaloPay = async (req, res, next) => {
   try {
     if (!req.user) {
       return next(new ApiError(401, "Bạn chưa đăng nhập"));
     }
 
     const userId = req.user._id || req.user.id;
-
-    const {
-      customerName,
-      customerPhone,
-      customerAddress,
-      dogId,
-      note,
-      paymentMethod,
-      paymentProof,
-    } = req.body;
-
-    console.log("STEP 0: vao createDeposit");
+    const { customerName, customerPhone, customerAddress, dogId, note } = req.body;
 
     if (!customerName || !customerPhone || !customerAddress || !dogId) {
       return next(new ApiError(400, "Thiếu thông tin tạo đơn đặt cọc"));
     }
 
     const dog = await Dog.findById(dogId);
-    console.log("STEP 1: tim thay dog", !!dog);
-
     if (!dog) {
       return next(new ApiError(404, "Không tìm thấy bé chó cần đặt cọc"));
     }
@@ -258,20 +316,21 @@ exports.createDeposit = async (req, res, next) => {
       );
     }
 
-    const realFarmId = dog.farmId?._id || dog.farmId;
-
     const activeOrder = await Order.findOne({
       dogId,
       status: { $in: ACTIVE_ORDER_STATUSES },
     });
-    console.log("STEP 2: check active order");
 
     if (activeOrder) {
       return next(new ApiError(400, "Bé chó này đang có người đặt trước"));
     }
 
-    const parsedTotalPrice = Number(dog.price);
-    const finalPaymentMethod = paymentMethod || "Chuyển khoản";
+    const realFarmId = dog.farmId?._id || dog.farmId;
+    const parsedTotalPrice = getDogSalePrice(dog);
+
+    if (!parsedTotalPrice || parsedTotalPrice <= 0) {
+      return next(new ApiError(400, "Giá bán của bé chó không hợp lệ."));
+    }
 
     const depositAmount =
       dog.depositAmount && Number(dog.depositAmount) > 0
@@ -279,11 +338,6 @@ exports.createDeposit = async (req, res, next) => {
         : Math.round(parsedTotalPrice * 0.3);
 
     const remainingAmount = parsedTotalPrice - depositAmount;
-
-    const paymentStatus =
-      finalPaymentMethod === "Chuyển khoản"
-        ? "Đã gửi minh chứng"
-        : "Chưa thanh toán";
 
     const newOrder = new Order({
       userId,
@@ -295,66 +349,253 @@ exports.createDeposit = async (req, res, next) => {
       totalPrice: parsedTotalPrice,
       depositAmount,
       remainingAmount,
-      paymentMethod: finalPaymentMethod,
-      paymentProof: paymentProof ? normalizeText(paymentProof) : "",
-      paymentStatus,
+      paymentMethod: "ZaloPay",
+      paymentProvider: "ZALOPAY",
+      paymentStatus: "Chờ thanh toán",
       note: note ? normalizeText(note) : "",
       status: "Chờ xác nhận cọc",
     });
 
-    console.log("STEP 3: truoc save order");
     await newOrder.save();
-    console.log("STEP 4: save order xong");
 
     const oldDogSaleStatus = dog.saleStatus;
     dog.saleStatus = "Chờ thanh toán";
     dog.isPublished = true;
-
-    console.log("STEP 5: truoc save dog");
     await dog.save();
-    console.log("STEP 6: save dog xong");
 
-    console.log("STEP 7: truoc create order history");
     await createOrderHistory({
       orderId: newOrder._id,
       oldStatus: "",
       newStatus: "Chờ xác nhận cọc",
       oldPaymentStatus: "",
-      newPaymentStatus: paymentStatus,
+      newPaymentStatus: "Chờ thanh toán",
       req,
-      note: "Khách hàng tạo đơn đặt cọc mới",
+      note: "Khách hàng tạo đơn đặt cọc qua ZaloPay",
     });
-    console.log("STEP 8: create order history xong");
 
-    console.log("STEP 9: truoc create dog history");
     await createDogHistory({
       dogId: dog._id,
       oldStatus: oldDogSaleStatus,
       newStatus: "Chờ thanh toán",
       req,
-      note: "Khách hàng tạo yêu cầu đặt cọc",
+      note: "Khách hàng khởi tạo thanh toán đặt cọc qua ZaloPay",
     });
-    console.log("STEP 10: create dog history xong");
+
+    const { zaloRaw, appTransId } = await createZaloPayOrder({
+      order: newOrder,
+      dog,
+      userId,
+    });
+
+    newOrder.paymentProviderOrderId = appTransId;
+    await newOrder.save();
+
+    if (Number(zaloRaw.return_code) !== 1) {
+      await revertPendingZaloPayOrderIfNeeded({
+        order: newOrder,
+        dog,
+        reason: zaloRaw.return_message || "Không tạo được phiên thanh toán ZaloPay",
+        reqLike: req,
+      });
+
+      return next(
+        new ApiError(
+          400,
+          zaloRaw.return_message || "Không thể khởi tạo thanh toán ZaloPay"
+        )
+      );
+    }
 
     return res.send({
-      message:
-        "Tạo yêu cầu đặt cọc thành công! Đơn của bạn đang chờ admin xác nhận khoản cọc.",
+      message: "Tạo phiên thanh toán ZaloPay thành công",
       order: newOrder,
+      payment: {
+        provider: "ZALOPAY",
+        app_trans_id: appTransId,
+        order_url: zaloRaw.order_url || "",
+        zp_trans_token: zaloRaw.zp_trans_token || "",
+        qr_code: zaloRaw.qr_code || "",
+      },
     });
   } catch (error) {
-    console.error("CREATE_DEPOSIT_ERROR =", error);
-    console.error("CREATE_DEPOSIT_STACK =", error.stack);
-    return next(new ApiError(500, "Lỗi khi tạo đơn cọc: " + error.message));
+    console.error("CREATE_DEPOSIT_ZALOPAY_ERROR =", error);
+    console.error("CREATE_DEPOSIT_ZALOPAY_STACK =", error.stack);
+    return next(
+      new ApiError(500, "Lỗi khi tạo đơn cọc ZaloPay: " + error.message)
+    );
   }
 };
 
-// 2. Admin lấy tất cả đơn
+/* =========================
+   1C. CALLBACK ZALOPAY
+========================= */
+
+exports.zalopayCallback = async (req, res) => {
+  try {
+    const { data, mac } = req.body || {};
+
+    if (!data || !mac) {
+      return res.send({ return_code: -1, return_message: "Missing data" });
+    }
+
+    const expectedMac = createHmacSHA256(data, ZALOPAY_CONFIG.key2);
+
+    if (expectedMac !== mac) {
+      return res.send({ return_code: -1, return_message: "Invalid mac" });
+    }
+
+    const callbackData = JSON.parse(data);
+    const appTransId = callbackData.app_trans_id;
+    const zpTransId = callbackData.zp_trans_id;
+
+    const order = await Order.findOne({
+      paymentProviderOrderId: appTransId,
+    });
+
+    if (!order) {
+      return res.send({
+        return_code: 1,
+        return_message: "Order not found but callback accepted",
+      });
+    }
+
+    if (order.status === "Đã nhận cọc" && order.paymentStatus === "Đã xác nhận") {
+      return res.send({ return_code: 1, return_message: "Order already updated" });
+    }
+
+    const dog = await Dog.findById(order.dogId);
+    if (!dog) {
+      return res.send({ return_code: 1, return_message: "Dog not found" });
+    }
+
+    await markOrderPaidByZaloPay({
+      order,
+      dog,
+      zpTransId,
+      reqLike: {
+        user: {
+          name: "ZaloPay Callback",
+          email: "zalopay@system.local",
+        },
+      },
+    });
+
+    return res.send({ return_code: 1, return_message: "Success" });
+  } catch (error) {
+    console.error("ZALOPAY_CALLBACK_ERROR =", error);
+    return res.send({ return_code: 0, return_message: error.message });
+  }
+};
+
+/* =========================
+   1D. QUERY TRẠNG THÁI THANH TOÁN ZALOPAY
+========================= */
+
+exports.queryZaloPayOrderStatus = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập"));
+    }
+
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return next(new ApiError(404, "Không tìm thấy đơn hàng"));
+    }
+
+    const currentUserId = req.user._id || req.user.id;
+    const orderUserId = order.userId?._id || order.userId;
+
+    if (
+      String(orderUserId) !== String(currentUserId) &&
+      req.user.role !== "admin"
+    ) {
+      return next(new ApiError(403, "Bạn không có quyền xem đơn này"));
+    }
+
+    if (order.paymentMethod !== "ZaloPay" || !order.paymentProviderOrderId) {
+      return next(new ApiError(400, "Đơn này không phải thanh toán bằng ZaloPay"));
+    }
+
+    const app_id = Number(ZALOPAY_CONFIG.appId);
+    const app_trans_id = order.paymentProviderOrderId;
+    const key1 = ZALOPAY_CONFIG.key1;
+
+    const dataForMac = `${app_id}|${app_trans_id}|${key1}`;
+    const mac = createHmacSHA256(dataForMac, key1);
+
+    const response = await axios.post(
+      ZALOPAY_CONFIG.queryOrderUrl,
+      qs.stringify({
+        app_id,
+        app_trans_id,
+        mac,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        timeout: 15000,
+      }
+    );
+
+    const zaloData = response.data || {};
+    const dog = await Dog.findById(order.dogId);
+
+    if (Number(zaloData.return_code) === 1 && Number(zaloData.is_processing) === 0) {
+      if (zaloData.amount && Number(zaloData.amount) >= Number(order.depositAmount || 0)) {
+        if (dog) {
+          await markOrderPaidByZaloPay({
+            order,
+            dog,
+            zpTransId: zaloData.zp_trans_id || "",
+            reqLike: req,
+          });
+        }
+      }
+    }
+
+    if (Number(zaloData.return_code) !== 1 && dog) {
+      if (order.status === "Chờ xác nhận cọc" && order.paymentStatus === "Chờ thanh toán") {
+        await revertPendingZaloPayOrderIfNeeded({
+          order,
+          dog,
+          reason: "ZaloPay query cho thấy đơn không thanh toán thành công",
+          reqLike: req,
+        });
+      }
+    }
+
+    const refreshedOrder = await Order.findById(order._id)
+      .populate(
+        "dogId",
+        "name image maCho price finalPrice depositAmount approvalStatus saleStatus isPublished"
+      )
+      .populate("farmId", "name");
+
+    return res.send({
+      message: "Kiểm tra trạng thái thanh toán thành công",
+      order: refreshedOrder,
+      zaloPay: zaloData,
+    });
+  } catch (error) {
+    return next(
+      new ApiError(500, "Lỗi khi truy vấn trạng thái ZaloPay: " + error.message)
+    );
+  }
+};
+
+/* =========================
+   2. ADMIN LẤY TẤT CẢ ĐƠN
+========================= */
+
 exports.findAll = async (req, res, next) => {
   try {
     const orders = await Order.find()
       .populate(
         "dogId",
-        "name image maCho price depositAmount approvalStatus saleStatus isPublished"
+        "name image maCho price finalPrice depositAmount approvalStatus saleStatus isPublished"
       )
       .populate("farmId", "name")
       .populate("userId", "username fullName phone email")
@@ -368,7 +609,10 @@ exports.findAll = async (req, res, next) => {
   }
 };
 
-// 3. Admin cập nhật trạng thái đơn
+/* =========================
+   3. ADMIN CẬP NHẬT TRẠNG THÁI ĐƠN
+========================= */
+
 exports.updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -426,19 +670,20 @@ exports.updateStatus = async (req, res, next) => {
       );
     }
 
-    if (status === "Đã nhận cọc") {
-      if (
-        order.paymentMethod === "Chuyển khoản" &&
-        (!order.paymentProof || !String(order.paymentProof).trim())
-      ) {
-        return next(
-          new ApiError(
-            400,
-            "Không thể xác nhận cọc vì đơn chưa có minh chứng chuyển khoản"
-          )
-        );
-      }
+    if (
+      status === "Đã nhận cọc" &&
+      order.paymentMethod === "ZaloPay" &&
+      order.paymentStatus !== "Đã xác nhận"
+    ) {
+      return next(
+        new ApiError(
+          400,
+          "Đơn ZaloPay chỉ được chuyển sang 'Đã nhận cọc' sau khi hệ thống xác nhận thanh toán thành công."
+        )
+      );
+    }
 
+    if (status === "Đã nhận cọc") {
       order.paymentStatus = "Đã xác nhận";
       dog.saleStatus = "Đã đặt cọc";
       dog.isPublished = true;
@@ -447,7 +692,7 @@ exports.updateStatus = async (req, res, next) => {
     if (status === "Đang giao") {
       if (oldStatus !== "Đã nhận cọc") {
         return next(
-          new ApiError(400, "Chỉ được giao chó sau khi đã xác nhận cọc")
+          new ApiError(400, "Chỉ được giao chó sau khi đã nhận cọc")
         );
       }
 
@@ -501,8 +746,14 @@ exports.updateStatus = async (req, res, next) => {
       dog.isPublished = true;
 
       if (oldStatus === "Chờ xác nhận cọc") {
-        order.paymentStatus =
-          order.paymentMethod === "Chuyển khoản" ? "Đã hủy xác nhận" : "Chưa thanh toán";
+        if (order.paymentMethod === "ZaloPay") {
+          order.paymentStatus =
+            oldPaymentStatus === "Đã xác nhận"
+              ? "Đã xác nhận"
+              : "Thanh toán thất bại";
+        } else {
+          order.paymentStatus = oldPaymentStatus || "Chưa thanh toán";
+        }
       }
     }
 
@@ -510,21 +761,6 @@ exports.updateStatus = async (req, res, next) => {
 
     await order.save();
     await dog.save();
-
-    let careRecord = null;
-
-    if (status === "Hoàn thành") {
-      careRecord = await createDogCareRecordAfterSale({ order, dog, req });
-
-      await createInitialDogReminders({
-        order,
-        dog,
-        careRecord,
-        req,
-      });
-
-      await createCustomerNotificationAfterSale({ order, dog });
-    }
 
     await createOrderHistory({
       orderId: order._id,
@@ -546,20 +782,24 @@ exports.updateStatus = async (req, res, next) => {
       });
     }
 
-    return res.send({
-      message:
-        status === "Hoàn thành"
-          ? "Hoàn thành đơn hàng thành công! Hệ thống đã tạo hồ sơ theo dõi sau bán và lịch nhắc ban đầu."
-          : "Cập nhật trạng thái đơn hàng thành công!",
-      order,
-      careRecord: careRecord || null,
-    });
+return res.send({
+  message:
+    status === "Hoàn thành"
+      ? "Hoàn thành đơn hàng thành công!"
+      : "Cập nhật trạng thái đơn hàng thành công!",
+  order,
+});
   } catch (error) {
+    console.error("UPDATE_ORDER_STATUS_ERROR =", error);
+    console.error("UPDATE_ORDER_STATUS_STACK =", error.stack);
     return next(new ApiError(500, "Lỗi cập nhật đơn hàng: " + error.message));
   }
 };
 
-// 4. Khách tự hủy đơn
+/* =========================
+   4. KHÁCH TỰ HỦY ĐƠN
+========================= */
+
 exports.cancelByCustomer = async (req, res, next) => {
   try {
     if (!req.user) {
@@ -610,7 +850,10 @@ exports.cancelByCustomer = async (req, res, next) => {
 
     order.status = "Đã hủy";
     order.paymentStatus =
-      order.paymentMethod === "Chuyển khoản" ? "Đã hủy xác nhận" : oldPaymentStatus;
+      order.paymentMethod === "ZaloPay"
+        ? "Thanh toán thất bại"
+        : oldPaymentStatus;
+
     await order.save();
 
     await createOrderHistory({
@@ -645,7 +888,10 @@ exports.cancelByCustomer = async (req, res, next) => {
   }
 };
 
-// 5. Khách xem đơn của chính mình
+/* =========================
+   5. KHÁCH XEM ĐƠN CỦA CHÍNH MÌNH
+========================= */
+
 exports.findMyOrders = async (req, res, next) => {
   try {
     if (!req.user) {
@@ -657,7 +903,7 @@ exports.findMyOrders = async (req, res, next) => {
     const orders = await Order.find({ userId: currentUserId })
       .populate(
         "dogId",
-        "name image maCho price depositAmount approvalStatus saleStatus isPublished"
+        "name image maCho price finalPrice depositAmount approvalStatus saleStatus isPublished"
       )
       .populate("farmId", "name")
       .sort({ createdAt: -1 });
@@ -670,7 +916,10 @@ exports.findMyOrders = async (req, res, next) => {
   }
 };
 
-// 6. Admin xem lịch sử đơn
+/* =========================
+   6. ADMIN XEM LỊCH SỬ ĐƠN
+========================= */
+
 exports.getHistory = async (req, res, next) => {
   try {
     const { id } = req.params;

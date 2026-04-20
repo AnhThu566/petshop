@@ -9,7 +9,7 @@
             <div>
               <h3 class="content-title">Lịch sử đặt cọc</h3>
               <p class="content-subtitle mb-0">
-                Theo dõi các đơn đặt cọc của bạn
+                Theo dõi các đơn đặt cọc ZaloPay của bạn
               </p>
             </div>
           </div>
@@ -19,7 +19,7 @@
               <i class="fas fa-search"></i>
               <input
                 type="text"
-                v-model="searchText"
+                v-model.trim="searchText"
                 placeholder="Tìm theo mã đơn hoặc tên bé chó"
               />
             </div>
@@ -100,15 +100,15 @@
               <table class="order-table">
                 <thead>
                   <tr>
-                    <th>Mã đơn</th>
-                    <th>Bé chó</th>
-                    <th>Ngày đặt</th>
-                    <th>Tổng tiền</th>
-                    <th>Tiền cọc</th>
-                    <th>Còn lại</th>
-                    <th>Trạng thái đơn</th>
-                    <th>Thanh toán</th>
-                    <th>Thao tác</th>
+                    <th class="col-code">Mã đơn</th>
+                    <th class="col-dog">Bé chó</th>
+                    <th class="col-date">Ngày đặt</th>
+                    <th class="col-money">Tổng tiền</th>
+                    <th class="col-money">Tiền cọc</th>
+                    <th class="col-money">Còn lại</th>
+                    <th class="col-status">Trạng thái đơn</th>
+                    <th class="col-payment">Thanh toán</th>
+                    <th class="col-action">Thao tác</th>
                   </tr>
                 </thead>
 
@@ -121,7 +121,7 @@
                       #{{ getShortOrderCode(getOrderId(order)) }}
                     </td>
 
-                    <td>
+                    <td class="td-dog">
                       <div class="dog-cell" v-if="order.dogId">
                         <img :src="getDogImage(order)" alt="dog" class="dog-thumb" />
                         <div class="dog-info">
@@ -132,22 +132,22 @@
                     </td>
 
                     <td class="td-date">{{ formatDate(order.createdAt) }}</td>
-                    <td>{{ formatCurrency(order.totalPrice) }}</td>
-                    <td class="money-deposit">{{ formatCurrency(order.depositAmount) }}</td>
-                    <td class="money-remaining">{{ formatCurrency(getRemainingAmount(order)) }}</td>
+                    <td class="td-money">{{ formatCurrency(order.totalPrice) }}</td>
+                    <td class="td-money money-deposit">{{ formatCurrency(order.depositAmount) }}</td>
+                    <td class="td-money money-remaining">{{ formatCurrency(getRemainingAmount(order)) }}</td>
 
-                    <td>
+                    <td class="td-center">
                       <span class="order-badge" :class="getStatusClass(order.status)">
-                        {{ order.status }}
+                        {{ getOrderStatusText(order.status) }}
                       </span>
                     </td>
 
-                    <td>
+                    <td class="td-center">
                       <span
                         class="payment-badge"
                         :class="getPaymentStatusClass(order.paymentStatus)"
                       >
-                        {{ order.paymentStatus || "---" }}
+                        {{ getPaymentStatusText(order.paymentStatus) }}
                       </span>
                     </td>
 
@@ -159,14 +159,6 @@
                           @click="cancelOrder(order)"
                         >
                           Hủy
-                        </button>
-
-                        <button
-                          v-if="canBuyAgain(order)"
-                          class="btn btn-outline-success btn-sm"
-                          @click="buyAgain(order)"
-                        >
-                          Mua lại
                         </button>
 
                         <button
@@ -191,7 +183,7 @@
         tabindex="-1"
         style="background: rgba(0, 0, 0, 0.45);"
       >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content border-0 shadow">
             <div class="modal-header modal-head-custom">
               <h5 class="modal-title mb-0">
@@ -202,71 +194,87 @@
               </button>
             </div>
 
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-primary">Thông tin đơn hàng</h6>
-                  <p class="mb-1">
-                    <strong>Mã đơn:</strong>
-                    #{{ getShortOrderCode(getOrderId(selectedOrder)) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Ngày đặt:</strong> {{ formatDate(selectedOrder.createdAt) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Trạng thái đơn:</strong> {{ selectedOrder.status }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Trạng thái thanh toán:</strong>
-                    {{ selectedOrder.paymentStatus || "---" }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalPrice) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Tiền cọc:</strong> {{ formatCurrency(selectedOrder.depositAmount) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Tiền còn lại:</strong>
-                    {{ formatCurrency(getRemainingAmount(selectedOrder)) }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Phương thức cọc:</strong>
-                    {{ selectedOrder.paymentMethod || "Chuyển khoản" }}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Minh chứng cọc:</strong>
-                    {{ selectedOrder.paymentProof || "Không có" }}
-                  </p>
+            <div class="modal-body order-detail-body">
+              <div class="detail-grid">
+                <div class="detail-card">
+                  <div class="detail-card-title">Thông tin đơn hàng</div>
+
+                  <div class="detail-row">
+                    <span>Mã đơn</span>
+                    <strong>#{{ getShortOrderCode(getOrderId(selectedOrder)) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Ngày đặt</span>
+                    <strong>{{ formatDate(selectedOrder.createdAt) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Trạng thái đơn</span>
+                    <strong>{{ getOrderStatusText(selectedOrder.status) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Thanh toán</span>
+                    <strong>{{ getPaymentStatusText(selectedOrder.paymentStatus) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Tổng tiền</span>
+                    <strong>{{ formatCurrency(selectedOrder.totalPrice) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Tiền cọc</span>
+                    <strong class="text-danger">{{ formatCurrency(selectedOrder.depositAmount) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Tiền còn lại</span>
+                    <strong class="text-primary">{{ formatCurrency(getRemainingAmount(selectedOrder)) }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Phương thức cọc</span>
+                    <strong>{{ selectedOrder.paymentMethod || "ZaloPay" }}</strong>
+                  </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                  <h6 class="font-weight-bold text-success">Thông tin nhận bé</h6>
-                  <p class="mb-1"><strong>Khách hàng:</strong> {{ selectedOrder.customerName }}</p>
-                  <p class="mb-1"><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
-                  <p class="mb-1">
-                    <strong>Địa chỉ:</strong> {{ selectedOrder.customerAddress || "---" }}
-                  </p>
-                  <p class="mb-1"><strong>Ghi chú:</strong> {{ selectedOrder.note || "Không có" }}</p>
-                </div>
+                <div class="detail-card">
+                  <div class="detail-card-title">Thông tin nhận bé</div>
 
-                <div class="col-12" v-if="selectedOrder.dogId">
-                  <hr />
-                  <h6 class="font-weight-bold text-danger">Thông tin bé cún</h6>
-                  <div class="d-flex align-items-center flex-wrap">
-                    <img
-                      :src="getDogImage(selectedOrder)"
-                      alt="dog"
-                      class="rounded shadow-sm mr-3 mb-2"
-                      style="width: 100px; height: 100px; object-fit: cover;"
-                    />
-                    <div>
-                      <p class="mb-1"><strong>Tên:</strong> {{ selectedOrder.dogId.name }}</p>
-                      <p class="mb-1"><strong>Giá:</strong> {{ formatCurrency(selectedOrder.dogId.price) }}</p>
-                      <p class="mb-1">
-                        <strong>Trạng thái chó:</strong>
-                        {{ getDogSaleStatusText(selectedOrder.dogId.saleStatus) }}
-                      </p>
+                  <div class="detail-row">
+                    <span>Khách hàng</span>
+                    <strong>{{ selectedOrder.customerName }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Số điện thoại</span>
+                    <strong>{{ selectedOrder.customerPhone }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Địa chỉ</span>
+                    <strong class="text-right">{{ selectedOrder.customerAddress || "---" }}</strong>
+                  </div>
+                  <div class="detail-row">
+                    <span>Ghi chú</span>
+                    <strong class="text-right">{{ selectedOrder.note || "Không có" }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-dog-card mt-4" v-if="selectedOrder.dogId">
+                <div class="detail-card-title">Thông tin bé cún</div>
+
+                <div class="detail-dog-wrap">
+                  <img
+                    :src="getDogImage(selectedOrder)"
+                    alt="dog"
+                    class="detail-dog-thumb"
+                  />
+                  <div class="detail-dog-info">
+                    <div class="detail-dog-name">{{ selectedOrder.dogId.name }}</div>
+
+                    <div class="detail-row">
+                      <span>Giá</span>
+                      <strong>{{ formatCurrency(selectedOrder.dogId.finalPrice || selectedOrder.dogId.price) }}</strong>
+                    </div>
+
+                    <div class="detail-row">
+                      <span>Trạng thái chó</span>
+                      <strong>{{ getDogSaleStatusText(selectedOrder.dogId.saleStatus) }}</strong>
                     </div>
                   </div>
                 </div>
@@ -275,24 +283,25 @@
 
             <div class="modal-footer">
               <button
-                v-if="canBuyAgain(selectedOrder)"
-                class="btn btn-success"
-                @click="buyAgain(selectedOrder)"
+                v-if="selectedOrder.status === 'Chờ xác nhận cọc'"
+                class="btn btn-outline-danger"
+                @click="cancelOrder(selectedOrder)"
               >
-                Mua lại
+                Hủy đơn
               </button>
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
         </div>
       </div>
+
+      <div v-if="selectedOrder" class="modal-backdrop fade show"></div>
     </div>
   </div>
 </template>
 
 <script>
 import OrderService from "@/services/order.service";
-import DogService from "@/services/dog.service";
 import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
 
 export default {
@@ -356,54 +365,6 @@ export default {
       return order?._id || order?.id || "";
     },
 
-    canBuyAgain(order) {
-      if (!order || !order.dogId) return false;
-      return order.status === "Đã hủy" || order.status === "Hoàn thành";
-    },
-
-    async buyAgain(order) {
-      try {
-        if (!order?.dogId) {
-          alert("Không tìm thấy dữ liệu bé cún để mua lại.");
-          return;
-        }
-
-        const dogId = order.dogId._id || order.dogId.id;
-        if (!dogId) {
-          alert("Không tìm thấy mã bé cún để mua lại.");
-          return;
-        }
-
-        const latestDog = await DogService.getPublicById(dogId);
-
-        if (!latestDog) {
-          alert("Không tìm thấy thông tin bé cún.");
-          return;
-        }
-
-        if (
-          latestDog.approvalStatus !== "Đã duyệt" ||
-          latestDog.saleStatus !== "Sẵn sàng bán" ||
-          !latestDog.isPublished
-        ) {
-          alert("Bé cún này hiện không còn sẵn sàng để đặt cọc lại.");
-          return;
-        }
-
-        localStorage.setItem("checkoutDog", JSON.stringify(latestDog));
-        this.closeDetail();
-        this.$router.push({
-          path: "/deposit",
-          query: { dogId },
-        });
-      } catch (error) {
-        alert(
-          "Không thể mua lại lúc này: " +
-            (error.response?.data?.message || error.message)
-        );
-      }
-    },
-
     openDetail(order) {
       this.selectedOrder = order;
     },
@@ -448,13 +409,33 @@ export default {
     },
 
     getDogSaleStatusText(status) {
-      if (status === "Sẵn sàng bán") return "Sẵn sàng đón về";
-      if (status === "Chờ thanh toán") return "Chờ xác nhận cọc";
-      if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
-      if (status === "Đang giao") return "Đang bàn giao";
-      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
       if (status === "Ngừng bán") return "Tạm ngừng mở bán";
       return "Chưa mở bán";
+    },
+
+    getOrderStatusText(status) {
+      if (status === "Chờ xác nhận cọc") return "Chờ xác nhận";
+      if (status === "Đã nhận cọc") return "Đã nhận cọc";
+      if (status === "Đang giao") return "Đang giao";
+      if (status === "Hoàn thành") return "Hoàn thành";
+      if (status === "Đã hủy") return "Đã hủy";
+      return status || "---";
+    },
+
+    getPaymentStatusText(status) {
+      if (status === "Chờ thanh toán") return "Chờ thanh toán";
+      if (status === "Đã xác nhận") return "Đã xác nhận";
+      if (status === "Đã hoàn tất") return "Đã hoàn tất";
+      if (status === "Thanh toán thất bại") return "Thanh toán thất bại";
+      if (status === "Đã hủy xác nhận") return "Đã hủy";
+      if (status === "Đã hủy") return "Đã hủy";
+      if (status === "Chưa thanh toán") return "Chưa thanh toán";
+      return status || "---";
     },
 
     getStatusClass(status) {
@@ -467,16 +448,21 @@ export default {
     },
 
     getPaymentStatusClass(status) {
+      if (status === "Chờ thanh toán") return "payment-pending";
       if (status === "Đã xác nhận") return "payment-confirmed";
-      if (status === "Đã gửi minh chứng") return "payment-pending";
       if (status === "Đã hoàn tất") return "payment-completed";
-      if (status === "Đã hủy xác nhận") return "payment-cancelled";
+      if (status === "Thanh toán thất bại") return "payment-cancelled";
+      if (status === "Đã hủy" || status === "Đã hủy xác nhận") return "payment-cancelled";
       if (status === "Chưa thanh toán") return "payment-default";
       return "payment-default";
     },
 
     async cancelOrder(order) {
-      if (!confirm(`Bạn có chắc muốn hủy đơn #${this.getShortOrderCode(this.getOrderId(order))} không?`)) {
+      if (
+        !confirm(
+          `Bạn có chắc muốn hủy đơn #${this.getShortOrderCode(this.getOrderId(order))} không?`
+        )
+      ) {
         return;
       }
 
@@ -522,7 +508,7 @@ export default {
 }
 
 .order-page-container {
-  max-width: 1420px;
+  max-width: 1460px;
   padding-left: 24px;
   padding-right: 24px;
 }
@@ -592,7 +578,7 @@ export default {
   height: 46px;
   border: 1px solid #dfd3ec;
   border-radius: 14px;
-  padding: 0 16px 0 40px;
+  padding: 0 16px 0 42px;
   outline: none;
   font-size: 0.94rem;
   background: #fff;
@@ -622,6 +608,7 @@ export default {
   justify-content: center;
   gap: 6px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .refresh-btn:hover {
@@ -637,14 +624,21 @@ export default {
 
 .status-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  gap: 18px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
   border-bottom: 1px solid #ece3f4;
   margin-bottom: 18px;
   padding-bottom: 2px;
 }
 
+.status-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .status-tab {
+  flex: 0 0 auto;
   border: none;
   background: none;
   padding: 0 0 10px;
@@ -653,6 +647,7 @@ export default {
   border-bottom: 2px solid transparent;
   font-size: 0.94rem;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .status-tab:hover {
@@ -693,7 +688,8 @@ export default {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 920px;
+  min-width: 1080px;
+  table-layout: fixed;
 }
 
 .order-table thead th {
@@ -703,7 +699,7 @@ export default {
   font-weight: 800;
   padding: 14px 12px;
   border-bottom: 1px solid #ece3f4;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -713,6 +709,7 @@ export default {
   vertical-align: middle;
   font-size: 0.91rem;
   color: #3d3450;
+  text-align: center;
 }
 
 .order-table tbody tr:hover {
@@ -723,21 +720,61 @@ export default {
   border-bottom: none;
 }
 
+.col-code {
+  width: 110px;
+}
+
+.col-dog {
+  width: 240px;
+}
+
+.col-date {
+  width: 150px;
+}
+
+.col-money {
+  width: 140px;
+}
+
+.col-status {
+  width: 150px;
+}
+
+.col-payment {
+  width: 150px;
+}
+
+.col-action {
+  width: 140px;
+}
+
 .td-code {
   font-weight: 900;
   color: #6b46d9;
   white-space: nowrap;
 }
 
+.td-dog {
+  text-align: left !important;
+}
+
 .td-date {
   white-space: nowrap;
+}
+
+.td-money {
+  white-space: nowrap;
+}
+
+.td-center {
+  text-align: center;
 }
 
 .dog-cell {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .dog-info {
@@ -758,18 +795,17 @@ export default {
   color: #2f1b44;
   font-size: 0.93rem;
   line-height: 1.35;
+  word-break: break-word;
 }
 
 .money-deposit {
   color: #dc2626;
   font-weight: 800;
-  white-space: nowrap;
 }
 
 .money-remaining {
   color: #2563eb;
   font-weight: 800;
-  white-space: nowrap;
 }
 
 .order-badge,
@@ -777,6 +813,7 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 34px;
   padding: 7px 12px;
   border-radius: 999px;
   font-size: 0.79rem;
@@ -785,19 +822,22 @@ export default {
 }
 
 .td-actions {
-  min-width: 170px;
+  min-width: 0;
 }
 
 .table-actions {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .table-actions .btn {
   font-size: 0.82rem;
   padding: 5px 10px;
   border-radius: 8px;
+  white-space: nowrap;
 }
 
 .status-waiting {
@@ -864,6 +904,86 @@ export default {
   overflow-y: auto;
 }
 
+.order-detail-body {
+  padding: 22px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.detail-card,
+.detail-dog-card {
+  background: #fcfbfe;
+  border: 1px solid #eadcf7;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.detail-card-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #31114d;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ece3f4;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 9px 0;
+  color: #4b5563;
+  font-size: 0.93rem;
+}
+
+.detail-row + .detail-row {
+  border-top: 1px dashed #ece3f4;
+}
+
+.detail-row span {
+  color: #7b7287;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detail-row strong {
+  color: #2f1b44;
+  font-weight: 800;
+  text-align: right;
+}
+
+.detail-dog-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.detail-dog-thumb {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid #ece3f4;
+  flex-shrink: 0;
+}
+
+.detail-dog-info {
+  min-width: 0;
+  width: 100%;
+}
+
+.detail-dog-name {
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: #2f1b44;
+  margin-bottom: 10px;
+}
+
 @media (max-width: 1199.98px) {
   .content-title {
     font-size: 1.55rem;
@@ -890,6 +1010,25 @@ export default {
   .order-page-container {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .detail-row strong {
+    text-align: left;
+  }
+
+  .detail-dog-wrap {
+    flex-direction: column;
   }
 }
 </style>

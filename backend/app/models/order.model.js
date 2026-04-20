@@ -1,5 +1,25 @@
 const mongoose = require("mongoose");
 
+const ORDER_PAYMENT_METHODS = ["Chuyển khoản", "Tiền mặt", "ZaloPay"];
+
+const ORDER_PAYMENT_STATUSES = [
+  "Chưa thanh toán",
+  "Chờ thanh toán",
+  "Đã gửi minh chứng",
+  "Đã xác nhận",
+  "Đã hoàn tất",
+  "Đã hủy xác nhận",
+  "Thanh toán thất bại",
+];
+
+const ORDER_STATUSES = [
+  "Chờ xác nhận cọc",
+  "Đã nhận cọc",
+  "Đang giao",
+  "Hoàn thành",
+  "Đã hủy",
+];
+
 const orderSchema = new mongoose.Schema(
   {
     userId: {
@@ -54,7 +74,7 @@ const orderSchema = new mongoose.Schema(
       min: 0,
       validate: {
         validator: function (value) {
-          return value <= this.totalPrice;
+          return Number(value) <= Number(this.totalPrice || 0);
         },
         message: "Tiền đặt cọc không được lớn hơn tổng giá trị đơn",
       },
@@ -68,8 +88,31 @@ const orderSchema = new mongoose.Schema(
 
     paymentMethod: {
       type: String,
-      enum: ["Chuyển khoản", "Tiền mặt"],
+      enum: ORDER_PAYMENT_METHODS,
       default: "Chuyển khoản",
+      index: true,
+    },
+
+    paymentProvider: {
+      type: String,
+      enum: ["", "ZALOPAY"],
+      default: "",
+      trim: true,
+      index: true,
+    },
+
+    paymentProviderOrderId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+
+    paymentTransactionId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
     },
 
     paymentProof: {
@@ -80,22 +123,26 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: [
-        "Chưa thanh toán",
-        "Đã gửi minh chứng",
-        "Đã xác nhận",
-        "Đã hoàn tất",
-        "Đã hủy xác nhận",
-      ],
+      enum: ORDER_PAYMENT_STATUSES,
       default: "Chưa thanh toán",
       index: true,
     },
 
     status: {
       type: String,
-      enum: ["Chờ xác nhận cọc", "Đã nhận cọc", "Đang giao", "Hoàn thành", "Đã hủy"],
+      enum: ORDER_STATUSES,
       default: "Chờ xác nhận cọc",
       index: true,
+    },
+
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+
+    callbackAt: {
+      type: Date,
+      default: null,
     },
 
     note: {
@@ -122,12 +169,40 @@ orderSchema.pre("validate", function () {
 
   if (
     this.paymentMethod === "Chuyển khoản" &&
-    this.paymentStatus !== "Chưa thanh toán" &&
+    this.paymentStatus === "Đã gửi minh chứng" &&
     !String(this.paymentProof || "").trim()
   ) {
     throw new Error("Đơn chuyển khoản phải có minh chứng thanh toán");
   }
+
+  if (this.paymentMethod === "ZaloPay") {
+    this.paymentProvider = "ZALOPAY";
+
+    if (
+      this.paymentStatus === "Đã xác nhận" ||
+      this.paymentStatus === "Đã hoàn tất"
+    ) {
+      if (!String(this.paymentProviderOrderId || "").trim()) {
+        throw new Error("Đơn ZaloPay thiếu mã giao dịch app_trans_id");
+      }
+    }
+  } else {
+    if (!this.paymentProvider) {
+      this.paymentProvider = "";
+    }
+  }
 });
+
+orderSchema.index(
+  { paymentProvider: 1, paymentProviderOrderId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      paymentProvider: "ZALOPAY",
+      paymentProviderOrderId: { $type: "string", $ne: "" },
+    },
+  }
+);
 
 orderSchema.method("toJSON", function () {
   const { __v, _id, ...object } = this.toObject();

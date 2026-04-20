@@ -8,14 +8,31 @@ const {
 const router = express.Router();
 
 // ==============================
+// ZALOPAY CALLBACK
+// ==============================
+// Route public để ZaloPay server gọi về
+router.post("/zalopay/callback", orderController.zalopayCallback);
+
+// ==============================
 // KHÁCH HÀNG
 // ==============================
 
-// Tạo yêu cầu đặt cọc chó
-router.post("/deposit", requireCustomer, orderController.createDeposit);
+// Tạo yêu cầu đặt cọc chó bằng ZaloPay
+router.post(
+  "/deposit/zalopay",
+  requireCustomer,
+  orderController.createDepositZaloPay
+);
 
 // Xem danh sách đơn đặt cọc của chính mình
 router.get("/my-orders", requireCustomer, orderController.findMyOrders);
+
+// Khách kiểm tra trạng thái thanh toán ZaloPay của đơn
+router.get(
+  "/:id/zalopay-status",
+  requireCustomer,
+  orderController.queryZaloPayOrderStatus
+);
 
 // Khách tự hủy đơn khi đơn còn ở trạng thái cho phép
 router.put("/:id/cancel", requireCustomer, orderController.cancelByCustomer);

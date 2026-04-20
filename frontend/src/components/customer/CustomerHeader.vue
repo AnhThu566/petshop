@@ -40,18 +40,6 @@
   </span>
 </router-link>
 
-            <router-link
-              v-if="isLoggedIn && currentUser && currentUser.role === 'customer'"
-              to="/my-notifications"
-              class="top-notification text-decoration-none"
-              title="Thông báo của tôi"
-            >
-              <i class="fas fa-bell"></i>
-              <span v-if="unreadNotificationCount > 0" class="notification-badge">
-                {{ unreadNotificationCount > 99 ? "99+" : unreadNotificationCount }}
-              </span>
-            </router-link>
-
             <template v-if="!isLoggedIn || !currentUser">
               <router-link
                 to="/login"
@@ -115,33 +103,6 @@
                   >
                     <i class="fas fa-dog text-secondary mr-2"></i>
                     Hồ sơ chó đã mua
-                  </router-link>
-
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/my-dog-care-records"
-                    @click="closeAllDropdowns"
-                  >
-                    <i class="fas fa-heartbeat text-success mr-2"></i>
-                    Theo dõi sau bán
-                  </router-link>
-
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/my-notifications"
-                    @click="closeAllDropdowns"
-                  >
-                    <i class="fas fa-bell text-danger mr-2"></i>
-                    Thông báo của tôi
-                  </router-link>
-
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/my-dog-reminders"
-                    @click="closeAllDropdowns"
-                  >
-                    <i class="fas fa-notes-medical text-info mr-2"></i>
-                    Lịch nhắc chăm sóc chó
                   </router-link>
 
                   <router-link
@@ -301,7 +262,6 @@
 
 <script>
 import AccessoryCategoryService from "@/services/accessoryCategory.service";
-import NotificationService from "@/services/notification.service";
 import BreedService from "@/services/breed.service";
 import CartService from "@/services/cart.service";
 
@@ -326,7 +286,6 @@ data() {
     isAccessoryMenuOpen: false,
     accessoryCategories: [],
     breedMenuList: [],
-    unreadNotificationCount: 0,
     cartCount: 0,
   };
 },
@@ -344,22 +303,19 @@ data() {
   },
 
 
-  watch: {
-    $route() {
-      
-      this.closeAllDropdowns();
-      this.fetchUnreadNotifications();
-      this.fetchCartCount();
-    },
-
-currentUser: {
-  handler() {
-    this.fetchUnreadNotifications();
+watch: {
+  $route() {
+    this.closeAllDropdowns();
     this.fetchCartCount();
   },
-  immediate: true,
-},
+
+  currentUser: {
+    handler() {
+      this.fetchCartCount();
+    },
+    immediate: true,
   },
+},
 
   methods: {
     async fetchAccessoryCategories() {
@@ -385,21 +341,6 @@ currentUser: {
       } catch (error) {
         console.error("Lỗi tải danh sách giống chó cho menu:", error);
         this.breedMenuList = [];
-      }
-    },
-
-    async fetchUnreadNotifications() {
-      try {
-        if (!this.isLoggedIn || !this.currentUser || this.currentUser.role !== "customer") {
-          this.unreadNotificationCount = 0;
-          return;
-        }
-
-        const data = await NotificationService.getCustomerNotifications();
-        this.unreadNotificationCount = (data || []).filter((item) => !item.isRead).length;
-      } catch (error) {
-        console.error("Lỗi tải thông báo:", error);
-        this.unreadNotificationCount = 0;
       }
     },
 
@@ -468,7 +409,6 @@ async mounted() {
   await Promise.all([
     this.fetchAccessoryCategories(),
     this.fetchBreedMenu(),
-    this.fetchUnreadNotifications(),
     this.fetchCartCount(),
   ]);
 
@@ -607,8 +547,7 @@ beforeUnmount() {
   flex: 0 0 auto;
 }
 
-.top-cart,
-.top-notification {
+.top-cart{
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -640,28 +579,9 @@ beforeUnmount() {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
-.top-cart:hover,
-.top-notification:hover {
+.top-cart:hover{
   color: #4b1f73;
   background: #fff;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -4px;
-  right: -3px;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #dc3545;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .top-auth-btn {

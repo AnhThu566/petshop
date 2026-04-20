@@ -2,104 +2,14 @@
   <div class="my-dogs-page">
     <div class="container-fluid page-container py-4">
       <div class="page-layout">
-        <aside class="account-sidebar">
-          <div class="account-card">
-            <div class="account-top">
-              <div class="account-info">
-                <h5 class="account-name mb-1">
-                  {{ currentUser?.fullName || currentUser?.username || "Khách hàng" }}
-                </h5>
-                <div class="account-email">
-                  {{ currentUser?.email || "Chưa cập nhật email" }}
-                </div>
-              </div>
-
-              <div class="account-avatar">
-                {{ getAvatarText() }}
-              </div>
-            </div>
-
-            <div class="account-note">
-              Quản lý hồ sơ cá nhân, lịch sử đặt cọc, hồ sơ chó đã mua,
-              theo dõi sau bán, lịch nhắc chăm sóc, đơn phụ kiện và lịch dịch vụ tại đây.
-            </div>
-          </div>
-
-          <div class="sidebar-menu">
-            <router-link to="/profile" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/profile' }">
-                <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/tra-cuu-don" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/tra-cuu-don' }">
-                <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-dogs" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dogs' }">
-                <span><i class="fas fa-dog mr-2"></i> Hồ sơ chó đã mua</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-dog-care-records" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dog-care-records' }">
-                <span><i class="fas fa-heartbeat mr-2"></i> Theo dõi sau bán</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-notifications" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-notifications' }">
-                <span><i class="fas fa-bell mr-2"></i> Thông báo của tôi</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/my-dog-reminders" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/my-dog-reminders' }">
-                <span><i class="fas fa-notes-medical mr-2"></i> Lịch nhắc chăm sóc chó</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/accessory-orders" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/accessory-orders' }">
-                <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/service-bookings" class="menu-item-link text-decoration-none">
-              <div class="menu-item" :class="{ active: $route.path === '/service-bookings' }">
-                <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <div class="menu-item">
-              <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
-              <small>0379889868</small>
-            </div>
-
-            <div class="menu-item">
-              <span><i class="fas fa-globe mr-2"></i> Trang web</span>
-              <small>petshop.vn</small>
-            </div>
-          </div>
-        </aside>
+<CustomerAccountSidebar :current-user="currentUser" />
 
         <section class="page-content">
           <div class="content-head">
             <div>
               <h3 class="content-title">Hồ sơ chó đã mua</h3>
               <p class="content-subtitle mb-0">
-                Theo dõi các bé chó bạn đã nhận thành công từ hệ thống
+                Xem lại các bé chó bạn đã nhận thành công và tiếp tục theo dõi chăm sóc sau bán.
               </p>
             </div>
           </div>
@@ -109,12 +19,12 @@
               <i class="fas fa-search"></i>
               <input
                 type="text"
-                v-model="searchText"
+                v-model.trim="searchText"
                 placeholder="Tìm theo tên chó hoặc mã chó"
               />
             </div>
 
-            <button class="refresh-btn" @click="fetchMyDogs">
+            <button class="refresh-btn" @click="fetchMyDogs" :disabled="loading">
               <i class="fas fa-sync-alt mr-1"></i> Làm mới
             </button>
           </div>
@@ -138,13 +48,20 @@
               <div class="dog-image-wrap">
                 <img :src="getDogImage(item)" alt="dog" class="dog-image" />
                 <span class="dog-badge">
-                  {{ item.saleStatus || "Đã bán" }}
+                  Đã bán
                 </span>
               </div>
 
               <div class="dog-card-body">
-                <div class="dog-name">{{ item.name || "Bé cún" }}</div>
-                <div class="dog-code">{{ item.maCho || "---" }}</div>
+                <div class="dog-head">
+                  <div>
+                    <div class="dog-name">{{ item.name || "Bé cún" }}</div>
+                    <div class="dog-code">{{ item.maCho || "---" }}</div>
+                  </div>
+                  <div class="dog-price">
+                    {{ formatCurrency(item.finalPrice || item.price) }}
+                  </div>
+                </div>
 
                 <div class="dog-info-list">
                   <div class="dog-info-item">
@@ -158,11 +75,6 @@
                   </div>
 
                   <div class="dog-info-item">
-                    <span class="label">Giá mua</span>
-                    <span class="value text-danger">{{ formatCurrency(item.price) }}</span>
-                  </div>
-
-                  <div class="dog-info-item">
                     <span class="label">Ngày hoàn tất</span>
                     <span class="value">{{ formatDate(item.completedAt) }}</span>
                   </div>
@@ -170,11 +82,6 @@
                   <div class="dog-info-item">
                     <span class="label">Sức khỏe tóm tắt</span>
                     <span class="value">{{ item.healthStatus || "Tốt" }}</span>
-                  </div>
-
-                  <div class="dog-info-item">
-                    <span class="label">Tẩy giun gần nhất</span>
-                    <span class="value">{{ formatDateOnly(item.lastDeworming) }}</span>
                   </div>
                 </div>
 
@@ -199,13 +106,6 @@
                   >
                     <i class="fas fa-bell mr-1"></i> Lịch nhắc
                   </router-link>
-
-                  <router-link
-                    to="/my-notifications"
-                    class="btn btn-outline-warning btn-sm text-decoration-none"
-                  >
-                    <i class="fas fa-bullhorn mr-1"></i> Thông báo
-                  </router-link>
                 </div>
               </div>
             </div>
@@ -219,7 +119,7 @@
         tabindex="-1"
         style="background: rgba(0, 0, 0, 0.45);"
       >
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content border-0 shadow">
             <div class="modal-header modal-head-custom">
               <h5 class="modal-title mb-0">
@@ -230,70 +130,94 @@
               </button>
             </div>
 
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-md-4 mb-3 text-center">
+            <div class="modal-body dog-detail-body">
+              <div class="detail-grid">
+                <div class="detail-image-card">
                   <img
                     :src="getDogImage(selectedDog)"
                     alt="dog"
-                    class="rounded shadow-sm"
-                    style="width: 100%; max-height: 260px; object-fit: cover;"
+                    class="detail-image"
                   />
                 </div>
 
-                <div class="col-md-8 mb-3">
-                  <h5 class="font-weight-bold text-dark">{{ selectedDog.name }}</h5>
-                  <p class="mb-1"><strong>Mã chó:</strong> {{ selectedDog.maCho || "---" }}</p>
-                  <p class="mb-1"><strong>Giống chó:</strong> {{ selectedDog.breedName || "---" }}</p>
-                  <p class="mb-1"><strong>Giới tính:</strong> {{ selectedDog.gender || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày mua hoàn tất:</strong> {{ formatDate(selectedDog.completedAt) }}</p>
-                  <p class="mb-1"><strong>Giá mua:</strong> {{ formatCurrency(selectedDog.price) }}</p>
-                  <p class="mb-1"><strong>Trạng thái bán:</strong> {{ selectedDog.saleStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Sức khỏe tóm tắt:</strong> {{ selectedDog.healthStatus || "---" }}</p>
-                  <p class="mb-1"><strong>Ngày tẩy giun gần nhất:</strong> {{ formatDateOnly(selectedDog.lastDeworming) }}</p>
-                  <p class="mb-1"><strong>Mô tả:</strong> {{ selectedDog.description || "Không có mô tả" }}</p>
-                </div>
+                <div class="detail-info-card">
+                  <div class="detail-dog-name">{{ selectedDog.name || "Bé cún" }}</div>
+                  <div class="detail-dog-code">{{ selectedDog.maCho || "---" }}</div>
 
-                <div class="col-12">
-                  <div class="alert alert-info mb-0">
-                    <strong>Gợi ý:</strong> Bạn có thể theo dõi thêm lịch chăm sóc,
-                    nhắc lịch và hồ sơ sau bán của bé tại các mục
-                    <strong>"Theo dõi sau bán"</strong> và
-                    <strong>"Lịch nhắc chăm sóc chó"</strong>.
+                  <div class="detail-row">
+                    <span>Giống chó</span>
+                    <strong>{{ selectedDog.breedName || "---" }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Giới tính</span>
+                    <strong>{{ selectedDog.gender || "---" }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Ngày mua hoàn tất</span>
+                    <strong>{{ formatDate(selectedDog.completedAt) }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Giá mua</span>
+                    <strong class="text-danger">
+                      {{ formatCurrency(selectedDog.finalPrice || selectedDog.price) }}
+                    </strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Trạng thái</span>
+                    <strong>Đã bán</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Sức khỏe tóm tắt</span>
+                    <strong>{{ selectedDog.healthStatus || "---" }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Tẩy giun gần nhất</span>
+                    <strong>{{ formatDateOnly(selectedDog.lastDeworming) }}</strong>
                   </div>
                 </div>
+              </div>
+
+              <div class="detail-note-card mt-4">
+                <div class="detail-card-title">Gợi ý tiếp theo</div>
+                <p class="mb-0">
+                  Sau khi đã nhận bé, bạn nên tiếp tục theo dõi ở mục
+                  <strong>Theo dõi sau bán</strong> để xem tình trạng chăm sóc và
+                  mục <strong>Lịch nhắc chăm sóc chó</strong> để không bỏ lỡ các mốc
+                  tái khám, tẩy giun hoặc vaccine.
+                </p>
               </div>
             </div>
 
             <div class="modal-footer d-flex flex-wrap">
-              <router-link
-                to="/my-dog-care-records"
-                class="btn btn-success text-decoration-none"
-              >
-                Xem theo dõi sau bán
-              </router-link>
-
-              <router-link
-                to="/my-dog-reminders"
-                class="btn btn-info text-decoration-none"
-              >
-                Xem lịch nhắc
-              </router-link>
-
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
         </div>
       </div>
+
+      <div v-if="selectedDog" class="modal-backdrop fade show"></div>
     </div>
   </div>
 </template>
 
 <script>
 import OrderService from "@/services/order.service";
+import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
+
+
 
 export default {
   name: "CustomerMyDogs",
+
+  components: {
+  CustomerAccountSidebar,
+},
 
   data() {
     return {
@@ -308,11 +232,11 @@ export default {
   computed: {
     filteredDogs() {
       return this.dogs.filter((item) => {
-        const keyword = (this.searchText || "").toLowerCase();
+        const keyword = (this.searchText || "").toLowerCase().trim();
         const name = item.name ? item.name.toLowerCase() : "";
         const code = item.maCho ? item.maCho.toLowerCase() : "";
 
-        return name.includes(keyword) || code.includes(keyword);
+        return !keyword || name.includes(keyword) || code.includes(keyword);
       });
     },
   },
@@ -366,6 +290,7 @@ export default {
 
     getDogImage(item) {
       if (item?.image) {
+        if (String(item.image).startsWith("http")) return item.image;
         return "http://localhost:3000" + item.image;
       }
       return "https://via.placeholder.com/500x320";
@@ -636,6 +561,12 @@ export default {
   box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
 }
 
+.refresh-btn:disabled {
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
 .empty-panel {
   background: #fff;
   border: 1px solid #eee2f7;
@@ -687,10 +618,18 @@ export default {
   font-size: 0.8rem;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
 }
 
 .dog-card-body {
   padding: 18px;
+}
+
+.dog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .dog-name {
@@ -705,6 +644,13 @@ export default {
   color: #8b7fa0;
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.dog-price {
+  color: #dc2626;
+  font-size: 1rem;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .dog-info-list {
@@ -752,6 +698,86 @@ export default {
   overflow-y: auto;
 }
 
+.dog-detail-body {
+  padding: 22px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+}
+
+.detail-image-card,
+.detail-info-card,
+.detail-note-card {
+  background: #fcfbfe;
+  border: 1px solid #eadcf7;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.detail-image-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.detail-dog-name {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #2f1b44;
+  line-height: 1.2;
+}
+
+.detail-dog-code {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 9px 0;
+  color: #4b5563;
+  font-size: 0.93rem;
+}
+
+.detail-row + .detail-row {
+  border-top: 1px dashed #ece3f4;
+}
+
+.detail-row span {
+  color: #7b7287;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detail-row strong {
+  color: #2f1b44;
+  font-weight: 800;
+  text-align: right;
+}
+
+.detail-card-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #31114d;
+  margin-bottom: 10px;
+}
+
 @media (max-width: 1199.98px) {
   .content-title {
     font-size: 1.5rem;
@@ -775,6 +801,10 @@ export default {
     grid-template-columns: 1fr;
   }
 
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
   .page-container {
     padding-left: 16px;
     padding-right: 16px;
@@ -792,6 +822,16 @@ export default {
 
   .dog-card-actions {
     flex-direction: column;
+  }
+
+  .dog-head,
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .detail-row strong {
+    text-align: left;
   }
 }
 </style>

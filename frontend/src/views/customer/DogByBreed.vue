@@ -66,7 +66,11 @@
         <template v-else>
           <div class="breed-dog-heading text-center mt-4 mb-4">
             <h2 class="breed-dog-title">
-              {{ selectedBreed ? `Các bé ${selectedBreed.name} sẵn sàng về nhà mới` : "Các bé cún sẵn sàng về nhà mới" }}
+              {{
+                selectedBreed
+                  ? `Các bé ${selectedBreed.name} đang mở nhận đặt cọc`
+                  : "Các bé cún đang mở nhận đặt cọc"
+              }}
             </h2>
           </div>
 
@@ -94,16 +98,14 @@
                     <i class="fas fa-dog"></i>
                   </div>
 
-                  <span class="dog-status-badge" :class="getDogStatusClass(dog.saleStatus)">
-                    {{ getDogStatusText(dog.saleStatus) }}
-                  </span>
-
                   <div class="dog-image-gradient"></div>
                 </div>
 
                 <div class="dog-meta">
                   <h4 class="dog-name">{{ dog.name }}</h4>
-                  <div class="dog-price">{{ formatCurrency(dog.price) }}</div>
+                  <div class="dog-price">
+                    {{ formatCurrency(dog.finalPrice || dog.price) }}
+                  </div>
                 </div>
               </div>
             </router-link>
@@ -141,11 +143,7 @@ export default {
   computed: {
     breedOrigin() {
       if (!this.selectedBreed) return "";
-      return (
-        this.selectedBreed.origin ||
-        this.selectedBreed.nguonGoc ||
-        ""
-      );
+      return this.selectedBreed.origin || this.selectedBreed.nguonGoc || "";
     },
 
     breedDescription() {
@@ -224,26 +222,6 @@ export default {
     formatCurrency(value) {
       if (value === null || value === undefined || value === "") return "Liên hệ";
       return Number(value).toLocaleString("vi-VN") + " VNĐ";
-    },
-
-    getDogStatusText(status) {
-      if (status === "Đã bán") return "Đã có chủ mới";
-      if (status === "Đang giao") return "Đang bàn giao";
-      if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
-      if (status === "Chờ thanh toán") return "Chờ xác nhận cọc";
-      return "Sẵn sàng đón về";
-    },
-
-    getDogStatusClass(status) {
-      if (status === "Đã bán") return "status-sold";
-      if (
-        status === "Chờ thanh toán" ||
-        status === "Đã đặt cọc" ||
-        status === "Đang giao"
-      ) {
-        return "status-hold";
-      }
-      return "status-approved";
     },
   },
 };
@@ -450,31 +428,6 @@ export default {
   justify-content: center;
   background: #f3ebff;
   font-size: 2.2rem;
-}
-
-.dog-status-badge {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  padding: 8px 13px;
-  border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 800;
-  color: #ffffff;
-  z-index: 2;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
-}
-
-.status-approved {
-  background: #16a34a;
-}
-
-.status-hold {
-  background: #f59e0b;
-}
-
-.status-sold {
-  background: #111827;
 }
 
 .dog-meta {

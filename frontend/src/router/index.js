@@ -40,10 +40,9 @@ import ServiceList from "@/views/customer/ServiceList.vue";
 import ServiceDetail from "@/views/customer/ServiceDetail.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
-import CustomerNotification from "@/views/customer/CustomerNotification.vue";
-import CustomerDogReminder from "@/views/customer/CustomerDogReminder.vue";
 import CustomerMyDogs from "@/views/customer/CustomerMyDogs.vue";
 import PaymentResultZaloPay from "@/views/customer/PaymentResultZaloPay.vue";
+import DepositPaymentResultZaloPay from "@/views/customer/DepositPaymentResultZaloPay.vue";
 
 const routes = [
   // ============================================================
@@ -127,18 +126,7 @@ const routes = [
     component: ServiceBookingHistory,
     meta: { requiresCustomer: true },
   },
-  {
-    path: "/my-notifications",
-    name: "customer-notifications",
-    component: CustomerNotification,
-    meta: { requiresCustomer: true },
-  },
-  {
-    path: "/my-dog-reminders",
-    name: "customer-dog-reminders",
-    component: CustomerDogReminder,
-    meta: { requiresCustomer: true },
-  },
+
   {
     path: "/my-dogs",
     name: "customer-my-dogs",
@@ -181,6 +169,13 @@ const routes = [
   path: "/payment-result/zalopay",
   name: "payment-result-zalopay",
   component: PaymentResultZaloPay,
+  meta: { requiresCustomer: true },
+},
+
+{
+  path: "/deposit/payment-result-zalopay",
+  name: "deposit-payment-result-zalopay",
+  component: DepositPaymentResultZaloPay,
   meta: { requiresCustomer: true },
 },
 
@@ -245,18 +240,6 @@ const routes = [
       },
 
       {
-        path: "dog-reminders",
-        name: "admin-dog-reminders",
-        component: () => import("@/views/admin/dog/DogReminderPage.vue"),
-        meta: { requiresAdmin: true },
-      },
-      {
-        path: "dog-care-records",
-        name: "admin-dog-care-records",
-        component: () => import("@/views/admin/dog/DogCareRecordPage.vue"),
-        meta: { requiresAdmin: true },
-      },
-      {
         path: "customer",
         name: "admin-customer",
         component: () => import("@/views/admin/customer/CustomerPage.vue"),
@@ -320,12 +303,6 @@ const routes = [
         path: "service-category",
         name: "admin-service-category",
         component: ServiceCategoryPage,
-        meta: { requiresAdmin: true },
-      },
-      {
-        path: "notifications",
-        name: "admin-notifications",
-        component: () => import("@/views/admin/notification/NotificationPage.vue"),
         meta: { requiresAdmin: true },
       },
     ],
