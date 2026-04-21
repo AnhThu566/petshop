@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const serviceCategorySchema = new mongoose.Schema(
   {
-    maLoaiDichVu: {
+    categoryCode: {
       type: String,
       unique: true,
       trim: true,

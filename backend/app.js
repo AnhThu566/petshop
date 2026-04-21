@@ -20,6 +20,7 @@ const accessoryCategoryRouter = require("./app/routes/accessoryCategory.route");
 const serviceCategoryRouter = require("./app/routes/serviceCategory.route");
 const cartRouter = require("./app/routes/cart.route");
 const dogHealthRecordRouter = require("./app/routes/dogHealthRecord.route");
+const userRouter = require("./app/routes/user.route");
 
 
 
@@ -52,7 +53,7 @@ app.use("/api/accessory-categories", accessoryCategoryRouter); // Đăng ký rou
 app.use("/api/service-categories", serviceCategoryRouter); // Đăng ký route cho loại dịch vụ
 app.use("/api/cart", cartRouter); // Đăng ký route cho giỏ hàng
 app.use("/api/dog-health-records",dogHealthRecordRouter); // Đăng ký route cho hồ sơ sức khỏe chó cưng
-
+app.use("/api/users", userRouter);
 
 
 

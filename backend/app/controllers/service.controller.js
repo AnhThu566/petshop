@@ -7,11 +7,11 @@ const ApiError = require("../api-error");
 const VALID_SERVICE_STATUSES = ["Đang hoạt động", "Ngừng hoạt động"];
 
 const generateNextCode = async () => {
-  const lastService = await Service.findOne().sort({ maDichVu: -1 });
+  const lastService = await Service.findOne().sort({ serviceCode: -1 });
 
   let nextCode = "DV001";
-  if (lastService && lastService.maDichVu) {
-    const lastNumber = parseInt(lastService.maDichVu.replace("DV", ""), 10);
+  if (lastService && lastService.serviceCode) {
+    const lastNumber = parseInt(lastService.serviceCode.replace("DV", ""), 10);
     nextCode = "DV" + (lastNumber + 1).toString().padStart(3, "0");
   }
 
@@ -108,11 +108,11 @@ exports.create = async (req, res, next) => {
       return next(new ApiError(400, "Vui lòng chọn hình ảnh cho dịch vụ"));
     }
 
-    const maDichVu = await generateNextCode();
+    const serviceCode = await generateNextCode();
     const imagePath = `/uploads/${req.file.filename}`;
 
     const service = new Service({
-      maDichVu,
+      serviceCode,
       categoryId: cleanData.categoryId,
       name: cleanData.name,
       price: cleanData.price,
@@ -125,7 +125,7 @@ exports.create = async (req, res, next) => {
 
     const populatedService = await Service.findById(service._id).populate(
       "categoryId",
-      "maLoaiDichVu name status"
+      "categoryCode name status"
     );
 
     return res.send({
@@ -155,7 +155,7 @@ exports.findAll = async (req, res, next) => {
     }
 
     const services = await Service.find(filter)
-      .populate("categoryId", "maLoaiDichVu name status")
+      .populate("categoryId", "categoryCode name status")
       .sort({ createdAt: -1 });
 
     return res.send(services);
@@ -176,7 +176,7 @@ exports.findOne = async (req, res, next) => {
 
     const service = await Service.findById(req.params.id).populate(
       "categoryId",
-      "maLoaiDichVu name status"
+      "categoryCode name status"
     );
 
     if (!service) {
@@ -236,7 +236,7 @@ exports.update = async (req, res, next) => {
       req.params.id,
       { $set: updateData },
       { new: true, runValidators: true }
-    ).populate("categoryId", "maLoaiDichVu name status");
+    ).populate("categoryId", "categoryCode name status");
 
     return res.send({
       message: "Cập nhật dịch vụ thành công!",

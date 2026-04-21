@@ -91,12 +91,12 @@
             v-for="booking in filteredBookings"
             :key="booking._id || booking.id"
           >
-            <td>{{ booking.maLichDat || "---" }}</td>
+            <td>{{ booking.bookingCode || "---" }}</td>
 
             <td>
               <div class="service-cell">
                 <strong>{{ booking.serviceId?.name || "---" }}</strong>
-                <small>{{ booking.serviceId?.maDichVu || "" }}</small>
+                <small>{{ booking.serviceId?.serviceCode || "" }}</small>
               </div>
             </td>
 
@@ -186,11 +186,11 @@ export default {
 
       return this.bookings.filter((booking) => {
         const matchesKeyword =
-          String(booking.maLichDat || "").toLowerCase().includes(kw) ||
+          String(booking.bookingCode || "").toLowerCase().includes(kw) ||
           String(booking.customerName || "").toLowerCase().includes(kw) ||
           String(booking.customerPhone || "").toLowerCase().includes(kw) ||
           String(booking.serviceId?.name || "").toLowerCase().includes(kw) ||
-          String(booking.serviceId?.maDichVu || "").toLowerCase().includes(kw);
+          String(booking.serviceId?.serviceCode || "").toLowerCase().includes(kw);
 
         const matchesStatus = this.statusFilter
           ? booking.status === this.statusFilter
@@ -226,7 +226,7 @@ export default {
 
     async updateBookingStatus(booking, nextStatus) {
       const confirmed = window.confirm(
-        `Bạn có chắc muốn chuyển lịch ${booking.maLichDat || ""} sang trạng thái "${nextStatus}" không?`
+        `Bạn có chắc muốn chuyển lịch ${booking.bookingCode || ""} sang trạng thái "${nextStatus}" không?`
       );
       if (!confirmed) return;
 

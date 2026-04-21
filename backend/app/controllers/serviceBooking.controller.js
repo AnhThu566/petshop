@@ -20,12 +20,12 @@ const WORKING_HOUR_END = 20;
 const generateNextCode = async () => {
   const lastBooking = await ServiceBooking.findOne().sort({
     createdAt: -1,
-    maLichDat: -1,
+    bookingCode: -1,
   });
 
   let nextCode = "LDV001";
-  if (lastBooking && lastBooking.maLichDat) {
-    const lastNumber = parseInt(lastBooking.maLichDat.replace("LDV", ""), 10);
+  if (lastBooking && lastBooking.bookingCode) {
+    const lastNumber = parseInt(lastBooking.bookingCode.replace("LDV", ""), 10);
     if (!Number.isNaN(lastNumber)) {
       nextCode = "LDV" + String(lastNumber + 1).padStart(3, "0");
     }
@@ -240,10 +240,10 @@ exports.create = async (req, res, next) => {
       );
     }
 
-    const maLichDat = await generateNextCode();
+    const bookingCode = await generateNextCode();
 
     const booking = new ServiceBooking({
-      maLichDat,
+      bookingCode,
       customerId: currentUserId,
       serviceId,
       customerName: cleanData.customerName,
@@ -257,7 +257,7 @@ exports.create = async (req, res, next) => {
     await booking.save();
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
-      .populate("serviceId", "maDichVu name price image status")
+      .populate("serviceId", "serviceCode name price image status")
       .populate("customerId", "username fullName phone email");
 
     return res.send({
@@ -295,7 +295,7 @@ exports.findAll = async (req, res, next) => {
     }
 
     const bookings = await ServiceBooking.find(filter)
-      .populate("serviceId", "maDichVu name price image status")
+      .populate("serviceId", "serviceCode name price image status")
       .populate("customerId", "username fullName phone email")
       .sort({ bookingDate: -1, bookingTime: -1, createdAt: -1 });
 
@@ -326,7 +326,7 @@ exports.findMyBookings = async (req, res, next) => {
     }
 
     const bookings = await ServiceBooking.find(filter)
-      .populate("serviceId", "maDichVu name price image status")
+      .populate("serviceId", "serviceCode name price image status")
       .populate("customerId", "username fullName phone email")
       .sort({ bookingDate: -1, bookingTime: -1, createdAt: -1 });
 
@@ -363,7 +363,7 @@ exports.updateStatus = async (req, res, next) => {
 
     if (oldStatus === status) {
       const sameBooking = await ServiceBooking.findById(booking._id)
-        .populate("serviceId", "maDichVu name price image status")
+        .populate("serviceId", "serviceCode name price image status")
         .populate("customerId", "username fullName phone email");
 
       return res.send({
@@ -408,7 +408,7 @@ exports.updateStatus = async (req, res, next) => {
     await booking.save();
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
-      .populate("serviceId", "maDichVu name price image status")
+      .populate("serviceId", "serviceCode name price image status")
       .populate("customerId", "username fullName phone email");
 
     return res.send({
@@ -453,7 +453,7 @@ exports.cancelByCustomer = async (req, res, next) => {
     await booking.save();
 
     const populatedBooking = await ServiceBooking.findById(booking._id)
-      .populate("serviceId", "maDichVu name price image status")
+      .populate("serviceId", "serviceCode name price image status")
       .populate("customerId", "username fullName phone email");
 
     return res.send({

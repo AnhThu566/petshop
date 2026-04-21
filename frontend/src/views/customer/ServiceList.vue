@@ -1,27 +1,33 @@
 <template>
   <div class="service-list-page">
-    <div class="container py-4">
-      <div class="hero-box">
-        <div class="hero-content">
-          <span class="hero-kicker">Dịch vụ chăm sóc thú cưng</span>
-          <h1>Chọn dịch vụ phù hợp cho bé cưng của bạn</h1>
-          <p>
-            Khám phá các dịch vụ chăm sóc, vệ sinh và hỗ trợ sức khỏe với quy trình
-            rõ ràng, dễ đặt lịch và dễ theo dõi trên cùng một hệ thống.
-          </p>
+    <div class="container-fluid service-page-container py-4">
+      <div class="page-head text-center">
+        <h2 class="page-title">Danh sách dịch vụ</h2>
+        <p class="page-subtitle">
+          Lựa chọn dịch vụ phù hợp để chăm sóc chó của bạn
+        </p>
+      </div>
 
-          <div class="hero-tags">
-            <span class="hero-tag">
-              <i class="fas fa-check-circle mr-1"></i>Dễ đặt lịch
-            </span>
-            <span class="hero-tag">
-              <i class="fas fa-heart mr-1"></i>Chăm sóc thuận tiện
-            </span>
-            <span class="hero-tag">
-              <i class="fas fa-shield-alt mr-1"></i>Thông tin minh bạch
-            </span>
-          </div>
-        </div>
+      <div v-if="categories.length" class="filter-bar">
+        <button
+          type="button"
+          class="filter-chip"
+          :class="{ active: !selectedCategoryId }"
+          @click="selectCategory('')"
+        >
+          Tất cả
+        </button>
+
+        <button
+          v-for="cat in categories"
+          :key="cat._id || cat.id"
+          type="button"
+          class="filter-chip"
+          :class="{ active: String(selectedCategoryId) === String(cat._id || cat.id) }"
+          @click="selectCategory(cat._id || cat.id)"
+        >
+          {{ cat.name }}
+        </button>
       </div>
 
       <div class="toolbar-card">
@@ -47,89 +53,85 @@
         </div>
       </div>
 
-      <div v-if="loading" class="state-box">
-        <div class="spinner"></div>
+      <div v-if="loading" class="empty-panel">
+        <i class="fas fa-spinner fa-spin empty-icon"></i>
         <p>Đang tải danh sách dịch vụ...</p>
       </div>
 
-      <div v-else-if="errorMessage" class="state-box error-box">
+      <div v-else-if="errorMessage" class="empty-panel error-panel">
+        <i class="fas fa-exclamation-circle empty-icon"></i>
         <p>{{ errorMessage }}</p>
-        <button class="btn-reload" @click="loadServices">Tải lại</button>
+        <button class="reset-filter-btn" @click="loadServices">Tải lại</button>
       </div>
 
-      <div v-else-if="filteredServices.length === 0" class="state-box empty-box">
-        <div class="empty-icon">🛁</div>
-        <h3>Không tìm thấy dịch vụ phù hợp</h3>
-        <p>Hãy thử từ khóa khác hoặc quay lại sau.</p>
+      <div v-else-if="filteredServices.length === 0" class="empty-panel">
+        <i class="fas fa-concierge-bell empty-icon"></i>
+        <p>Hiện chưa có dịch vụ phù hợp để hiển thị</p>
+
+        <button
+          v-if="selectedCategoryId || keyword"
+          type="button"
+          class="reset-filter-btn"
+          @click="resetFilters"
+        >
+          Xem tất cả dịch vụ
+        </button>
       </div>
 
       <div v-else class="service-grid">
         <div
+          class="service-col"
           v-for="service in filteredServices"
           :key="service._id || service.id"
-          class="service-card"
         >
-          <router-link
-            :to="`/services/${service._id || service.id}`"
-            class="service-image-link"
-          >
-            <img
-              :src="getImageUrl(service.image)"
-              :alt="service.name"
-              class="service-image"
-              @error="handleImageError"
-            />
+          <div class="service-card">
+            <div class="card-image-wrap" @click="goToDetail(service)">
+              <img
+                :src="getImageUrl(service.image)"
+                class="card-image"
+                :alt="service.name || 'service'"
+                @error="handleImageError"
+              />
 
-            <div class="service-image-gradient"></div>
-
-            <span class="service-badge">
-              <i class="fas fa-star mr-1"></i> Dịch vụ nổi bật
-            </span>
-          </router-link>
-
-          <div class="service-body">
-            <div class="service-top">
-              <span class="service-code">
-                {{ service.maDichVu || "DV---" }}
-              </span>
               <span
-                class="service-status"
-                :class="service.status === 'Đang hoạt động' ? 'status-active' : 'status-paused'"
+                class="status-badge"
+                :class="service.status === 'Đang hoạt động' ? 'badge-available' : 'badge-off'"
               >
-                {{ service.status || "Đang hoạt động" }}
+                {{ service.status === "Đang hoạt động" ? "Hoạt động" : "Ngừng hoạt động" }}
               </span>
+
+              <div class="card-image-gradient"></div>
             </div>
 
-            <h3 class="service-name">
-              <router-link :to="`/services/${service._id || service.id}`">
+            <div class="card-body-custom">
+              <h5 class="service-name" @click="goToDetail(service)">
                 {{ service.name }}
-              </router-link>
-            </h3>
+              </h5>
 
-            <p class="service-category" v-if="service.categoryId?.name">
-              Loại dịch vụ: {{ service.categoryId.name }}
-            </p>
-
-            <p class="service-description">
-              {{ truncateText(service.description, 120) }}
-            </p>
-
-            <div class="service-bottom">
-              <div class="service-price">
-                {{ formatCurrency(service.price) }}
+              <div class="price-block">
+                <div class="service-price">
+                  {{ formatCurrency(service.price) }}
+                </div>
               </div>
 
-              <router-link
-                :to="`/services/${service._id || service.id}`"
-                class="btn-detail"
-              >
-                Xem chi tiết
-              </router-link>
-            </div>
+              <div class="card-actions">
+                <button
+                  class="detail-btn"
+                  type="button"
+                  @click="goToDetail(service)"
+                >
+                  Xem chi tiết
+                </button>
 
-            <div class="service-link-row">
-              Đặt lịch dịch vụ nhanh chóng
-              <i class="fas fa-arrow-right ml-2"></i>
+                <button
+                  class="book-btn"
+                  type="button"
+                  @click="goToDetail(service)"
+                  :disabled="service.status !== 'Đang hoạt động'"
+                >
+                  Đặt lịch
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -140,39 +142,43 @@
 
 <script>
 import ServiceService from "@/services/service.service";
+import ServiceCategoryService from "@/services/serviceCategory.service";
 
 export default {
   name: "ServiceList",
   data() {
     return {
       services: [],
+      categories: [],
       loading: false,
       errorMessage: "",
       keyword: "",
+      selectedCategoryId: "",
       baseImageUrl: "http://localhost:3000",
       fallbackImage: "https://via.placeholder.com/600x400?text=Service",
     };
   },
   computed: {
     filteredServices() {
-      const keyword = this.keyword.toLowerCase();
+      const keyword = this.keyword.toLowerCase().trim();
 
       return this.services.filter((service) => {
-        const statusOk =
-          !service.status || service.status === "Đang hoạt động";
+        const serviceCategoryId =
+          service.categoryId?._id || service.categoryId?.id || service.categoryId || "";
+
+        const matchCategory =
+          !this.selectedCategoryId ||
+          String(serviceCategoryId) === String(this.selectedCategoryId);
 
         const name = String(service.name || "").toLowerCase();
-        const code = String(service.maDichVu || "").toLowerCase();
-        const description = String(service.description || "").toLowerCase();
         const category = String(service.categoryId?.name || "").toLowerCase();
 
-        const keywordOk =
+        const matchKeyword =
+          !keyword ||
           name.includes(keyword) ||
-          code.includes(keyword) ||
-          description.includes(keyword) ||
           category.includes(keyword);
 
-        return statusOk && keywordOk;
+        return matchCategory && matchKeyword;
       });
     },
     isCustomer() {
@@ -198,15 +204,41 @@ export default {
       }
     },
 
-    formatCurrency(value) {
-      return Number(value || 0).toLocaleString("vi-VN") + " đ";
+    async loadCategories() {
+      try {
+        const data = await ServiceCategoryService.getAll();
+        this.categories = Array.isArray(data)
+          ? data.filter(
+              (item) =>
+                item &&
+                (item._id || item.id) &&
+                item.name &&
+                (!item.status || item.status === "Hoạt động")
+            )
+          : [];
+      } catch (error) {
+        console.error("Lỗi loadCategories:", error);
+        this.categories = [];
+      }
     },
 
-    truncateText(text, maxLength = 120) {
-      const content = String(text || "").trim();
-      if (!content) return "Dịch vụ đang được cập nhật mô tả.";
-      if (content.length <= maxLength) return content;
-      return content.slice(0, maxLength) + "...";
+    selectCategory(categoryId = "") {
+      this.selectedCategoryId = categoryId;
+    },
+
+    resetFilters() {
+      this.keyword = "";
+      this.selectedCategoryId = "";
+    },
+
+    goToDetail(service) {
+      const id = service?._id || service?.id;
+      if (!id) return;
+      this.$router.push(`/services/${id}`);
+    },
+
+    formatCurrency(value) {
+      return Number(value || 0).toLocaleString("vi-VN") + " đ";
     },
 
     getImageUrl(image) {
@@ -221,8 +253,8 @@ export default {
       event.target.src = this.fallbackImage;
     },
   },
-  mounted() {
-    this.loadServices();
+  async mounted() {
+    await Promise.all([this.loadServices(), this.loadCategories()]);
   },
 };
 </script>
@@ -231,78 +263,72 @@ export default {
 .service-list-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(177, 145, 211, 0.12), transparent 28%),
-    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    radial-gradient(circle at top left, rgba(155, 117, 204, 0.12), transparent 28%),
+    linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
 }
 
-.container {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding-left: 16px;
-  padding-right: 16px;
+.service-page-container {
+  max-width: 1420px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
-.hero-box {
-  margin-bottom: 24px;
-  border-radius: 28px;
-  padding: 38px 30px;
-  background: linear-gradient(135deg, #eff6ff, #ffffff);
-  border: 1px solid #dbeafe;
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
+.page-head {
+  margin-bottom: 18px;
 }
 
-.hero-kicker {
-  display: inline-block;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-weight: 800;
-  font-size: 13px;
-  margin-bottom: 14px;
-}
-
-.hero-content h1 {
-  margin: 0 0 10px;
-  font-size: 36px;
-  line-height: 1.2;
-  color: #0f172a;
+.page-title {
+  color: #2f1b44;
+  font-size: 2.05rem;
   font-weight: 900;
+  margin-bottom: 8px;
 }
 
-.hero-content p {
-  margin: 0;
-  color: #475569;
-  line-height: 1.75;
-  max-width: 760px;
+.page-subtitle {
+  color: #7b6c8f;
+  font-size: 0.98rem;
+  margin-bottom: 0;
+  font-weight: 500;
 }
 
-.hero-tags {
+.filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 18px;
+  justify-content: center;
+  margin: 18px 0 22px;
 }
 
-.hero-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 14px;
-  border-radius: 999px;
+.filter-chip {
+  border: 1px solid #ddc8f0;
   background: #ffffff;
-  color: #2563eb;
-  font-size: 0.86rem;
+  color: #7b2fc0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
   font-weight: 700;
-  border: 1px solid #dbeafe;
+  transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+  background: #f7f1fd;
+  border-color: #c9a7e7;
+}
+
+.filter-chip.active {
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 8px 16px rgba(117, 34, 178, 0.16);
 }
 
 .toolbar-card {
   background: #ffffff;
-  border: 1px solid #e5edf6;
-  border-radius: 22px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
-  padding: 16px;
-  margin-bottom: 22px;
+  border: 1px solid #eee2f7;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.05);
+  padding: 14px;
+  margin-bottom: 24px;
 }
 
 .toolbar {
@@ -324,36 +350,27 @@ export default {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  pointer-events: none;
+  color: #9b8ab2;
   z-index: 2;
 }
 
 .search-box input {
   width: 100%;
-  height: 48px;
-  padding: 0 16px 0 46px;
+  height: 46px;
+  padding: 0 16px 0 44px;
   border-radius: 14px;
-  border: 1px solid #dbe2ea;
+  border: 1px solid #e7d9f3;
   background: #fff;
   outline: none;
   font-size: 14px;
-  display: block;
 }
 
 .search-box input:focus {
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  border-color: #c9a7e7;
+  box-shadow: 0 0 0 4px rgba(154, 77, 221, 0.1);
 }
 
-.btn-history,
-.btn-detail,
-.btn-reload {
+.btn-history {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -362,239 +379,260 @@ export default {
   border-radius: 12px;
   text-decoration: none;
   font-weight: 800;
-  transition: 0.2s ease;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-history {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
   color: #fff;
+  box-shadow: 0 10px 18px rgba(117, 34, 178, 0.16);
 }
 
-.btn-history:hover {
-  color: #fff;
-  filter: brightness(0.98);
-}
-
-.btn-detail {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.btn-detail:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.btn-reload {
-  background: #2563eb;
-  color: #fff;
-  margin-top: 10px;
-}
-
-.state-box {
+.empty-panel {
   background: #fff;
+  border: 1px solid #eee2f7;
   border-radius: 20px;
-  padding: 52px 20px;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #7a708a;
+  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.05);
   text-align: center;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 24px;
 }
 
-.error-box {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.error-panel {
+  color: #b42318;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  color: #cfbfdc;
 }
 
-.spinner {
-  width: 42px;
-  height: 42px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  margin: 0 auto 14px;
-  animation: spin 0.8s linear infinite;
+.reset-filter-btn {
+  margin-top: 12px;
+  border: none;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
 }
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.service-col {
+  min-width: 0;
 }
 
 .service-card {
-  background: #fff;
+  background: #ffffff;
+  border: 1px solid #eee2f7;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
-  border: 1px solid #eef2f7;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 12px 24px rgba(106, 27, 154, 0.06);
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 450px;
 }
 
 .service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+  transform: translateY(-5px);
+  box-shadow: 0 18px 32px rgba(106, 27, 154, 0.12);
 }
 
-.service-image-link {
-  display: block;
-  height: 230px;
-  background: #f1f5f9;
+.card-image-wrap {
   position: relative;
+  height: 250px;
+  background: #f7f1fd;
   overflow: hidden;
+  cursor: pointer;
 }
 
-.service-image {
+.card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.25s ease;
 }
 
-.service-card:hover .service-image {
-  transform: scale(1.05);
+.service-card:hover .card-image {
+  transform: scale(1.04);
 }
 
-.service-image-gradient {
+.card-image-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 10, 28, 0.02) 0%, rgba(20, 10, 28, 0.25) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 10, 28, 0.02) 0%,
+    rgba(20, 10, 28, 0.14) 100%
+  );
 }
 
-.service-badge {
+.status-badge {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 6px 11px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
   z-index: 2;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
 }
 
-.service-body {
-  padding: 18px;
+.badge-available {
+  background: rgba(22, 163, 74, 0.92);
+  color: #fff;
 }
 
-.service-top {
+.badge-off {
+  background: rgba(185, 28, 28, 0.94);
+  color: #fff;
+}
+
+.card-body-custom {
+  padding: 16px 16px 18px;
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.service-code {
-  font-size: 13px;
-  font-weight: 700;
-  color: #64748b;
-}
-
-.service-status {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 10px;
-  border-radius: 999px;
-}
-
-.status-active {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.status-paused {
-  color: #b91c1c;
-  background: #fee2e2;
+  flex-direction: column;
+  flex: 1;
 }
 
 .service-name {
-  margin: 0 0 8px;
-  font-size: 21px;
+  color: #2f1b44;
+  font-size: 1rem;
+  font-weight: 800;
   line-height: 1.35;
+  margin-bottom: 8px;
+  text-align: center;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 42px;
 }
 
-.service-name a {
-  color: #0f172a;
-  text-decoration: none;
-  font-weight: 900;
+.service-name:hover {
+  color: #6a1b9a;
 }
 
-.service-name a:hover {
-  color: #2563eb;
-}
-
-.service-category {
-  margin: 0 0 8px;
-  color: #475569;
-  font-size: 14px;
-}
-
-.service-description {
-  margin: 0 0 16px;
-  color: #64748b;
-  line-height: 1.7;
-  min-height: 56px;
-}
-
-.service-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+.price-block {
+  text-align: center;
+  margin-bottom: 14px;
 }
 
 .service-price {
-  font-size: 22px;
+  color: #b42318;
+  font-size: 1.08rem;
   font-weight: 900;
-  color: #dc2626;
+  line-height: 1.2;
 }
 
-.service-link-row {
-  margin-top: 12px;
-  color: #2563eb;
-  font-size: 0.9rem;
+.card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.detail-btn,
+.book-btn {
+  height: 42px;
+  border-radius: 12px;
+  font-size: 0.92rem;
   font-weight: 800;
+  transition: all 0.2s ease;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.detail-btn {
+  border: 1.5px solid #d7bdea;
+  background: #fff;
+  color: #8e3fd1;
+}
+
+.detail-btn:hover {
+  background: #f7f1fd;
+  border-color: #b88bdf;
+}
+
+.book-btn {
+  border: none;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(117, 34, 178, 0.16);
+}
+
+.book-btn:hover:not(:disabled) {
+  filter: brightness(0.98);
+}
+
+.book-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 1199.98px) {
+  .service-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .page-title {
+    font-size: 1.9rem;
   }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
   .service-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .hero-content h1 {
-    font-size: 30px;
-  }
 }
 
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 28px;
+@media (max-width: 767.98px) {
+  .service-page-container {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .service-grid {
-    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .card-image-wrap {
+    height: 205px;
   }
 
   .btn-history {
     width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-bar {
+    justify-content: flex-start;
   }
 }
 </style>

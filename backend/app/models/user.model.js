@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, enum: ["Nam", "Nữ", "Khác"] },
     birthday: Date,
     phone: { type: String, default: "" },
+    address: { type: String, default: "" },
     avatar: { type: String, default: "" },
     email: { type: String, required: true, unique: true, trim: true },
     customerCode: { type: String, default: "" },

@@ -64,7 +64,7 @@
                 class="service-thumb"
               />
             </td>
-            <td>{{ service.maDichVu || "---" }}</td>
+            <td>{{ service.serviceCode || "---" }}</td>
             <td>
               <div class="service-name-cell">
                 <strong>{{ service.name }}</strong>
@@ -225,7 +225,7 @@ export default {
       const kw = this.keyword.toLowerCase();
       return this.services.filter((service) => {
         const name = String(service.name || "").toLowerCase();
-        const code = String(service.maDichVu || "").toLowerCase();
+        const code = String(service.serviceCode || "").toLowerCase();
         const desc = String(service.description || "").toLowerCase();
         const category = String(service.categoryId?.name || "").toLowerCase();
 

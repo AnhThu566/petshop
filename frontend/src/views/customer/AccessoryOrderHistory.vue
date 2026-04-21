@@ -2,73 +2,12 @@
   <div class="accessory-order-history-page">
     <div class="container-fluid order-page-container py-4">
       <div class="order-layout">
-        <aside class="account-sidebar">
-          <div class="account-card">
-            <div class="account-top">
-              <div class="account-info">
-                <h5 class="account-name mb-1">
-                  {{ currentUser?.fullName || currentUser?.username || "Khách hàng" }}
-                </h5>
-                <div class="account-email">
-                  {{ currentUser?.email || "Chưa cập nhật email" }}
-                </div>
-              </div>
-
-              <div class="account-avatar">
-                {{ getAvatarText() }}
-              </div>
-            </div>
-
-            <div class="account-note">
-              Quản lý hồ sơ, lịch sử đặt cọc, đơn phụ kiện và lịch dịch vụ tại đây.
-            </div>
-          </div>
-
-          <div class="sidebar-menu">
-            <router-link to="/profile" class="menu-item-link text-decoration-none">
-              <div class="menu-item">
-                <span><i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/tra-cuu-don" class="menu-item-link text-decoration-none">
-              <div class="menu-item">
-                <span><i class="fas fa-file-invoice-dollar mr-2"></i> Lịch sử đặt cọc</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/accessory-orders" class="menu-item-link text-decoration-none">
-              <div class="menu-item active">
-                <span><i class="fas fa-shopping-bag mr-2"></i> Đơn phụ kiện</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <router-link to="/service-bookings" class="menu-item-link text-decoration-none">
-              <div class="menu-item">
-                <span><i class="fas fa-calendar-check mr-2"></i> Lịch dịch vụ</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-              </div>
-            </router-link>
-
-            <div class="menu-item">
-              <span><i class="fas fa-phone-alt mr-2"></i> Liên hệ</span>
-              <small>0379889868</small>
-            </div>
-
-            <div class="menu-item">
-              <span><i class="fas fa-globe mr-2"></i> Trang web</span>
-              <small>petshop.vn</small>
-            </div>
-          </div>
-        </aside>
+        <CustomerAccountSidebar active="accessory-orders" />
 
         <section class="order-content">
           <div class="content-head">
             <div>
-              <h3 class="content-title">Lịch sử đơn phụ kiện</h3>
+              <h3 class="content-title">Đơn phụ kiện</h3>
               <p class="content-subtitle mb-0">
                 Theo dõi các đơn phụ kiện bạn đã đặt
               </p>
@@ -317,7 +256,7 @@
               <h5 class="modal-title mb-0">
                 <i class="fas fa-file-invoice mr-2"></i> Chi tiết đơn phụ kiện
               </h5>
-              <button type="button" class="close text-white" @click="closeDetail">
+              <button type="button" class="close modal-close-btn" @click="closeDetail">
                 <span>&times;</span>
               </button>
             </div>
@@ -446,10 +385,13 @@
 import AccessoryOrderService from "@/services/accessoryOrder.service";
 import CartService from "@/services/cart.service";
 import AccessoryService from "@/services/accessory.service";
+import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
 
 export default {
   name: "AccessoryOrderHistoryPage",
-
+  components: {
+    CustomerAccountSidebar,
+  },
   data() {
     return {
       currentUser: null,
@@ -499,16 +441,6 @@ export default {
   },
 
   methods: {
-    getAvatarText() {
-      const name = this.currentUser?.fullName || this.currentUser?.username || "KH";
-      return name
-        .split(" ")
-        .map((item) => item[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase();
-    },
-
     getOrderId(order) {
       return order?._id || order?.id || "";
     },
@@ -758,161 +690,51 @@ export default {
 <style scoped>
 .accessory-order-history-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.04), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
 }
 
 .order-page-container {
-  max-width: 1480px;
-  padding-left: 24px;
-  padding-right: 24px;
+  max-width: 1350px;
+
 }
 
 .order-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  gap: 22px;
+  gap: 24px;
   align-items: start;
 }
 
-.account-card,
-.sidebar-menu,
 .order-content,
 .table-card {
   background: #ffffff;
-  border: 1px solid #eee2f7;
+  border: 1px solid #e7e5ef;
   border-radius: 22px;
-  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
-}
-
-.account-card {
-  padding: 22px;
-  margin-bottom: 16px;
-}
-
-.account-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.account-info {
-  min-width: 0;
-}
-
-.account-name {
-  margin: 0;
-  font-weight: 800;
-  color: #2f1b44;
-  font-size: 1.15rem;
-  line-height: 1.35;
-}
-
-.account-email {
-  color: #7b7287;
-  font-size: 0.92rem;
-  margin-top: 4px;
-  word-break: break-word;
-}
-
-.account-avatar {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.account-note {
-  margin-top: 16px;
-  color: #746a80;
-  font-size: 0.92rem;
-  line-height: 1.75;
-}
-
-.sidebar-menu {
-  overflow: hidden;
-}
-
-.menu-item-link {
-  display: block;
-  color: inherit;
-}
-
-.menu-item {
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #3e3550;
-  border-bottom: 1px solid #f2ebf8;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-item:hover {
-  background: #fbf8fe;
-}
-
-.menu-item span {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.menu-arrow {
-  color: #8c7ea5;
-  font-size: 0.82rem;
-}
-
-.menu-item.active {
-  background: #f3e8ff;
-  color: #6a1b9a;
-  font-weight: 800;
-}
-
-.menu-item.active .menu-arrow {
-  color: #6a1b9a;
-}
-
-.menu-item small {
-  color: #8c7ea5;
-  font-size: 0.87rem;
-  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .order-content {
-  padding: 20px;
+  padding: 24px;
   min-width: 0;
 }
 
 .content-head {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .content-title {
-  margin: 0 0 3px;
-  font-size: 1.75rem;
-  font-weight: 900;
-  color: #2f1b44;
-  line-height: 1.1;
+  margin: 0 0 4px;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.15;
 }
 
 .content-subtitle {
-  color: #7b7287;
-  font-size: 0.9rem;
+  color: #6b7280;
+  font-size: 0.94rem;
 }
 
 .overview-cards {
@@ -929,6 +751,7 @@ export default {
   border-radius: 14px;
   padding: 12px 14px;
   min-height: 78px;
+  border: 1px solid #e7e5ef;
 }
 
 .overview-icon {
@@ -949,16 +772,16 @@ export default {
 
 .overview-label {
   font-size: 0.82rem;
-  color: #675f73;
+  color: #6b7280;
   font-weight: 700;
   margin-bottom: 2px;
 }
 
 .overview-value {
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
-  color: #2f1b44;
+  color: #111827;
 }
 
 .overview-total {
@@ -997,7 +820,7 @@ export default {
   height: 42px;
   display: flex;
   align-items: center;
-  border: 1px solid #dfd3ec;
+  border: 1px solid #ddd6e8;
   border-radius: 12px;
   background: #fff;
   overflow: hidden;
@@ -1005,8 +828,8 @@ export default {
 }
 
 .search-box:focus-within {
-  border-color: #7b3fc8;
-  box-shadow: 0 0 0 3px rgba(123, 63, 200, 0.08);
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .search-icon-wrap {
@@ -1015,7 +838,7 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #8b7fa0;
+  color: #9ca3af;
   flex-shrink: 0;
   font-size: 0.88rem;
 }
@@ -1029,7 +852,7 @@ export default {
   padding: 0 12px 0 0;
   font-size: 0.85rem;
   background: transparent;
-  color: #3b3150;
+  color: #111827;
 }
 
 .refresh-btn {
@@ -1037,7 +860,7 @@ export default {
   height: 42px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #7b2fc0, #5f1796);
+  background: #4f46e5;
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -1048,7 +871,7 @@ export default {
 }
 
 .refresh-btn:hover:not(:disabled) {
-  filter: brightness(0.98);
+  background: #4338ca;
 }
 
 .refresh-btn:disabled {
@@ -1061,49 +884,45 @@ export default {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
-  padding-bottom: 0;
-  border-bottom: none;
 }
 
 .status-tab {
-  border: 1px solid #e6d9f2;
+  border: 1px solid #ddd6e8;
   background: #fff;
   padding: 7px 12px;
   border-radius: 999px;
   font-weight: 700;
-  color: #766b86;
+  color: #4b5563;
   font-size: 0.84rem;
   transition: all 0.2s ease;
 }
 
 .status-tab:hover {
-  color: #6a1b9a;
-  background: #f8f2fd;
-  border-color: #d8c0ef;
+  background: #f8fafc;
 }
 
 .status-tab.active {
-  color: #fff;
-  background: linear-gradient(135deg, #8f46d6, #6f23b3);
-  border-color: transparent;
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
 }
 
 .empty-panel {
   background: #fff;
-  border: 1px solid #eee2f7;
+  border: 1px solid #e7e5ef;
   border-radius: 18px;
   min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  color: #7a708a;
+  color: #6b7280;
 }
 
 .empty-icon {
   font-size: 2.4rem;
   margin-bottom: 12px;
-  color: #cfbfdc;
+  color: #c4c7cf;
 }
 
 .table-card {
@@ -1121,37 +940,37 @@ export default {
 }
 
 .order-table thead th {
-  background: #f8f3fc;
-  color: #514564;
+  background: #f8fafc;
+  color: #4b5563;
   font-size: 0.85rem;
   font-weight: 800;
   padding: 13px 10px;
-  border-bottom: 1px solid #ece3f4;
+  border-bottom: 1px solid #eceff4;
   text-align: left;
   white-space: nowrap;
 }
 
 .order-table tbody td {
   padding: 13px 10px;
-  border-bottom: 1px solid #f2ebf8;
+  border-bottom: 1px solid #eef2f7;
   vertical-align: middle;
   font-size: 0.88rem;
-  color: #3d3450;
+  color: #374151;
 }
 
 .order-table tbody tr:hover {
-  background: #fcfaff;
+  background: #fcfcfd;
 }
 
 .td-code {
-  font-weight: 900;
-  color: #3c2f62;
+  font-weight: 800;
+  color: #374151;
   white-space: nowrap;
 }
 
 .td-date {
   min-width: 150px;
-  color: #5a5266;
+  color: #6b7280;
 }
 
 .order-product-preview {
@@ -1167,8 +986,8 @@ export default {
   border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid #eadcf6;
-  background: #faf7fd;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
 }
 
 .order-product-text {
@@ -1177,21 +996,21 @@ export default {
 
 .order-product-main {
   font-weight: 700;
-  color: #2f1b44;
+  color: #111827;
   line-height: 1.3;
   font-size: 0.9rem;
   overflow-wrap: anywhere;
 }
 
 .order-product-more {
-  color: #8b7fa0;
+  color: #9ca3af;
   font-size: 0.78rem;
   margin-top: 3px;
 }
 
 .money-total {
-  color: #2f1b44;
-  font-weight: 900;
+  color: #111827;
+  font-weight: 800;
   white-space: nowrap;
   font-size: 1rem;
 }
@@ -1224,13 +1043,13 @@ export default {
 }
 
 .status-confirmed {
-  background: #efe7ff;
-  color: #6a1b9a;
+  background: #e0e7ff;
+  color: #4338ca;
 }
 
 .status-delivering {
-  background: #ede9fe;
-  color: #5b21b6;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .status-failed {
@@ -1260,8 +1079,13 @@ export default {
 }
 
 .modal-head-custom {
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  background: #111827;
   color: #fff;
+}
+
+.modal-close-btn {
+  color: #fff;
+  opacity: 1;
 }
 
 .detail-info-box {
@@ -1271,27 +1095,27 @@ export default {
 }
 
 .detail-info-title {
-  font-weight: 900;
+  font-weight: 800;
   margin-bottom: 12px;
   font-size: 1rem;
 }
 
 .detail-info-order {
-  background: #f6f1fd;
-  border: 1px solid #eadcf7;
+  background: #f8fafc;
+  border: 1px solid #e7e5ef;
 }
 
 .detail-info-order .detail-info-title {
-  color: #6a1b9a;
+  color: #111827;
 }
 
 .detail-info-shipping {
-  background: #eefbf2;
-  border: 1px solid #d8f2e0;
+  background: #f9fafb;
+  border: 1px solid #e7e5ef;
 }
 
 .detail-info-shipping .detail-info-title {
-  color: #15803d;
+  color: #111827;
 }
 
 .detail-total-line {
@@ -1307,11 +1131,11 @@ export default {
 .product-line {
   display: flex;
   align-items: center;
-  border: 1px solid #eee2f7;
+  border: 1px solid #e7e5ef;
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 12px;
-  background: #faf7fd;
+  background: #fcfcfd;
   gap: 14px;
 }
 
@@ -1330,13 +1154,13 @@ export default {
 
 .product-line-name {
   font-weight: 800;
-  color: #2f1b44;
+  color: #111827;
   font-size: 1rem;
 }
 
 .product-line-meta {
   font-size: 0.87rem;
-  color: #7b7287;
+  color: #6b7280;
   margin-top: 4px;
 }
 
@@ -1363,7 +1187,7 @@ export default {
 }
 
 .product-line-old-price {
-  color: #9b90ad;
+  color: #9ca3af;
   font-size: 0.8rem;
   text-decoration: line-through;
   margin-bottom: 4px;
@@ -1371,13 +1195,13 @@ export default {
 
 .product-line-total-label {
   font-size: 0.78rem;
-  color: #8b7fa0;
+  color: #9ca3af;
   margin-bottom: 4px;
 }
 
 .product-line-total {
   font-weight: 900;
-  color: #2f1b44;
+  color: #111827;
   white-space: nowrap;
   font-size: 1rem;
 }

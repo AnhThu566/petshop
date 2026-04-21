@@ -82,7 +82,7 @@
             <tbody>
               <tr v-for="item in filteredCategories" :key="item._id || item.id">
                 <td class="font-weight-bold text-primary">
-                  {{ item.maLoaiDichVu || '---' }}
+                  {{ item.categoryCode || '---' }}
                 </td>
 
                 <td class="font-weight-bold text-dark text-left">
@@ -143,7 +143,6 @@
         </div>
       </div>
 
-      <!-- Modal thêm/sửa -->
       <div
         v-if="showFormModal"
         class="modal fade show d-block"
@@ -198,7 +197,6 @@
         </div>
       </div>
 
-      <!-- Modal chi tiết -->
       <div
         v-if="selectedCategory"
         class="modal fade show d-block"
@@ -217,7 +215,7 @@
             </div>
 
             <div class="modal-body">
-              <p class="mb-2"><strong>Mã loại:</strong> {{ selectedCategory.maLoaiDichVu || '---' }}</p>
+              <p class="mb-2"><strong>Mã loại:</strong> {{ selectedCategory.categoryCode || '---' }}</p>
               <p class="mb-2"><strong>Tên loại:</strong> {{ selectedCategory.name || '---' }}</p>
               <p class="mb-2"><strong>Trạng thái:</strong> {{ selectedCategory.status || '---' }}</p>
               <p class="mb-2"><strong>Ngày tạo:</strong> {{ formatDateOnly(selectedCategory.createdAt) }}</p>
@@ -264,7 +262,7 @@ export default {
       return this.categories.filter((item) => {
         const keyword = (this.searchText || "").toLowerCase();
         const name = item.name ? item.name.toLowerCase() : "";
-        const code = item.maLoaiDichVu ? item.maLoaiDichVu.toLowerCase() : "";
+        const code = item.categoryCode ? item.categoryCode.toLowerCase() : "";
 
         const matchSearch = name.includes(keyword) || code.includes(keyword);
         const matchStatus =

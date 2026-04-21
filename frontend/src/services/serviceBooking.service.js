@@ -9,12 +9,12 @@ class ServiceBookingService {
     return (await this.api.post("/", data)).data;
   }
 
-  async getAll() {
-    return (await this.api.get("/")).data;
+  async getAll(params = {}) {
+    return (await this.api.get("/", { params })).data;
   }
 
-  async getMyBookings() {
-    return (await this.api.get("/my-bookings")).data;
+  async getMyBookings(params = {}) {
+    return (await this.api.get("/my-bookings", { params })).data;
   }
 
   async updateStatus(id, status) {

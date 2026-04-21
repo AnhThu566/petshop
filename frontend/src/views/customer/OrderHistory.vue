@@ -2,7 +2,7 @@
   <div class="order-history-page">
     <div class="container-fluid order-page-container py-4">
       <div class="order-layout">
-        <CustomerAccountSidebar :current-user="currentUser" />
+        <CustomerAccountSidebar active="deposit-history" />
 
         <section class="order-content">
           <div class="content-head">
@@ -128,7 +128,7 @@
                           <div class="dog-name">{{ order.dogId.name || "Bé cún" }}</div>
                         </div>
                       </div>
-                      <span v-else class="text-danger">Không còn dữ liệu</span>
+                      <span class="text-danger" v-else>Không còn dữ liệu</span>
                     </td>
 
                     <td class="td-date">{{ formatDate(order.createdAt) }}</td>
@@ -189,7 +189,7 @@
               <h5 class="modal-title mb-0">
                 <i class="fas fa-file-alt mr-2"></i>Chi tiết đơn đặt cọc
               </h5>
-              <button type="button" class="close text-white" @click="closeDetail">
+              <button type="button" class="close modal-close-btn" @click="closeDetail">
                 <span>&times;</span>
               </button>
             </div>
@@ -504,50 +504,51 @@ export default {
 <style scoped>
 .order-history-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.04), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
 }
 
 .order-page-container {
-  max-width: 1460px;
-  padding-left: 24px;
-  padding-right: 24px;
+  max-width: 1350px;
+
 }
 
 .order-layout {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
 
 .order-content,
 .table-card {
   background: #ffffff;
-  border: 1px solid #eee2f7;
-  border-radius: 20px;
-  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.06);
+  border: 1px solid #e7e5ef;
+  border-radius: 22px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .order-content {
-  padding: 22px;
+  padding: 24px;
   min-width: 0;
 }
 
 .content-head {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .content-title {
-  margin: 0 0 4px;
-  font-size: 1.85rem;
-  font-weight: 900;
-  color: #2f1b44;
+  margin: 0 0 6px;
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: #111827;
   line-height: 1.15;
 }
 
 .content-subtitle {
-  color: #7b7287;
-  font-size: 0.94rem;
+  color: #6b7280;
+  font-size: 0.95rem;
 }
 
 .toolbar-box {
@@ -568,7 +569,7 @@ export default {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8b7fa0;
+  color: #9ca3af;
   font-size: 0.95rem;
   pointer-events: none;
 }
@@ -576,32 +577,32 @@ export default {
 .search-box input {
   width: 100%;
   height: 46px;
-  border: 1px solid #dfd3ec;
+  border: 1px solid #ddd6e8;
   border-radius: 14px;
   padding: 0 16px 0 42px;
   outline: none;
   font-size: 0.94rem;
   background: #fff;
-  color: #3b3150;
+  color: #111827;
   transition: all 0.2s ease;
 }
 
 .search-box input::placeholder {
-  color: #9b90ad;
+  color: #9ca3af;
 }
 
 .search-box input:focus {
-  border-color: #7b3fc8;
-  box-shadow: 0 0 0 3px rgba(123, 63, 200, 0.08);
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .refresh-btn {
   border: none;
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  background: #4f46e5;
   color: #fff;
   height: 46px;
   border-radius: 12px;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 0.92rem;
   display: inline-flex;
   align-items: center;
@@ -612,23 +613,19 @@ export default {
 }
 
 .refresh-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(106, 27, 154, 0.18);
+  background: #4338ca;
 }
 
 .refresh-btn:disabled {
   opacity: 0.7;
-  transform: none;
-  box-shadow: none;
 }
 
 .status-tabs {
   display: flex;
-  gap: 18px;
+  gap: 10px;
   overflow-x: auto;
   white-space: nowrap;
   scrollbar-width: none;
-  border-bottom: 1px solid #ece3f4;
   margin-bottom: 18px;
   padding-bottom: 2px;
 }
@@ -639,42 +636,43 @@ export default {
 
 .status-tab {
   flex: 0 0 auto;
-  border: none;
-  background: none;
-  padding: 0 0 10px;
+  border: 1px solid #ddd6e8;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 10px 14px;
   font-weight: 700;
-  color: #7f748f;
-  border-bottom: 2px solid transparent;
-  font-size: 0.94rem;
+  color: #4b5563;
+  font-size: 0.92rem;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .status-tab:hover {
-  color: #6a1b9a;
+  background: #f8fafc;
 }
 
 .status-tab.active {
-  color: #6a1b9a;
-  border-bottom-color: #6a1b9a;
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
 }
 
 .empty-panel {
   background: #fff;
-  border: 1px solid #eee2f7;
-  border-radius: 16px;
+  border: 1px solid #e7e5ef;
+  border-radius: 18px;
   min-height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  color: #7a708a;
+  color: #6b7280;
 }
 
 .empty-icon {
   font-size: 2.4rem;
   margin-bottom: 12px;
-  color: #cfbfdc;
+  color: #c4c7cf;
 }
 
 .table-card {
@@ -693,27 +691,27 @@ export default {
 }
 
 .order-table thead th {
-  background: #f8f3fc;
-  color: #514564;
+  background: #f8fafc;
+  color: #4b5563;
   font-size: 0.88rem;
   font-weight: 800;
   padding: 14px 12px;
-  border-bottom: 1px solid #ece3f4;
+  border-bottom: 1px solid #eceff4;
   text-align: center;
   white-space: nowrap;
 }
 
 .order-table tbody td {
   padding: 14px 12px;
-  border-bottom: 1px solid #f2ebf8;
+  border-bottom: 1px solid #eef2f7;
   vertical-align: middle;
   font-size: 0.91rem;
-  color: #3d3450;
+  color: #374151;
   text-align: center;
 }
 
 .order-table tbody tr:hover {
-  background: #fcfaff;
+  background: #fcfcfd;
 }
 
 .order-table tbody tr:last-child td {
@@ -749,8 +747,8 @@ export default {
 }
 
 .td-code {
-  font-weight: 900;
-  color: #6b46d9;
+  font-weight: 800;
+  color: #4f46e5;
   white-space: nowrap;
 }
 
@@ -758,10 +756,7 @@ export default {
   text-align: left !important;
 }
 
-.td-date {
-  white-space: nowrap;
-}
-
+.td-date,
 .td-money {
   white-space: nowrap;
 }
@@ -787,12 +782,12 @@ export default {
   border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid #ece3f4;
+  border: 1px solid #e5e7eb;
 }
 
 .dog-name {
   font-weight: 700;
-  color: #2f1b44;
+  color: #111827;
   font-size: 0.93rem;
   line-height: 1.35;
   word-break: break-word;
@@ -846,13 +841,13 @@ export default {
 }
 
 .status-confirmed {
-  background: #efe7ff;
-  color: #6a1b9a;
+  background: #e0e7ff;
+  color: #4338ca;
 }
 
 .status-delivering {
-  background: #ede9fe;
-  color: #5b21b6;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .status-completed {
@@ -871,8 +866,8 @@ export default {
 }
 
 .payment-confirmed {
-  background: #efe7ff;
-  color: #6a1b9a;
+  background: #e0e7ff;
+  color: #4338ca;
 }
 
 .payment-pending {
@@ -896,8 +891,13 @@ export default {
 }
 
 .modal-head-custom {
-  background: linear-gradient(135deg, #6a1b9a, #4a148c);
+  background: #111827;
   color: #fff;
+}
+
+.modal-close-btn {
+  color: #fff;
+  opacity: 1;
 }
 
 .modal {
@@ -916,19 +916,19 @@ export default {
 
 .detail-card,
 .detail-dog-card {
-  background: #fcfbfe;
-  border: 1px solid #eadcf7;
+  background: #fcfcfd;
+  border: 1px solid #e7e5ef;
   border-radius: 18px;
   padding: 18px;
 }
 
 .detail-card-title {
   font-size: 1rem;
-  font-weight: 900;
-  color: #31114d;
+  font-weight: 800;
+  color: #111827;
   margin-bottom: 14px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #ece3f4;
+  border-bottom: 1px solid #eceff4;
 }
 
 .detail-row {
@@ -942,17 +942,17 @@ export default {
 }
 
 .detail-row + .detail-row {
-  border-top: 1px dashed #ece3f4;
+  border-top: 1px dashed #eceff4;
 }
 
 .detail-row span {
-  color: #7b7287;
+  color: #6b7280;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .detail-row strong {
-  color: #2f1b44;
+  color: #111827;
   font-weight: 800;
   text-align: right;
 }
@@ -968,7 +968,7 @@ export default {
   height: 110px;
   object-fit: cover;
   border-radius: 14px;
-  border: 1px solid #ece3f4;
+  border: 1px solid #e5e7eb;
   flex-shrink: 0;
 }
 
@@ -979,8 +979,8 @@ export default {
 
 .detail-dog-name {
   font-size: 1.08rem;
-  font-weight: 900;
-  color: #2f1b44;
+  font-weight: 800;
+  color: #111827;
   margin-bottom: 10px;
 }
 

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const serviceSchema = new mongoose.Schema(
   {
-    maDichVu: {
+    serviceCode: {
       type: String,
       unique: true,
       trim: true,
@@ -30,6 +30,7 @@ const serviceSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "",
+      trim: true,
     },
     status: {
       type: String,

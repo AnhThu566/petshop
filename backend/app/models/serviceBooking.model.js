@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const serviceBookingSchema = new mongoose.Schema(
   {
-    maLichDat: {
+    bookingCode: {
       type: String,
       unique: true,
       trim: true,
@@ -35,11 +35,13 @@ const serviceBookingSchema = new mongoose.Schema(
     bookingDate: {
       type: String,
       required: true,
+      trim: true,
     },
 
     bookingTime: {
       type: String,
       required: true,
+      trim: true,
     },
 
     note: {

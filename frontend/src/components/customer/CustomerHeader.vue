@@ -16,31 +16,64 @@
           </router-link>
 
           <div class="top-search">
-            <div class="top-search-box">
+            <form class="top-search-box" @submit.prevent="handleSearch">
               <input
                 type="text"
                 class="top-search-input"
+                v-model.trim="searchKeyword"
                 placeholder="Tìm chó cảnh, phụ kiện, dịch vụ..."
+                @focus="openSearchSuggest"
+                @input="handleSearchInput"
               />
-              <button class="top-search-btn" type="button">
+              <button class="top-search-btn" type="submit">
                 <i class="fas fa-search"></i>
               </button>
-            </div>
+
+              <div
+                v-if="isSearchSuggestOpen && searchKeyword"
+                class="search-suggest-panel shadow"
+              >
+                <div
+                  v-if="filteredSearchSuggestions.length"
+                  class="search-suggest-list"
+                >
+                  <button
+                    v-for="item in filteredSearchSuggestions"
+                    :key="item.key"
+                    type="button"
+                    class="search-suggest-item"
+                    @click="selectSuggestion(item)"
+                  >
+                    <span class="suggest-icon">
+                      <i :class="item.icon"></i>
+                    </span>
+                    <span class="suggest-content">
+                      <span class="suggest-title">{{ item.label }}</span>
+                      <span class="suggest-sub">{{ item.group }}</span>
+                    </span>
+                  </button>
+                </div>
+
+                <div v-else class="search-suggest-empty">
+                  Nhấn Enter để tìm với từ khóa “{{ searchKeyword }}”
+                </div>
+              </div>
+            </form>
           </div>
 
           <div class="top-actions">
-<router-link
-  to="/cart"
-  class="top-cart text-decoration-none"
-  title="Giỏ hàng"
->
-  <i class="fas fa-shopping-cart"></i>
-  <span v-if="cartCount > 0" class="cart-badge">
-    {{ cartCount > 99 ? "99+" : cartCount }}
-  </span>
-</router-link>
+            <router-link
+              to="/cart"
+              class="top-cart text-decoration-none"
+              title="Giỏ hàng"
+            >
+              <i class="fas fa-shopping-cart"></i>
+              <span v-if="cartCount > 0" class="cart-badge">
+                {{ cartCount > 99 ? "99+" : cartCount }}
+              </span>
+            </router-link>
 
-            <template v-if="!isLoggedIn || !currentUser">
+            <template v-if="!isLoggedIn || !displayUser">
               <router-link
                 to="/login"
                 class="top-auth-btn login-btn text-decoration-none"
@@ -65,10 +98,19 @@
                 @click.prevent="toggleUserDropdown"
               >
                 <span class="user-avatar-mini">
-                  <i class="fas fa-user"></i>
+                  <img
+                    v-if="headerAvatarUrl"
+                    :src="headerAvatarUrl"
+                    alt="avatar"
+                    class="user-avatar-image"
+                  />
+                  <span v-else class="user-avatar-placeholder">
+                    <i class="fas fa-user"></i>
+                  </span>
                 </span>
+
                 <span class="user-name">
-                  {{ currentUser.fullName || currentUser.username }}
+                  {{ displayUser.fullName || displayUser.username }}
                 </span>
                 <i class="fas fa-chevron-down user-caret ml-2"></i>
               </a>
@@ -77,7 +119,7 @@
                 class="dropdown-menu dropdown-menu-right shadow border-0 mt-2"
                 :class="{ 'show d-block': isUserDropdownOpen }"
               >
-                <template v-if="currentUser.role === 'customer'">
+                <template v-if="displayUser.role === 'customer'">
                   <router-link
                     class="dropdown-item py-2 small font-weight-bold text-dark"
                     to="/profile"
@@ -94,15 +136,6 @@
                   >
                     <i class="fas fa-history text-warning mr-2"></i>
                     Lịch sử đặt cọc
-                  </router-link>
-
-                  <router-link
-                    class="dropdown-item py-2 small font-weight-bold text-dark"
-                    to="/my-dogs"
-                    @click="closeAllDropdowns"
-                  >
-                    <i class="fas fa-dog text-secondary mr-2"></i>
-                    Hồ sơ chó đã mua
                   </router-link>
 
                   <router-link
@@ -124,7 +157,7 @@
                   </router-link>
                 </template>
 
-                <template v-else-if="currentUser.role === 'farm'">
+                <template v-else-if="displayUser.role === 'farm'">
                   <router-link
                     class="dropdown-item py-2 small font-weight-bold text-dark"
                     to="/farm/dashboard"
@@ -135,7 +168,7 @@
                   </router-link>
                 </template>
 
-                <template v-else-if="currentUser.role === 'admin'">
+                <template v-else-if="displayUser.role === 'admin'">
                   <router-link
                     class="dropdown-item py-2 small font-weight-bold text-dark"
                     to="/admin/dashboard"
@@ -279,18 +312,40 @@ export default {
     },
   },
 
-data() {
-  return {
-    isUserDropdownOpen: false,
-    isDogMenuOpen: false,
-    isAccessoryMenuOpen: false,
-    accessoryCategories: [],
-    breedMenuList: [],
-    cartCount: 0,
-  };
-},
+  data() {
+    return {
+      isUserDropdownOpen: false,
+      isDogMenuOpen: false,
+      isAccessoryMenuOpen: false,
+      isSearchSuggestOpen: false,
+      accessoryCategories: [],
+      breedMenuList: [],
+      cartCount: 0,
+      localUser: null,
+      baseImageUrl: "http://localhost:3000",
+      searchKeyword: "",
+    };
+  },
 
   computed: {
+    displayUser() {
+      return this.localUser || this.currentUser || null;
+    },
+
+    headerAvatarUrl() {
+      const avatar = this.displayUser?.avatar;
+      if (!avatar) return "";
+
+      if (
+        String(avatar).startsWith("http://") ||
+        String(avatar).startsWith("https://")
+      ) {
+        return avatar;
+      }
+
+      return `${this.baseImageUrl}${avatar}`;
+    },
+
     isDogMenuActive() {
       const path = this.$route.path || "";
       return path.startsWith("/dogs") || path.startsWith("/dog/");
@@ -300,24 +355,187 @@ data() {
       const path = this.$route.path || "";
       return path.startsWith("/accessories") || path.startsWith("/accessory/");
     },
-  },
 
+    searchSuggestions() {
+      const breedItems = this.breedMenuList.map((breed) => ({
+        key: `breed-${breed._id || breed.id}`,
+        type: "breed",
+        label: breed.name,
+        group: "Giống chó",
+        icon: "fas fa-dog",
+        id: breed._id || breed.id,
+      }));
 
-watch: {
-  $route() {
-    this.closeAllDropdowns();
-    this.fetchCartCount();
-  },
+      const accessoryItems = this.accessoryCategories.map((category) => ({
+        key: `accessory-${category._id || category.id}`,
+        type: "accessory-category",
+        label: category.name,
+        group: "Loại phụ kiện",
+        icon: "fas fa-box",
+        id: category._id || category.id,
+      }));
 
-  currentUser: {
-    handler() {
-      this.fetchCartCount();
+      const fixedItems = [
+        {
+          key: "services-page",
+          type: "page",
+          label: "Dịch vụ",
+          group: "Trang nhanh",
+          icon: "fas fa-calendar-check",
+          path: "/services",
+        },
+        {
+          key: "accessories-page",
+          type: "page",
+          label: "Phụ kiện",
+          group: "Trang nhanh",
+          icon: "fas fa-shopping-bag",
+          path: "/accessories",
+        },
+      ];
+
+      return [...breedItems, ...accessoryItems, ...fixedItems];
     },
-    immediate: true,
+
+    filteredSearchSuggestions() {
+      const keyword = this.normalizeText(this.searchKeyword);
+      if (!keyword) return [];
+
+      return this.searchSuggestions
+        .filter((item) => this.normalizeText(item.label).includes(keyword))
+        .slice(0, 8);
+    },
   },
-},
+
+  watch: {
+    $route() {
+      this.closeAllDropdowns();
+      this.fetchCartCount();
+      this.syncUserFromStorage();
+      this.isSearchSuggestOpen = false;
+    },
+
+    currentUser: {
+      handler() {
+        this.localUser = this.currentUser
+          ? { ...this.currentUser }
+          : this.getUserFromStorage();
+        this.fetchCartCount();
+      },
+      immediate: true,
+      deep: true,
+    },
+  },
 
   methods: {
+    getUserFromStorage() {
+      try {
+        const raw = localStorage.getItem("user");
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        console.error("Lỗi đọc localStorage user:", error);
+        return null;
+      }
+    },
+
+    syncUserFromStorage() {
+      this.localUser = this.currentUser
+        ? { ...this.currentUser }
+        : this.getUserFromStorage();
+    },
+
+    handleUserUpdated(event) {
+      if (event?.detail) {
+        this.localUser = { ...(this.localUser || {}), ...event.detail };
+      } else {
+        this.syncUserFromStorage();
+      }
+    },
+
+    normalizeText(text) {
+      return String(text || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    },
+
+    openSearchSuggest() {
+      if (this.searchKeyword) {
+        this.isSearchSuggestOpen = true;
+      }
+    },
+
+    handleSearchInput() {
+      this.isSearchSuggestOpen = !!this.searchKeyword;
+    },
+
+    async handleSearch() {
+      const keyword = this.searchKeyword.trim();
+      if (!keyword) return;
+
+      const normalizedKeyword = this.normalizeText(keyword);
+
+      const matchedBreed = this.breedMenuList.find((breed) =>
+        this.normalizeText(breed.name).includes(normalizedKeyword)
+      );
+
+      if (matchedBreed) {
+        this.isSearchSuggestOpen = false;
+        this.searchKeyword = "";
+        this.$router.push(`/dogs/breeds/${matchedBreed._id || matchedBreed.id}`);
+        return;
+      }
+
+      const matchedAccessoryCategory = this.accessoryCategories.find((category) =>
+        this.normalizeText(category.name).includes(normalizedKeyword)
+      );
+
+      if (matchedAccessoryCategory) {
+        this.isSearchSuggestOpen = false;
+        this.searchKeyword = "";
+        this.$router.push(
+          `/accessories?category=${matchedAccessoryCategory._id || matchedAccessoryCategory.id}`
+        );
+        return;
+      }
+
+      this.isSearchSuggestOpen = false;
+
+      const currentPath = this.$route.path || "";
+
+      if (currentPath.startsWith("/accessories")) {
+        this.$router.push({ path: "/accessories", query: { keyword } });
+        return;
+      }
+
+      if (currentPath.startsWith("/services")) {
+        this.$router.push({ path: "/services", query: { keyword } });
+        return;
+      }
+
+      this.$router.push({ path: "/services", query: { keyword } });
+    },
+
+    selectSuggestion(item) {
+      this.isSearchSuggestOpen = false;
+      this.searchKeyword = "";
+
+      if (item.type === "breed") {
+        this.$router.push(`/dogs/breeds/${item.id}`);
+        return;
+      }
+
+      if (item.type === "accessory-category") {
+        this.$router.push(`/accessories?category=${item.id}`);
+        return;
+      }
+
+      if (item.type === "page" && item.path) {
+        this.$router.push(item.path);
+      }
+    },
+
     async fetchAccessoryCategories() {
       try {
         const data = await AccessoryCategoryService.getAll();
@@ -344,30 +562,35 @@ watch: {
       }
     },
 
-      async fetchCartCount() {
-  try {
-    if (!this.isLoggedIn || !this.currentUser || this.currentUser.role !== "customer") {
-      this.cartCount = 0;
-      return;
-    }
+    async fetchCartCount() {
+      try {
+        if (
+          !this.isLoggedIn ||
+          !this.displayUser ||
+          this.displayUser.role !== "customer"
+        ) {
+          this.cartCount = 0;
+          return;
+        }
 
-    const data = await CartService.getCart();
-    const items = data?.items || [];
+        const data = await CartService.getCart();
+        const items = data?.items || [];
 
-    this.cartCount = items.reduce(
-      (sum, item) => sum + Number(item.quantity || 0),
-      0
-    );
-  } catch (error) {
-    console.error("Lỗi tải số lượng giỏ hàng:", error);
-    this.cartCount = 0;
-  }
-},
+        this.cartCount = items.reduce(
+          (sum, item) => sum + Number(item.quantity || 0),
+          0
+        );
+      } catch (error) {
+        console.error("Lỗi tải số lượng giỏ hàng:", error);
+        this.cartCount = 0;
+      }
+    },
 
     closeAllDropdowns() {
       this.isUserDropdownOpen = false;
       this.isDogMenuOpen = false;
       this.isAccessoryMenuOpen = false;
+      this.isSearchSuggestOpen = false;
     },
 
     toggleUserDropdown() {
@@ -398,6 +621,7 @@ watch: {
         localStorage.removeItem("farm");
         localStorage.removeItem("token");
 
+        this.localUser = null;
         this.closeAllDropdowns();
         window.dispatchEvent(new Event("auth-changed"));
         this.$router.push("/");
@@ -405,20 +629,27 @@ watch: {
     },
   },
 
-async mounted() {
-  await Promise.all([
-    this.fetchAccessoryCategories(),
-    this.fetchBreedMenu(),
-    this.fetchCartCount(),
-  ]);
+  async mounted() {
+    this.syncUserFromStorage();
 
-  window.addEventListener("cart-updated", this.fetchCartCount);
-  window.addEventListener("auth-changed", this.fetchCartCount);
-},
-beforeUnmount() {
-  window.removeEventListener("cart-updated", this.fetchCartCount);
-  window.removeEventListener("auth-changed", this.fetchCartCount);
-},
+    await Promise.all([
+      this.fetchAccessoryCategories(),
+      this.fetchBreedMenu(),
+      this.fetchCartCount(),
+    ]);
+
+    window.addEventListener("cart-updated", this.fetchCartCount);
+    window.addEventListener("auth-changed", this.fetchCartCount);
+    window.addEventListener("user-updated", this.handleUserUpdated);
+    document.addEventListener("click", this.closeAllDropdowns);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("cart-updated", this.fetchCartCount);
+    window.removeEventListener("auth-changed", this.fetchCartCount);
+    window.removeEventListener("user-updated", this.handleUserUpdated);
+    document.removeEventListener("click", this.closeAllDropdowns);
+  },
 };
 </script>
 
@@ -540,6 +771,78 @@ beforeUnmount() {
   font-size: 1rem;
 }
 
+.search-suggest-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #eee7f6;
+  padding: 8px;
+  z-index: 3000;
+  box-shadow: 0 18px 40px rgba(58, 24, 90, 0.16);
+}
+
+.search-suggest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.search-suggest-item {
+  width: 100%;
+  border: none;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.search-suggest-item:hover {
+  background: #f7f1fd;
+}
+
+.suggest-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f3e8ff;
+  color: #6f42a4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.suggest-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggest-title {
+  color: #3f2d56;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.suggest-sub {
+  color: #8b7fa0;
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.search-suggest-empty {
+  padding: 12px 14px;
+  color: #7d6f92;
+  font-size: 0.9rem;
+}
+
 .top-actions {
   display: flex;
   align-items: center;
@@ -547,7 +850,7 @@ beforeUnmount() {
   flex: 0 0 auto;
 }
 
-.top-cart{
+.top-cart {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -561,6 +864,7 @@ beforeUnmount() {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
   position: relative;
 }
+
 .cart-badge {
   position: absolute;
   top: -4px;
@@ -579,7 +883,7 @@ beforeUnmount() {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
-.top-cart:hover{
+.top-cart:hover {
   color: #4b1f73;
   background: #fff;
 }
@@ -652,6 +956,29 @@ beforeUnmount() {
   justify-content: center;
   margin-right: 10px;
   font-size: 1rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-avatar-image,
+.user-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.user-avatar-image {
+  object-fit: cover;
+  display: block;
+}
+
+.user-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b2a86;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
 }
 
 .user-name {
@@ -926,7 +1253,7 @@ beforeUnmount() {
   }
 
   .top-search-box {
-    height: 48px;
+    height: auto;
   }
 
   .top-search-input {

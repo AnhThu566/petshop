@@ -1,11 +1,11 @@
 const express = require("express");
+const router = express.Router();
+
 const serviceBookingController = require("../controllers/serviceBooking.controller");
 const {
   requireAdmin,
   requireCustomer,
 } = require("../middlewares/auth.middleware");
-
-const router = express.Router();
 
 // ==============================
 // KHÁCH HÀNG
@@ -15,10 +15,18 @@ const router = express.Router();
 router.post("/", requireCustomer, serviceBookingController.create);
 
 // Khách xem lịch của mình
-router.get("/my-bookings", requireCustomer, serviceBookingController.findMyBookings);
+router.get(
+  "/my-bookings",
+  requireCustomer,
+  serviceBookingController.findMyBookings
+);
 
 // Khách hủy lịch của mình
-router.put("/:id/cancel", requireCustomer, serviceBookingController.cancelByCustomer);
+router.put(
+  "/:id/cancel",
+  requireCustomer,
+  serviceBookingController.cancelByCustomer
+);
 
 // ==============================
 // QUẢN TRỊ VIÊN

@@ -1,6 +1,6 @@
 <template>
   <div class="service-detail-page">
-    <div class="container py-4">
+    <div class="container service-detail-container py-4">
       <div v-if="loading" class="state-box">
         <div class="spinner"></div>
         <p>Đang tải chi tiết dịch vụ...</p>
@@ -31,44 +31,26 @@
                 class="service-image"
                 @error="handleImageError"
               />
-            </div>
-          </div>
 
-          <div class="detail-right">
-            <p class="service-code">
-              Mã dịch vụ: <strong>{{ service.maDichVu || "DV---" }}</strong>
-            </p>
-
-            <h1 class="service-name">{{ service.name }}</h1>
-
-            <div class="status-row">
               <span
                 class="status-badge"
                 :class="service.status === 'Đang hoạt động' ? 'status-active' : 'status-paused'"
               >
                 {{ service.status }}
               </span>
-
-              <span v-if="service.categoryId?.name" class="category-badge">
-                {{ service.categoryId.name }}
-              </span>
             </div>
+          </div>
+
+          <div class="detail-right">
+            <h1 class="service-name">{{ service.name }}</h1>
 
             <div class="price-box">
               {{ formatCurrency(service.price) }}
             </div>
 
-            <div class="service-short-info">
-              <div class="info-item">
-                <span class="label">Loại dịch vụ</span>
-                <strong>{{ service.categoryId?.name || "Đang cập nhật" }}</strong>
-              </div>
-
-              <div class="info-item">
-                <span class="label">Trạng thái</span>
-                <strong>{{ service.status || "Đang hoạt động" }}</strong>
-              </div>
-            </div>
+            <p class="service-description-short">
+              {{ service.description || "Dịch vụ đang được cập nhật mô tả." }}
+            </p>
 
             <div class="service-actions">
               <button
@@ -84,15 +66,12 @@
                 to="/service-bookings"
                 class="btn-history"
               >
-                Xem lịch sử đặt
+                Lịch sử đặt dịch vụ
               </router-link>
             </div>
 
             <div class="service-note">
-              <p>
-                Bạn có thể đặt lịch trực tiếp tại đây. Sau khi gửi yêu cầu, admin sẽ
-                xác nhận lịch dịch vụ cho bạn.
-              </p>
+              Sau khi gửi yêu cầu, admin sẽ xác nhận lịch dịch vụ cho bạn.
             </div>
           </div>
         </div>
@@ -366,11 +345,16 @@ export default {
 <style scoped>
 .service-detail-page {
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(155, 117, 204, 0.12), transparent 28%),
+    linear-gradient(180deg, #faf7fc 0%, #f4eef9 100%);
+}
+
+.service-detail-container {
+  max-width: 1320px;
 }
 
 .container {
-  max-width: 1180px;
   margin: 0 auto;
   padding-left: 16px;
   padding-right: 16px;
@@ -378,10 +362,11 @@ export default {
 
 .state-box {
   background: #fff;
-  border-radius: 18px;
-  padding: 48px 20px;
+  border-radius: 20px;
+  padding: 52px 20px;
   text-align: center;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 30px rgba(106, 27, 154, 0.08);
+  border: 1px solid #eee2f7;
 }
 
 .error-box {
@@ -394,7 +379,7 @@ export default {
   width: 42px;
   height: 42px;
   border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border-top-color: #8e3fd1;
   border-radius: 50%;
   margin: 0 auto 14px;
   animation: spin 0.8s linear infinite;
@@ -406,32 +391,38 @@ export default {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 16px;
-  color: #64748b;
+  color: #7b6c8f;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .breadcrumb-box a {
-  color: #2563eb;
+  color: #7b2fc0;
   text-decoration: none;
+}
+
+.breadcrumb-box a:hover {
+  text-decoration: underline;
 }
 
 .detail-card {
   display: grid;
-  grid-template-columns: 520px 1fr;
+  grid-template-columns: 560px 1fr;
   gap: 28px;
   background: #fff;
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
-  border: 1px solid #edf2f7;
+  box-shadow: 0 16px 38px rgba(106, 27, 154, 0.08);
+  border: 1px solid #eee2f7;
 }
 
 .image-box {
   width: 100%;
-  height: 420px;
-  border-radius: 20px;
+  height: 430px;
+  border-radius: 22px;
   overflow: hidden;
-  background: #f1f5f9;
+  background: #f7f1fd;
+  position: relative;
 }
 
 .service-image {
@@ -440,75 +431,54 @@ export default {
   object-fit: cover;
 }
 
-.service-code {
-  margin: 0 0 10px;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.service-name {
-  margin: 0 0 14px;
-  font-size: 34px;
-  line-height: 1.2;
-  color: #0f172a;
-  font-weight: 800;
-}
-
-.status-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.status-badge,
-.category-badge {
+.status-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
   padding: 8px 14px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  z-index: 2;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
 }
 
 .status-active {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(22, 163, 74, 0.95);
+  color: #fff;
 }
 
 .status-paused {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.94);
+  color: #fff;
 }
 
-.category-badge {
-  background: #eff6ff;
-  color: #1d4ed8;
+.detail-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.service-name {
+  margin: 0 0 12px;
+  font-size: 38px;
+  line-height: 1.18;
+  color: #2f1b44;
+  font-weight: 900;
 }
 
 .price-box {
-  font-size: 32px;
-  font-weight: 800;
-  color: #dc2626;
-  margin-bottom: 18px;
+  font-size: 34px;
+  font-weight: 900;
+  color: #b42318;
+  margin-bottom: 16px;
 }
 
-.service-short-info {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  background: #f8fafc;
-  border-radius: 16px;
-  padding: 14px;
-}
-
-.info-item .label {
-  display: block;
-  color: #64748b;
-  font-size: 13px;
-  margin-bottom: 5px;
+.service-description-short {
+  margin: 0 0 18px;
+  color: #6f6280;
+  line-height: 1.8;
+  font-size: 15px;
 }
 
 .service-actions {
@@ -530,44 +500,52 @@ export default {
   padding: 0 18px;
   border-radius: 12px;
   text-decoration: none;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
   cursor: pointer;
   transition: 0.2s ease;
 }
 
-.btn-book {
-  background: #2563eb;
+.btn-book,
+.btn-submit {
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
   color: #fff;
+  box-shadow: 0 10px 18px rgba(117, 34, 178, 0.16);
 }
 
-.btn-book:hover {
-  background: #1d4ed8;
+.btn-book:hover,
+.btn-submit:hover {
+  filter: brightness(0.98);
 }
 
 .btn-book:disabled {
   background: #94a3b8;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .btn-history,
-.btn-back {
-  background: #eff6ff;
-  color: #2563eb;
+.btn-back,
+.btn-cancel {
+  background: #fff;
+  color: #8e3fd1;
+  border: 1.5px solid #d7bdea;
 }
 
 .btn-history:hover,
-.btn-back:hover {
-  background: #dbeafe;
+.btn-back:hover,
+.btn-cancel:hover {
+  background: #f7f1fd;
 }
 
 .service-note {
-  background: #fff7ed;
-  color: #7c2d12;
-  border: 1px solid #fed7aa;
+  background: #fcf9ff;
+  color: #7a4db3;
+  border: 1px solid #eadcf7;
   border-radius: 16px;
   padding: 14px 16px;
   line-height: 1.7;
+  font-weight: 600;
 }
 
 .description-card {
@@ -575,19 +553,20 @@ export default {
   background: #fff;
   border-radius: 22px;
   padding: 24px;
-  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
-  border: 1px solid #edf2f7;
+  box-shadow: 0 16px 38px rgba(106, 27, 154, 0.08);
+  border: 1px solid #eee2f7;
 }
 
 .description-card h2 {
   margin: 0 0 12px;
-  color: #0f172a;
+  color: #2f1b44;
   font-size: 24px;
+  font-weight: 900;
 }
 
 .description-card p {
   margin: 0;
-  color: #475569;
+  color: #6f6280;
   line-height: 1.8;
   white-space: pre-line;
 }
@@ -595,7 +574,7 @@ export default {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.52);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -605,11 +584,12 @@ export default {
 
 .booking-modal {
   width: 100%;
-  max-width: 620px;
+  max-width: 640px;
   background: #fff;
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.28);
+  border: 1px solid #eee2f7;
 }
 
 .modal-header {
@@ -617,13 +597,15 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid #f1e8f8;
+  background: linear-gradient(135deg, #faf5ff, #ffffff);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 22px;
-  color: #0f172a;
+  color: #2f1b44;
+  font-weight: 900;
 }
 
 .btn-close {
@@ -631,7 +613,8 @@ export default {
   height: 38px;
   border-radius: 50%;
   border: none;
-  background: #f1f5f9;
+  background: #f7f1fd;
+  color: #7b2fc0;
   font-size: 24px;
   cursor: pointer;
 }
@@ -646,7 +629,8 @@ export default {
   align-items: center;
   padding: 14px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: #fcf9ff;
+  border: 1px solid #eadcf7;
   margin-bottom: 18px;
 }
 
@@ -660,13 +644,14 @@ export default {
 
 .selected-service h4 {
   margin: 0 0 6px;
-  color: #0f172a;
+  color: #2f1b44;
+  font-weight: 900;
 }
 
 .selected-service p {
   margin: 0;
-  color: #dc2626;
-  font-weight: 800;
+  color: #b42318;
+  font-weight: 900;
 }
 
 .form-group {
@@ -682,15 +667,15 @@ export default {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #334155;
-  font-weight: 700;
+  color: #5f5173;
+  font-weight: 800;
   font-size: 14px;
 }
 
 .form-group input,
 .form-group textarea {
   width: 100%;
-  border: 1px solid #dbe2ea;
+  border: 1px solid #e7d9f3;
   border-radius: 14px;
   outline: none;
   padding: 12px 14px;
@@ -700,8 +685,8 @@ export default {
 
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  border-color: #c9a7e7;
+  box-shadow: 0 0 0 4px rgba(154, 77, 221, 0.1);
 }
 
 .form-actions {
@@ -710,20 +695,6 @@ export default {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 8px;
-}
-
-.btn-cancel {
-  background: #f1f5f9;
-  color: #334155;
-}
-
-.btn-submit {
-  background: #2563eb;
-  color: #fff;
-}
-
-.btn-submit:hover {
-  background: #1d4ed8;
 }
 
 .toast-success {
@@ -736,7 +707,7 @@ export default {
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
   z-index: 1000;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .fade-enter-active,
@@ -767,10 +738,9 @@ export default {
 
 @media (max-width: 768px) {
   .service-name {
-    font-size: 28px;
+    font-size: 30px;
   }
 
-  .service-short-info,
   .form-row {
     grid-template-columns: 1fr;
   }

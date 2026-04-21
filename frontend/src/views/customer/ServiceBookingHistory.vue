@@ -1,225 +1,227 @@
 <template>
   <div class="service-booking-history-page">
-    <div class="container py-4">
-      <div class="page-header mb-4">
-        <h2 class="page-title">Lịch sử đặt dịch vụ</h2>
-        <p class="page-subtitle">
-          Theo dõi các lịch dịch vụ bạn đã đặt và trạng thái xử lý.
-        </p>
-      </div>
+    <div class="container booking-history-container py-4">
+      <div class="page-layout">
+        <CustomerAccountSidebar active="service-bookings" />
 
-      <div class="toolbar-box mb-4">
-        <div class="status-tabs">
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 'Tất cả' }"
-            @click="statusFilter = 'Tất cả'"
-          >
-            Tất cả
-          </button>
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 'Chờ xác nhận' }"
-            @click="statusFilter = 'Chờ xác nhận'"
-          >
-            Chờ xác nhận
-          </button>
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 'Đã xác nhận' }"
-            @click="statusFilter = 'Đã xác nhận'"
-          >
-            Đã xác nhận
-          </button>
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 'Hoàn thành' }"
-            @click="statusFilter = 'Hoàn thành'"
-          >
-            Hoàn thành
-          </button>
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 'Đã hủy' }"
-            @click="statusFilter = 'Đã hủy'"
-          >
-            Đã hủy
-          </button>
-        </div>
+        <main class="content-area">
+          <div class="content-card">
+            <div class="content-header">
+              <div>
+                <h2 class="content-title">Lịch dịch vụ</h2>
+                <p class="content-subtitle">
+                  Theo dõi các lịch dịch vụ bạn đã đặt và trạng thái xử lý.
+                </p>
+              </div>
 
-        <button class="btn-action btn-outline-custom refresh-btn" @click="loadBookings" :disabled="loading">
-          <i class="fas fa-sync-alt mr-2"></i>Làm mới
-        </button>
-      </div>
-
-      <div v-if="loading" class="state-box">
-        <div class="spinner"></div>
-        <p>Đang tải lịch đặt dịch vụ...</p>
-      </div>
-
-      <div v-else-if="errorMessage" class="state-box error-box">
-        <p>{{ errorMessage }}</p>
-        <button class="btn-action btn-retry" @click="loadBookings">
-          Tải lại
-        </button>
-      </div>
-
-      <div v-else-if="filteredBookings.length === 0" class="state-box empty-box">
-        <div class="empty-icon">📅</div>
-        <h3>
-          {{
-            bookings.length === 0
-              ? "Bạn chưa có lịch đặt dịch vụ nào"
-              : "Không có lịch dịch vụ phù hợp với bộ lọc"
-          }}
-        </h3>
-        <p>Hãy đặt dịch vụ để bắt đầu chăm sóc thú cưng của bạn.</p>
-        <router-link to="/services" class="btn-action btn-primary-custom">
-          Xem dịch vụ
-        </router-link>
-      </div>
-
-      <div v-else class="booking-list">
-        <div
-          v-for="booking in filteredBookings"
-          :key="booking._id || booking.id"
-          class="booking-card"
-        >
-          <div class="booking-card__top">
-            <div>
-              <p class="booking-code">
-                Mã lịch:
-                <span>{{ booking.maLichDat || "Không có mã" }}</span>
-              </p>
-              <h3 class="service-name">
-                {{ booking.serviceId?.name || "Dịch vụ không xác định" }}
-              </h3>
-            </div>
-
-            <div class="top-badges">
-              <span
-                class="status-badge"
-                :class="getServiceStatusClass(booking.serviceId?.status)"
+              <button
+                class="btn-action btn-outline-custom refresh-btn"
+                @click="loadBookings"
+                :disabled="loading"
               >
-                {{ booking.serviceId?.status || "Dịch vụ không xác định" }}
-              </span>
-
-              <span
-                class="status-badge"
-                :class="getStatusClass(booking.status)"
-              >
-                {{ booking.status }}
-              </span>
-            </div>
-          </div>
-
-          <div class="booking-card__body">
-            <div class="service-info">
-              <div class="service-image-wrap">
-                <img
-                  :src="getImageUrl(booking.serviceId?.image)"
-                  :alt="booking.serviceId?.name || 'Dịch vụ'"
-                  class="service-image"
-                  @error="handleImageError"
-                />
-              </div>
-
-              <div class="service-meta">
-                <div class="meta-row">
-                  <span class="meta-label">Mã dịch vụ:</span>
-                  <span class="meta-value">
-                    {{ booking.serviceId?.maDichVu || "---" }}
-                  </span>
-                </div>
-
-                <div class="meta-row">
-                  <span class="meta-label">Giá dịch vụ:</span>
-                  <span class="meta-value price">
-                    {{ formatCurrency(booking.serviceId?.price || 0) }}
-                  </span>
-                </div>
-
-                <div class="meta-row">
-                  <span class="meta-label">Ngày đặt:</span>
-                  <span class="meta-value">
-                    {{ formatDate(booking.bookingDate) }}
-                  </span>
-                </div>
-
-                <div class="meta-row">
-                  <span class="meta-label">Giờ đặt:</span>
-                  <span class="meta-value">
-                    {{ booking.bookingTime || "---" }}
-                  </span>
-                </div>
-
-                <div class="meta-row">
-                  <span class="meta-label">Người đặt:</span>
-                  <span class="meta-value">
-                    {{ booking.customerName || "---" }}
-                  </span>
-                </div>
-
-                <div class="meta-row">
-                  <span class="meta-label">Số điện thoại:</span>
-                  <span class="meta-value">
-                    {{ booking.customerPhone || "---" }}
-                  </span>
-                </div>
-              </div>
+                <i class="fas fa-sync-alt mr-2"></i>Làm mới
+              </button>
             </div>
 
-            <div v-if="booking.note" class="booking-note">
-              <span class="note-label">Ghi chú:</span>
-              <p>{{ booking.note }}</p>
-            </div>
-
-            <div class="booking-footer">
-              <div class="created-at">
-                Tạo lúc:
-                <strong>{{ formatDateTime(booking.createdAt) }}</strong>
-              </div>
-
-              <div class="booking-actions">
+            <div class="toolbar-box">
+              <div class="status-tabs">
                 <button
-                  v-if="booking.status === 'Chờ xác nhận'"
-                  class="btn-action btn-cancel-custom"
-                  @click="handleCancelBooking(booking)"
-                  :disabled="cancelLoadingId === (booking._id || booking.id)"
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'Tất cả' }"
+                  @click="statusFilter = 'Tất cả'"
                 >
-                  {{
-                    cancelLoadingId === (booking._id || booking.id)
-                      ? "Đang hủy..."
-                      : "Hủy lịch"
-                  }}
+                  Tất cả
                 </button>
-
-                <router-link
-                  to="/services"
-                  class="btn-action btn-outline-custom"
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'Chờ xác nhận' }"
+                  @click="statusFilter = 'Chờ xác nhận'"
                 >
-                  Đặt thêm dịch vụ
-                </router-link>
+                  Chờ xác nhận
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'Đã xác nhận' }"
+                  @click="statusFilter = 'Đã xác nhận'"
+                >
+                  Đã xác nhận
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'Hoàn thành' }"
+                  @click="statusFilter = 'Hoàn thành'"
+                >
+                  Hoàn thành
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'Đã hủy' }"
+                  @click="statusFilter = 'Đã hủy'"
+                >
+                  Đã hủy
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <transition name="fade">
-        <div v-if="successMessage" class="toast-success">
-          {{ successMessage }}
-        </div>
-      </transition>
+            <div v-if="loading" class="state-box">
+              <div class="spinner"></div>
+              <p>Đang tải lịch đặt dịch vụ...</p>
+            </div>
+
+            <div v-else-if="errorMessage" class="state-box error-box">
+              <p>{{ errorMessage }}</p>
+              <button class="btn-action btn-retry" @click="loadBookings">
+                Tải lại
+              </button>
+            </div>
+
+            <div v-else-if="filteredBookings.length === 0" class="state-box empty-box">
+              <div class="empty-icon">📅</div>
+              <h3>
+                {{
+                  bookings.length === 0
+                    ? "Bạn chưa có lịch đặt dịch vụ nào"
+                    : "Không có lịch dịch vụ phù hợp với bộ lọc"
+                }}
+              </h3>
+              <p>Hãy đặt dịch vụ để bắt đầu chăm sóc thú cưng của bạn.</p>
+              <router-link to="/services" class="btn-action btn-primary-custom">
+                Xem dịch vụ
+              </router-link>
+            </div>
+
+            <div v-else class="booking-list">
+              <div
+                v-for="booking in filteredBookings"
+                :key="booking._id || booking.id"
+                class="booking-card"
+              >
+                <div class="booking-card__top">
+                  <div>
+                    <h3 class="service-name">
+                      {{ booking.serviceId?.name || "Dịch vụ không xác định" }}
+                    </h3>
+                  </div>
+
+                  <div class="top-badges">
+                    <span
+                      class="status-badge"
+                      :class="getStatusClass(booking.status)"
+                    >
+                      {{ booking.status }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="booking-card__body">
+                  <div class="service-info">
+                    <div class="service-image-wrap">
+                      <img
+                        :src="getImageUrl(booking.serviceId?.image)"
+                        :alt="booking.serviceId?.name || 'Dịch vụ'"
+                        class="service-image"
+                        @error="handleImageError"
+                      />
+                    </div>
+
+                    <div class="service-meta">
+                      <div class="meta-row">
+                        <span class="meta-label">Giá dịch vụ</span>
+                        <span class="meta-value price">
+                          {{ formatCurrency(booking.serviceId?.price || 0) }}
+                        </span>
+                      </div>
+
+                      <div class="meta-row">
+                        <span class="meta-label">Ngày đặt</span>
+                        <span class="meta-value">
+                          {{ formatDate(booking.bookingDate) }}
+                        </span>
+                      </div>
+
+                      <div class="meta-row">
+                        <span class="meta-label">Giờ đặt</span>
+                        <span class="meta-value">
+                          {{ booking.bookingTime || "---" }}
+                        </span>
+                      </div>
+
+                      <div class="meta-row">
+                        <span class="meta-label">Người đặt</span>
+                        <span class="meta-value">
+                          {{ booking.customerName || "---" }}
+                        </span>
+                      </div>
+
+                      <div class="meta-row">
+                        <span class="meta-label">Số điện thoại</span>
+                        <span class="meta-value">
+                          {{ booking.customerPhone || "---" }}
+                        </span>
+                      </div>
+
+                      <div class="meta-row">
+                        <span class="meta-label">Thời gian tạo</span>
+                        <span class="meta-value">
+                          {{ formatDateTime(booking.createdAt) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="booking.note" class="booking-note">
+                    <span class="note-label">Ghi chú</span>
+                    <p>{{ booking.note }}</p>
+                  </div>
+
+                  <div class="booking-footer">
+                    <div class="booking-actions">
+                      <button
+                        v-if="booking.status === 'Chờ xác nhận'"
+                        class="btn-action btn-cancel-custom"
+                        @click="handleCancelBooking(booking)"
+                        :disabled="cancelLoadingId === (booking._id || booking.id)"
+                      >
+                        {{
+                          cancelLoadingId === (booking._id || booking.id)
+                            ? "Đang hủy..."
+                            : "Hủy lịch"
+                        }}
+                      </button>
+
+                      <router-link
+                        to="/services"
+                        class="btn-action btn-outline-custom"
+                      >
+                        Đặt thêm dịch vụ
+                      </router-link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <transition name="fade">
+              <div v-if="successMessage" class="toast-success">
+                {{ successMessage }}
+              </div>
+            </transition>
+          </div>
+        </main>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
 import ServiceBookingService from "@/services/serviceBooking.service";
 
 export default {
   name: "ServiceBookingHistory",
+  components: {
+    CustomerAccountSidebar,
+  },
   data() {
     return {
       bookings: [],
@@ -271,9 +273,7 @@ export default {
     async handleCancelBooking(booking) {
       const bookingId = booking._id || booking.id;
 
-      const confirmed = window.confirm(
-        `Bạn có chắc muốn hủy lịch ${booking.maLichDat || ""} không?`
-      );
+      const confirmed = window.confirm("Bạn có chắc muốn hủy lịch dịch vụ này không?");
       if (!confirmed) return;
 
       this.cancelLoadingId = bookingId;
@@ -348,11 +348,6 @@ export default {
       }
     },
 
-    getServiceStatusClass(status) {
-      if (status === "Đang hoạt động") return "status-service-active";
-      return "status-service-inactive";
-    },
-
     getImageUrl(image) {
       if (!image) return this.fallbackImage;
 
@@ -390,39 +385,67 @@ export default {
 <style scoped>
 .service-booking-history-page {
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.04), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
+}
+
+.booking-history-container {
+  max-width: 1350px;
 }
 
 .container {
-  max-width: 1100px;
   margin: 0 auto;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.page-header {
-  text-align: center;
+.page-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
-.page-title {
-  font-size: 30px;
-  font-weight: 800;
-  color: #1f2937;
-  margin-bottom: 8px;
+.content-area {
+  min-width: 0;
 }
 
-.page-subtitle {
-  font-size: 15px;
-  color: #6b7280;
-  margin: 0;
+.content-card {
+  background: #ffffff;
+  border: 1px solid #e7e5ef;
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
 }
 
-.toolbar-box {
+.content-header {
   display: flex;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0edf5;
+}
+
+.content-title {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.content-subtitle {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.7;
+  font-weight: 500;
+}
+
+.toolbar-box {
+  margin-bottom: 18px;
 }
 
 .status-tabs {
@@ -432,24 +455,24 @@ export default {
 }
 
 .status-tab {
-  border: none;
+  border: 1px solid #ddd6e8;
   background: #ffffff;
-  color: #475569;
+  color: #4b5563;
   border-radius: 999px;
   padding: 10px 16px;
   font-weight: 700;
   font-size: 14px;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
   transition: all 0.2s ease;
 }
 
-.status-tab.active {
-  background: #2563eb;
-  color: #ffffff;
+.status-tab:hover {
+  background: #f8fafc;
 }
 
-.refresh-btn {
-  min-width: 130px;
+.status-tab.active {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
 }
 
 .state-box {
@@ -457,7 +480,8 @@ export default {
   border-radius: 18px;
   padding: 48px 24px;
   text-align: center;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e7e5ef;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .empty-icon {
@@ -474,7 +498,7 @@ export default {
 .empty-box h3 {
   margin: 10px 0;
   font-size: 22px;
-  color: #1f2937;
+  color: #111827;
 }
 
 .empty-box p {
@@ -486,7 +510,7 @@ export default {
   width: 42px;
   height: 42px;
   border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border-top-color: #6366f1;
   border-radius: 50%;
   margin: 0 auto 14px;
   animation: spin 0.8s linear infinite;
@@ -495,15 +519,15 @@ export default {
 .booking-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .booking-card {
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
-  border: 1px solid #eef2f7;
+  border: 1px solid #e7e5ef;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .booking-card__top {
@@ -511,24 +535,13 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  padding: 20px 22px 14px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.booking-code {
-  margin: 0 0 6px;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.booking-code span {
-  font-weight: 700;
-  color: #0f172a;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .service-name {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   color: #111827;
   font-weight: 800;
 }
@@ -542,7 +555,7 @@ export default {
 
 .status-badge {
   white-space: nowrap;
-  padding: 9px 14px;
+  padding: 8px 13px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
@@ -568,18 +581,8 @@ export default {
   color: #b91c1c;
 }
 
-.status-service-active {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.status-service-inactive {
-  background: #f1f5f9;
-  color: #475569;
-}
-
 .booking-card__body {
-  padding: 22px;
+  padding: 20px;
 }
 
 .service-info {
@@ -594,7 +597,7 @@ export default {
   height: 160px;
   border-radius: 18px;
   overflow: hidden;
-  background: #f1f5f9;
+  background: #f3f4f6;
 }
 
 .service-image {
@@ -606,20 +609,22 @@ export default {
 .service-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 12px 20px;
+  gap: 12px 18px;
 }
 
 .meta-row {
-  background: #f8fafc;
+  background: #f9fafb;
   border-radius: 14px;
   padding: 12px 14px;
+  border: 1px solid #f1f5f9;
 }
 
 .meta-label {
   display: block;
   font-size: 13px;
-  color: #64748b;
+  color: #6b7280;
   margin-bottom: 4px;
+  font-weight: 600;
 }
 
 .meta-value {
@@ -656,17 +661,9 @@ export default {
 .booking-footer {
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #f3f4f6;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.created-at {
-  font-size: 14px;
-  color: #6b7280;
+  justify-content: flex-end;
 }
 
 .booking-actions {
@@ -697,22 +694,22 @@ export default {
 }
 
 .btn-primary-custom {
-  background: #2563eb;
+  background: #4f46e5;
   color: #ffffff;
 }
 
 .btn-primary-custom:hover {
-  background: #1d4ed8;
+  background: #4338ca;
 }
 
 .btn-outline-custom {
   background: #ffffff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  color: #374151;
+  border: 1px solid #ddd6e8;
 }
 
 .btn-outline-custom:hover {
-  background: #eff6ff;
+  background: #f8fafc;
 }
 
 .btn-cancel-custom {
@@ -725,9 +722,13 @@ export default {
 }
 
 .btn-retry {
-  background: #2563eb;
+  background: #4f46e5;
   color: #fff;
   margin-top: 10px;
+}
+
+.refresh-btn {
+  min-width: 130px;
 }
 
 .toast-success {
@@ -759,9 +760,24 @@ export default {
   }
 }
 
+@media (max-width: 991.98px) {
+  .page-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .page-title {
-    font-size: 24px;
+  .content-card {
+    padding: 20px;
+  }
+
+  .content-title {
+    font-size: 1.55rem;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .booking-card__top {
@@ -786,22 +802,12 @@ export default {
     grid-template-columns: 1fr;
   }
 
-  .booking-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .booking-actions {
     width: 100%;
   }
 
   .btn-action {
     width: 100%;
-  }
-
-  .toolbar-box {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 </style>

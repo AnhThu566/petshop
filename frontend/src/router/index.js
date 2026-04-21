@@ -40,7 +40,6 @@ import ServiceList from "@/views/customer/ServiceList.vue";
 import ServiceDetail from "@/views/customer/ServiceDetail.vue";
 import ServiceBookingHistory from "@/views/customer/ServiceBookingHistory.vue";
 import AccessoryOrderHistory from "@/views/customer/AccessoryOrderHistory.vue";
-import CustomerMyDogs from "@/views/customer/CustomerMyDogs.vue";
 import PaymentResultZaloPay from "@/views/customer/PaymentResultZaloPay.vue";
 import DepositPaymentResultZaloPay from "@/views/customer/DepositPaymentResultZaloPay.vue";
 
@@ -126,15 +125,6 @@ const routes = [
     component: ServiceBookingHistory,
     meta: { requiresCustomer: true },
   },
-
-  {
-    path: "/my-dogs",
-    name: "customer-my-dogs",
-    component: CustomerMyDogs,
-    meta: { requiresCustomer: true },
-  },
-
-
 
   {
   path: "/dogs/breeds",
