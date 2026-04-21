@@ -144,6 +144,7 @@ export default {
       errorMessage: "",
       orderId: "",
       orderCode: "",
+      paymentType: "",
     };
   },
 
@@ -158,6 +159,7 @@ export default {
       return {
         orderId: queryOrderId || pending?.orderId || "",
         orderCode: queryOrderCode || pending?.maDonPhuKien || "",
+        type: pending?.type || "",
       };
     },
 
@@ -165,7 +167,7 @@ export default {
       sessionStorage.removeItem("zalopay_pending_order");
     },
 
-    clearCheckoutTempData() {
+    clearAccessoryCheckoutTempData() {
       sessionStorage.removeItem("buy_now_checkout");
       sessionStorage.removeItem("cart_checkout_selection");
       window.dispatchEvent(new Event("cart-updated"));
@@ -180,9 +182,11 @@ export default {
         const info = this.getPendingPaymentInfo();
         this.orderId = info.orderId;
         this.orderCode = info.orderCode;
+        this.paymentType = info.type;
 
         if (!this.orderId) {
           this.statusType = "missing";
+          this.clearPendingPaymentInfo();
           return;
         }
 
@@ -196,7 +200,11 @@ export default {
           if (lastStatus === "Đã thanh toán") {
             this.statusType = "success";
             this.clearPendingPaymentInfo();
-            this.clearCheckoutTempData();
+
+            if (this.paymentType === "accessory") {
+              this.clearAccessoryCheckoutTempData();
+            }
+
             return;
           }
 

@@ -17,6 +17,8 @@
 
     <div class="sidebar-divider"></div>
 
+    <div class="sidebar-group-title">Quản lý hồ sơ</div>
+
     <ul class="nav flex-column w-100 mb-auto sidebar-menu">
       <li class="nav-item mb-2">
         <router-link
@@ -58,7 +60,7 @@
         @click="logout"
       >
         <i class="fas fa-sign-out-alt mr-2"></i>
-        ĐĂNG XUẤT
+        Đăng xuất
       </button>
     </div>
   </div>
@@ -96,38 +98,38 @@ export default {
 
 <style scoped>
 .farm-sidebar {
-  width: 270px;
+  width: 280px;
   min-height: 100vh;
-  padding: 20px 16px;
-  background: linear-gradient(180deg, #1f8a5b 0%, #18734c 55%, #14603f 100%);
+  padding: 22px 16px;
+  background: linear-gradient(180deg, #166534 0%, #15803d 52%, #166534 100%);
   color: #ffffff;
-  box-shadow: 8px 0 24px rgba(20, 96, 63, 0.16);
+  box-shadow: 8px 0 24px rgba(21, 128, 61, 0.18);
 }
 
 .sidebar-top {
   padding-top: 8px;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .logo-circle {
-  width: 70px;
-  height: 70px;
-  margin: 0 auto 12px;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 14px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .logo-circle i {
-  font-size: 28px;
+  font-size: 30px;
   color: #ffffff;
 }
 
 .sidebar-title {
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   font-weight: 800;
   margin-bottom: 6px;
   letter-spacing: 0.3px;
@@ -135,29 +137,39 @@ export default {
 }
 
 .sidebar-subtitle {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.84);
-  line-height: 1.5;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.55;
 }
 
 .sidebar-divider {
   height: 1px;
   width: 100%;
   background: rgba(255, 255, 255, 0.18);
-  margin: 14px 0 18px;
+  margin: 14px 0 16px;
+}
+
+.sidebar-group-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0 10px;
+  margin-bottom: 10px;
 }
 
 .sidebar-menu {
-  gap: 2px;
+  gap: 4px;
 }
 
 .sidebar-link {
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.94);
-  border-radius: 12px;
-  padding: 11px 14px;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.96);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
   transition: all 0.25s ease;
   text-decoration: none;
   white-space: nowrap;
@@ -171,11 +183,11 @@ export default {
 }
 
 .menu-icon {
-  width: 22px;
-  min-width: 22px;
+  width: 24px;
+  min-width: 24px;
   text-align: center;
   margin-right: 10px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .menu-text {
@@ -184,19 +196,19 @@ export default {
   white-space: nowrap;
   display: block;
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .active-menu {
   background: #ffffff !important;
-  color: #18734c !important;
+  color: #166534 !important;
   font-weight: 800;
-  box-shadow: 0 10px 20px rgba(10, 50, 33, 0.14);
+  box-shadow: 0 10px 20px rgba(10, 50, 33, 0.16);
 }
 
 .active-menu .menu-icon,
 .active-menu .menu-text {
-  color: #18734c;
+  color: #166534;
 }
 
 .sidebar-footer {
@@ -206,30 +218,31 @@ export default {
 }
 
 .btn-logout {
-  border-radius: 12px;
-  padding: 11px 14px;
+  border-radius: 14px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.24);
   transition: all 0.25s ease;
+  font-size: 0.98rem;
 }
 
 .btn-logout:hover {
   background: #ffffff;
-  color: #18734c;
+  color: #166534;
 }
 
 @media (max-width: 1199.98px) {
   .farm-sidebar {
-    width: 250px;
+    width: 255px;
   }
 
   .sidebar-title {
-    font-size: 1rem;
+    font-size: 1.08rem;
   }
 
   .menu-text {
-    font-size: 0.92rem;
+    font-size: 0.96rem;
   }
 }
 </style>

@@ -68,10 +68,13 @@
             <h2 class="breed-dog-title">
               {{
                 selectedBreed
-                  ? `Các bé ${selectedBreed.name} đang mở nhận đặt cọc`
-                  : "Các bé cún đang mở nhận đặt cọc"
+                  ? `Các bé chó thuộc giống ${selectedBreed.name}`
+                  : "Các bé chó đang được hiển thị"
               }}
             </h2>
+            <p class="breed-dog-subtitle">
+              Theo dõi tình trạng hiện tại của từng bé trước khi đặt cọc
+            </p>
           </div>
 
           <div v-if="dogList.length === 0" class="empty-box">
@@ -99,6 +102,13 @@
                   </div>
 
                   <div class="dog-image-gradient"></div>
+
+                  <span
+                    class="dog-status-badge"
+                    :class="getStatusClass(dog.saleStatus)"
+                  >
+                    {{ getSaleStatusText(dog.saleStatus) }}
+                  </span>
                 </div>
 
                 <div class="dog-meta">
@@ -218,6 +228,24 @@ export default {
       if (String(dog.image).startsWith("http")) return dog.image;
       return this.apiBase + dog.image;
     },
+
+getSaleStatusText(status) {
+  if (status === "Sẵn sàng bán") return "Sẵn sàng bán";
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "Đã có người đặt";
+  }
+  if (status === "Đã bán") return "Đã bán";
+  return "Sẵn sàng bán";
+},
+
+getStatusClass(status) {
+  if (status === "Sẵn sàng bán") return "status-ready";
+  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+    return "status-deposited";
+  }
+  if (status === "Đã bán") return "status-sold";
+  return "status-ready";
+},
 
     formatCurrency(value) {
       if (value === null || value === undefined || value === "") return "Liên hệ";
@@ -361,7 +389,14 @@ export default {
   font-size: 2rem;
   font-weight: 900;
   line-height: 1.3;
+  margin: 0 0 6px;
+}
+
+.breed-dog-subtitle {
   margin: 0;
+  color: #7f7194;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .dog-grid {
@@ -417,6 +452,49 @@ export default {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(20, 10, 28, 0.03) 0%, rgba(20, 10, 28, 0.3) 100%);
+}
+
+.dog-status-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+  z-index: 2;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.status-ready {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+}
+
+.status-deposited {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+}
+
+.status-sold {
+  background: #6b7280;
+  color: #fff;
+  border: none;
+}
+
+.status-stop {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+}
+
+.status-default {
+  background: #64748b;
+  color: #fff;
+  border: none;
 }
 
 .dog-placeholder {

@@ -108,7 +108,7 @@
             <div class="checkout-items">
               <div
                 v-for="item in checkoutItems"
-                :key="item.id"
+                :key="item.id || item.accessoryId"
                 class="checkout-item-card"
               >
                 <div class="checkout-item-image-wrap">
@@ -310,6 +310,25 @@ export default {
   },
 
   methods: {
+    clearCheckoutSession() {
+      if (this.isBuyNowMode) {
+        sessionStorage.removeItem("buy_now_checkout");
+      } else {
+        sessionStorage.removeItem("cart_checkout_selection");
+      }
+    },
+
+    async removePurchasedItemsFromCart() {
+      if (this.isBuyNowMode) return;
+
+      for (const item of this.checkoutItems) {
+        await CartService.removeItem(item.id);
+      }
+
+      sessionStorage.removeItem("cart_checkout_selection");
+      window.dispatchEvent(new Event("cart-updated"));
+    },
+
     async loadCheckoutData() {
       try {
         this.loading = true;
@@ -324,7 +343,8 @@ export default {
 
         if (this.isBuyNowMode) {
           const raw = sessionStorage.getItem("buy_now_checkout");
-          const items = raw ? JSON.parse(raw) : [];
+          const parsed = raw ? JSON.parse(raw) : null;
+          const items = Array.isArray(parsed) ? parsed : parsed?.items || [];
           this.checkoutItems = Array.isArray(items) ? items : [];
           return;
         }
@@ -410,17 +430,17 @@ export default {
         throw new Error("Vui lòng nhập địa chỉ nhận hàng.");
       }
 
-if (this.checkoutItems.length === 0) {
-  throw new Error("Không có sản phẩm để thanh toán.");
-}
+      if (this.checkoutItems.length === 0) {
+        throw new Error("Không có sản phẩm để thanh toán.");
+      }
 
-if (!["COD", "ZALOPAY"].includes(this.paymentMethod)) {
-  throw new Error("Phương thức thanh toán không hợp lệ.");
-}
+      if (!["COD", "ZALOPAY"].includes(this.paymentMethod)) {
+        throw new Error("Phương thức thanh toán không hợp lệ.");
+      }
 
-if (!Number.isFinite(Number(this.shippingFee)) || Number(this.shippingFee) < 0) {
-  throw new Error("Phí vận chuyển không hợp lệ.");
-}
+      if (!Number.isFinite(Number(this.shippingFee)) || Number(this.shippingFee) < 0) {
+        throw new Error("Phí vận chuyển không hợp lệ.");
+      }
 
       for (const item of this.checkoutItems) {
         if (!item.accessoryId) {
@@ -444,46 +464,48 @@ if (!Number.isFinite(Number(this.shippingFee)) || Number(this.shippingFee) < 0) 
     },
 
     async handleZaloPayPayment() {
-  this.isSubmitting = true;
+      this.isSubmitting = true;
 
-  try {
-    const response = await AccessoryOrderService.createZaloPayOrder({
-      customerName: this.form.customerName,
-      customerPhone: this.form.customerPhone,
-      shippingAddress: this.form.shippingAddress,
-      note: this.form.note,
-      paymentMethod: "ZALOPAY",
-      shippingFee: Number(this.shippingFee || 0),
-      items: this.checkoutItems.map((item) => ({
-        accessoryId: item.accessoryId,
-        quantity: item.quantity,
-      })),
-    });
+      try {
+        const response = await AccessoryOrderService.createZaloPayOrder({
+          customerName: this.form.customerName,
+          customerPhone: this.form.customerPhone,
+          shippingAddress: this.form.shippingAddress,
+          note: this.form.note,
+          paymentMethod: "ZALOPAY",
+          shippingFee: Number(this.shippingFee || 0),
+          items: this.checkoutItems.map((item) => ({
+            accessoryId: item.accessoryId,
+            quantity: item.quantity,
+          })),
+        });
 
-if (!response?.order_url) {
-  throw new Error("Không lấy được link thanh toán ZaloPay.");
-}
+        if (!response?.order_url) {
+          throw new Error("Không lấy được link thanh toán ZaloPay.");
+        }
 
-sessionStorage.setItem(
-  "zalopay_pending_order",
-  JSON.stringify({
-    orderId: response.orderId,
-    maDonPhuKien: response.maDonPhuKien,
-    appTransId: response.appTransId,
-  })
-);
+        sessionStorage.setItem(
+          "zalopay_pending_order",
+          JSON.stringify({
+            orderId: response.orderId,
+            maDonPhuKien: response.maDonPhuKien,
+            appTransId: response.appTransId,
+            type: "accessory",
+          })
+        );
 
-window.location.href = response.order_url;
-  } catch (error) {
-    console.error("Lỗi tạo thanh toán ZaloPay:", error);
-    alert(
-      "Không thể tạo thanh toán ZaloPay: " +
-        (error.response?.data?.message || error.message)
-    );
-  } finally {
-    this.isSubmitting = false;
-  }
-},
+        this.clearCheckoutSession();
+        window.location.href = response.order_url;
+      } catch (error) {
+        console.error("Lỗi tạo thanh toán ZaloPay:", error);
+        alert(
+          "Không thể tạo thanh toán ZaloPay: " +
+            (error.response?.data?.message || error.message)
+        );
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
 
     async submitOrder() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -500,10 +522,10 @@ window.location.href = response.order_url;
         return;
       }
 
-if (this.paymentMethod === "ZALOPAY") {
-  await this.handleZaloPayPayment();
-  return;
-}
+      if (this.paymentMethod === "ZALOPAY") {
+        await this.handleZaloPayPayment();
+        return;
+      }
 
       this.isSubmitting = true;
 
@@ -523,15 +545,8 @@ if (this.paymentMethod === "ZALOPAY") {
 
         alert("Đặt đơn phụ kiện thành công!");
 
-        if (this.isBuyNowMode) {
-          sessionStorage.removeItem("buy_now_checkout");
-        } else {
-          for (const item of this.checkoutItems) {
-            await CartService.removeItem(item.id);
-          }
-          sessionStorage.removeItem("cart_checkout_selection");
-          window.dispatchEvent(new Event("cart-updated"));
-        }
+        this.clearCheckoutSession();
+        await this.removePurchasedItemsFromCart();
 
         this.$router.push("/accessory-orders");
       } catch (error) {
@@ -546,9 +561,14 @@ if (this.paymentMethod === "ZALOPAY") {
       if (!item?.image) {
         return "https://via.placeholder.com/500x350?text=Accessory";
       }
-      if (String(item.image).startsWith("http://") || String(item.image).startsWith("https://")) {
+
+      if (
+        String(item.image).startsWith("http://") ||
+        String(item.image).startsWith("https://")
+      ) {
         return item.image;
       }
+
       return this.baseImageUrl + item.image;
     },
 

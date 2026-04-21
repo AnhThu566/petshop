@@ -25,8 +25,15 @@ const ZP_CREATE_URL =
   process.env.ZALOPAY_CREATE_URL || "https://sb-openapi.zalopay.vn/v2/create";
 const ZP_QUERY_URL =
   process.env.ZALOPAY_QUERY_URL || "https://sb-openapi.zalopay.vn/v2/query";
-const ZP_CALLBACK_URL = process.env.ZALOPAY_CALLBACK_URL || "";
-const ZP_REDIRECT_URL = process.env.ZALOPAY_REDIRECT_URL || "";
+
+const ZP_CALLBACK_URL =
+  process.env.ZALOPAY_CALLBACK_URL_ACCESSORY || "";
+const ZP_REDIRECT_URL =
+  process.env.ZALOPAY_REDIRECT_URL_ACCESSORY || "";
+
+  const ZALOPAY_PENDING_EXPIRE_MINUTES = Number(
+  process.env.ZALOPAY_PENDING_EXPIRE_MINUTES || 2
+);
 
 const PHONE_REGEX = /^(0|\+84)\d{9,10}$/;
 
@@ -161,17 +168,87 @@ const populateOrderWithItems = async (orderId) => {
   };
 };
 
-const restoreAccessoryStock = async (orderId) => {
-  const orderItems = await AccessoryOrderItem.find({ orderId });
+// ============================================================
+// GHI CHÚ QUAN TRỌNG:
+// stockReserved = true nghĩa là đơn này đang giữ kho tạm / đã trừ kho.
+//
+// - COD: tạo đơn là trừ kho luôn => stockReserved = true
+// - ZALOPAY: tạo đơn cũng giữ kho tạm => stockReserved = true
+// - Nếu ZALOPAY thất bại / hủy: hoàn kho và stockReserved = false
+// - Nếu ZALOPAY thành công: giữ nguyên stockReserved = true
+//
+// Lưu ý:
+// field stockReserved phải có trong accessoryOrder.model
+// ============================================================
+
+const releaseReservedStock = async (order) => {
+  if (!order || !order.stockReserved) return;
+
+  const orderItems = await AccessoryOrderItem.find({ orderId: order._id });
 
   for (const item of orderItems) {
-    const accessory = await Accessory.findById(item.accessoryId);
+    await Accessory.findByIdAndUpdate(item.accessoryId, {
+      $inc: { quantity: Number(item.quantity || 0) },
+    });
+  }
 
-    if (accessory) {
-      accessory.quantity =
-        Number(accessory.quantity || 0) + Number(item.quantity || 0);
-      await accessory.save();
+  order.stockReserved = false;
+  await order.save();
+};
+
+// ============================================================
+// Atomic reserve stock:
+// Chỉ trừ kho khi quantity còn đủ.
+// Nếu 2 khách cùng mua 1 món cuối, chỉ 1 người reserve thành công.
+// ============================================================
+const reserveStockAtomically = async (normalizedItems) => {
+  const reservedItems = [];
+
+  try {
+    for (const item of normalizedItems) {
+      const updatedAccessory = await Accessory.findOneAndUpdate(
+        {
+          _id: item.accessoryId,
+          status: "Đang bán",
+          quantity: { $gte: Number(item.quantity || 0) },
+        },
+        {
+          $inc: { quantity: -Number(item.quantity || 0) },
+        },
+        { new: true }
+      );
+
+      if (!updatedAccessory) {
+        throw new ApiError(
+          400,
+          `Phụ kiện [${item.accessoryName}] không đủ số lượng tồn kho hoặc đã được người khác giữ trước`
+        );
+      }
+
+      reservedItems.push({
+        accessoryId: item.accessoryId,
+        quantity: Number(item.quantity || 0),
+      });
     }
+  } catch (error) {
+    for (const reservedItem of reservedItems) {
+      await Accessory.findByIdAndUpdate(reservedItem.accessoryId, {
+        $inc: { quantity: Number(reservedItem.quantity || 0) },
+      });
+    }
+    throw error;
+  }
+};
+
+// ============================================================
+// Nếu reserve stock xong mà save order bị lỗi,
+// cần hoàn lại đúng số lượng đã giữ.
+// ============================================================
+const rollbackReservedItems = async (normalizedItems = []) => {
+  for (const item of normalizedItems) {
+    await Accessory.findByIdAndUpdate(item.accessoryId, {
+      $inc: { quantity: Number(item.quantity || 0) },
+    });
   }
 };
 
@@ -295,13 +372,8 @@ const saveAccessoryOrder = async ({
   maDonPhuKien,
   paymentStatus = "Chưa thanh toán",
   appTransId = "",
+  stockReserved = false,
 }) => {
-  for (const item of normalizedItems) {
-    item.accessory.quantity =
-      Number(item.accessory.quantity) - Number(item.quantity);
-    await item.accessory.save();
-  }
-
   const newOrder = new AccessoryOrder({
     maDonPhuKien,
     customerId: currentUserId,
@@ -315,6 +387,7 @@ const saveAccessoryOrder = async ({
     note: note || "",
     totalAmount,
     status: "Chờ xác nhận",
+    stockReserved,
   });
 
   await newOrder.save();
@@ -333,10 +406,18 @@ const saveAccessoryOrder = async ({
   return newOrder;
 };
 
-// Customer tạo đơn phụ kiện COD
+// ============================================================
+// COD:
+// - reserve stock ngay lúc tạo đơn
+// - paymentStatus ban đầu là Chưa thanh toán
+// ============================================================
 exports.create = async (req, res, next) => {
+  let payload = null;
+  let stockReservedDone = false;
+
   try {
-    const payload = await buildAccessoryOrderPayload(req);
+    const payloadResult = await buildAccessoryOrderPayload(req);
+    payload = payloadResult;
 
     if (payload.paymentMethod === "ZALOPAY") {
       return next(
@@ -347,13 +428,18 @@ exports.create = async (req, res, next) => {
       );
     }
 
-const newOrder = await saveAccessoryOrder({
-  ...payload,
-  paymentStatus: "Đang thanh toán",
-  appTransId,
-});
+    await reserveStockAtomically(payload.normalizedItems);
+    stockReservedDone = true;
 
-    const { order, items: createdItems } = await populateOrderWithItems(newOrder._id);
+    const newOrder = await saveAccessoryOrder({
+      ...payload,
+      paymentStatus: "Chưa thanh toán",
+      stockReserved: true,
+    });
+
+    const { order, items: createdItems } = await populateOrderWithItems(
+      newOrder._id
+    );
 
     return res.send({
       message: "Đặt đơn phụ kiện thành công!",
@@ -361,30 +447,48 @@ const newOrder = await saveAccessoryOrder({
       items: createdItems,
     });
   } catch (error) {
+    if (stockReservedDone && payload?.normalizedItems?.length) {
+      await rollbackReservedItems(payload.normalizedItems);
+    }
+
     console.error("Lỗi create accessory order:", error);
     return next(new ApiError(500, "Lỗi khi tạo đơn phụ kiện: " + error.message));
   }
 };
 
-// Customer tạo thanh toán ZaloPay
+// ============================================================
+// ZALOPAY:
+// - reserve stock tạm ngay khi tạo đơn
+// - nếu thanh toán thành công => giữ nguyên
+// - nếu thất bại / hủy => release stock
+// ============================================================
 exports.createZaloPayOrder = async (req, res, next) => {
+  let payload = null;
+  let stockReservedDone = false;
+  let newOrder = null;
+
   try {
     if (!ZP_APP_ID || !ZP_KEY1 || !ZP_KEY2) {
       return next(new ApiError(500, "Chưa cấu hình ZaloPay trong file .env"));
     }
 
-    const payload = await buildAccessoryOrderPayload(req);
+    const payloadResult = await buildAccessoryOrderPayload(req);
+    payload = payloadResult;
 
     if (payload.paymentMethod !== "ZALOPAY") {
       return next(new ApiError(400, "Phương thức thanh toán phải là ZALOPAY"));
     }
 
+    await reserveStockAtomically(payload.normalizedItems);
+    stockReservedDone = true;
+
     const appTransId = generateAppTransId();
 
-    const newOrder = await saveAccessoryOrder({
+    newOrder = await saveAccessoryOrder({
       ...payload,
       paymentStatus: "Chưa thanh toán",
       appTransId,
+      stockReserved: true,
     });
 
     const embed_data = buildZaloPayEmbedData(newOrder);
@@ -442,6 +546,10 @@ exports.createZaloPayOrder = async (req, res, next) => {
     const data = response.data || {};
 
     if (Number(data.return_code) !== 1) {
+      await releaseReservedStock(newOrder);
+      newOrder.paymentStatus = "Thanh toán thất bại";
+      await newOrder.save();
+
       return next(
         new ApiError(
           400,
@@ -464,6 +572,10 @@ exports.createZaloPayOrder = async (req, res, next) => {
       zp_trans_token: data.zp_trans_token || "",
     });
   } catch (error) {
+    if (!newOrder && stockReservedDone && payload?.normalizedItems?.length) {
+      await rollbackReservedItems(payload.normalizedItems);
+    }
+
     console.error("Lỗi create ZaloPay order:", error);
     return next(
       new ApiError(
@@ -475,7 +587,11 @@ exports.createZaloPayOrder = async (req, res, next) => {
   }
 };
 
-// Callback từ ZaloPay
+// ============================================================
+// Callback ZaloPay:
+// - thành công => đánh dấu Đã thanh toán
+// - không trừ kho ở đây nữa vì kho đã reserve từ lúc tạo đơn
+// ============================================================
 exports.zalopayCallback = async (req, res) => {
   try {
     const { data, mac } = req.body || {};
@@ -502,6 +618,10 @@ exports.zalopayCallback = async (req, res) => {
       });
     }
 
+    if (order.status === "Đã hủy") {
+      return res.send({ return_code: 1, return_message: "success" });
+    }
+
     order.paymentStatus = "Đã thanh toán";
     order.zpTransId = String(zpTransId || "");
     await order.save();
@@ -513,7 +633,12 @@ exports.zalopayCallback = async (req, res) => {
   }
 };
 
-// Query lại trạng thái ZaloPay
+// ============================================================
+// Query lại trạng thái ZaloPay:
+// - nếu thành công => Đã thanh toán
+// - nếu thất bại => trả kho lại
+// - nếu đang chờ => giữ nguyên
+// ============================================================
 exports.queryZaloPayStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -533,6 +658,39 @@ exports.queryZaloPayStatus = async (req, res, next) => {
 
     if (!order.appTransId) {
       return next(new ApiError(400, "Đơn chưa có appTransId"));
+    }
+
+    if (!ZP_APP_ID || !ZP_KEY1) {
+      return next(new ApiError(500, "Chưa cấu hình ZaloPay trong file .env"));
+    }
+
+    // =========================================================
+    // KIỂM TRA HẾT HẠN GIỮ KHO NỘI BỘ
+    // Dù QR ZaloPay có thể còn 15 phút,
+    // nhưng hệ thống phụ kiện của mình chỉ giữ kho tạm trong X phút.
+    // Quá thời gian này mà chưa thanh toán thành công thì fail đơn và hoàn kho.
+    // =========================================================
+    const expiredMs = ZALOPAY_PENDING_EXPIRE_MINUTES * 60 * 1000;
+    const orderAgeMs = Date.now() - new Date(order.createdAt).getTime();
+    const isExpired = orderAgeMs > expiredMs;
+
+    if (
+      order.paymentStatus === "Chưa thanh toán" &&
+      order.stockReserved === true &&
+      isExpired
+    ) {
+      order.paymentStatus = "Thanh toán thất bại";
+      await order.save();
+      await releaseReservedStock(order);
+
+      return res.send({
+        message: `Đơn đã hết hạn thanh toán sau ${ZALOPAY_PENDING_EXPIRE_MINUTES} phút`,
+        paymentStatus: order.paymentStatus,
+        zaloResponse: {
+          expired_by_system: true,
+          expired_minutes: ZALOPAY_PENDING_EXPIRE_MINUTES,
+        },
+      });
     }
 
     const app_id = ZP_APP_ID;
@@ -565,6 +723,8 @@ exports.queryZaloPayStatus = async (req, res, next) => {
     } else if (Number(data.return_code) !== 2) {
       order.paymentStatus = "Thanh toán thất bại";
       await order.save();
+
+      await releaseReservedStock(order);
     }
 
     return res.send({
@@ -584,7 +744,11 @@ exports.queryZaloPayStatus = async (req, res, next) => {
   }
 };
 
-// Customer xem đơn của mình
+// ============================================================
+// Khách chỉ thấy:
+// - COD
+// - ZALOPAY đã thanh toán
+// ============================================================
 exports.findMyOrders = async (req, res, next) => {
   try {
     const currentUserId = getCurrentUserId(req);
@@ -606,6 +770,13 @@ exports.findMyOrders = async (req, res, next) => {
     const result = [];
 
     for (const order of orders) {
+      if (
+        order.paymentMethod === "ZALOPAY" &&
+        order.paymentStatus !== "Đã thanh toán"
+      ) {
+        continue;
+      }
+
       const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
         "accessoryId",
         "maPhuKien name image status price promotion"
@@ -620,11 +791,17 @@ exports.findMyOrders = async (req, res, next) => {
     return res.send(result);
   } catch (error) {
     console.error("Lỗi find my accessory orders:", error);
-    return next(new ApiError(500, "Lỗi khi lấy lịch sử đơn phụ kiện: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi lấy lịch sử đơn phụ kiện: " + error.message)
+    );
   }
 };
 
-// Admin xem tất cả đơn phụ kiện
+// ============================================================
+// Admin chỉ thấy:
+// - tất cả đơn COD
+// - ZALOPAY đã thanh toán
+// ============================================================
 exports.findAll = async (req, res, next) => {
   try {
     const filter = {};
@@ -648,6 +825,13 @@ exports.findAll = async (req, res, next) => {
     const result = [];
 
     for (const order of orders) {
+      if (
+        order.paymentMethod === "ZALOPAY" &&
+        order.paymentStatus !== "Đã thanh toán"
+      ) {
+        continue;
+      }
+
       const items = await AccessoryOrderItem.find({ orderId: order._id }).populate(
         "accessoryId",
         "maPhuKien name image status price promotion"
@@ -662,10 +846,17 @@ exports.findAll = async (req, res, next) => {
     return res.send(result);
   } catch (error) {
     console.error("Lỗi findAll accessory orders:", error);
-    return next(new ApiError(500, "Lỗi khi lấy danh sách đơn phụ kiện: " + error.message));
+    return next(
+      new ApiError(500, "Lỗi khi lấy danh sách đơn phụ kiện: " + error.message)
+    );
   }
 };
 
+// ============================================================
+// updateStatus:
+// - COD hoàn thành => Đã thanh toán
+// - hủy đơn => hoàn kho nếu đang giữ kho
+// ============================================================
 exports.updateStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -720,13 +911,25 @@ exports.updateStatus = async (req, res, next) => {
     }
 
     if (status === "Đã hủy") {
-      await restoreAccessoryStock(order._id);
+      if (
+        order.paymentMethod === "ZALOPAY" &&
+        order.paymentStatus !== "Đã thanh toán"
+      ) {
+        order.paymentStatus = "Thanh toán thất bại";
+      }
+
+      await order.save();
+      await releaseReservedStock(order);
     }
 
     order.status = status;
 
-    if (order.paymentMethod === "COD" && status === "Hoàn thành") {
-      order.paymentStatus = "Đã thanh toán";
+    if (order.paymentMethod === "COD") {
+      if (status === "Hoàn thành") {
+        order.paymentStatus = "Đã thanh toán";
+      } else if (order.paymentStatus !== "Đã thanh toán") {
+        order.paymentStatus = "Chưa thanh toán";
+      }
     }
 
     await order.save();
@@ -746,7 +949,9 @@ exports.updateStatus = async (req, res, next) => {
   }
 };
 
-// Xem chi tiết 1 đơn phụ kiện
+// ============================================================
+// Xem chi tiết 1 đơn
+// ============================================================
 exports.findOne = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -788,7 +993,10 @@ exports.findOne = async (req, res, next) => {
   }
 };
 
-// Customer hủy đơn của mình
+// ============================================================
+// Khách hủy đơn:
+// - nếu đang giữ kho thì hoàn lại
+// ============================================================
 exports.cancelByCustomer = async (req, res, next) => {
   try {
     const currentUserId = getCurrentUserId(req);
@@ -820,14 +1028,14 @@ exports.cancelByCustomer = async (req, res, next) => {
       );
     }
 
-    await restoreAccessoryStock(order._id);
-
     order.status = "Đã hủy";
+
     if (order.paymentMethod === "ZALOPAY" && order.paymentStatus !== "Đã thanh toán") {
       order.paymentStatus = "Thanh toán thất bại";
     }
 
     await order.save();
+    await releaseReservedStock(order);
 
     const { order: updatedOrder, items } = await populateOrderWithItems(order._id);
 

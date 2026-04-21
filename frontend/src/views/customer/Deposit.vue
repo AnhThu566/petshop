@@ -7,9 +7,9 @@
           <i class="fas fa-hand-holding-heart mr-2"></i>
           Đặt cọc đón bé về nhà
         </h2>
-<p class="page-subtitle mb-0">
-  Kiểm tra thông tin bé chó và thanh toán khoản cọc qua ZaloPay để hệ thống tự xác nhận.
-</p>
+        <p class="page-subtitle mb-0">
+          Kiểm tra thông tin bé chó và thanh toán khoản cọc qua ZaloPay để hệ thống tự xác nhận.
+        </p>
       </div>
 
       <div v-if="loading" class="empty-state text-center py-5">
@@ -109,25 +109,25 @@
                 </div>
               </div>
 
- <div class="form-group mb-4">
-  <label class="field-label">
-    Phương thức thanh toán cọc
-  </label>
+              <div class="form-group mb-4">
+                <label class="field-label">
+                  Phương thức thanh toán cọc
+                </label>
 
-  <div class="payment-method-grid single-method">
-    <div class="payment-method-card active fixed-method">
-      <div class="method-icon zalopay-icon">
-        <i class="fas fa-qrcode"></i>
-      </div>
-      <div class="method-content">
-        <div class="method-title">ZaloPay</div>
-        <div class="method-desc">
-          Thanh toán cọc online, hệ thống tự xác nhận khi giao dịch thành công.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+                <div class="payment-method-grid single-method">
+                  <div class="payment-method-card active fixed-method">
+                    <div class="method-icon zalopay-icon">
+                      <i class="fas fa-qrcode"></i>
+                    </div>
+                    <div class="method-content">
+                      <div class="method-title">ZaloPay</div>
+                      <div class="method-desc">
+                        Thanh toán cọc online, hệ thống tự xác nhận khi giao dịch thành công.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div class="form-group mb-4">
                 <div class="zalopay-guide-box">
@@ -139,6 +139,11 @@
                     Khi thanh toán thành công, đơn cọc sẽ được cập nhật tự động.
                   </div>
                 </div>
+              </div>
+
+              <div v-if="hasPendingOrder" class="warning-box mb-4">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                Bạn đang có một đơn đặt cọc ZaloPay chưa hoàn tất cho bé này. Hãy mở lại link thanh toán hoặc bấm kiểm tra trạng thái trước khi tạo đơn mới.
               </div>
 
               <div class="form-group mb-4">
@@ -157,11 +162,11 @@
                   <i class="fas fa-shield-alt mr-2"></i>Lưu ý đặt cọc
                 </div>
                 <ul class="policy-list mb-0">
-  <li>Yêu cầu đặt cọc chỉ được áp dụng cho bé đang mở bán và còn sẵn sàng giao dịch.</li>
-  <li>Hệ thống chỉ hỗ trợ đặt cọc chó qua ZaloPay để tự động xác nhận thanh toán.</li>
-  <li>Sau khi bấm xác nhận, bạn sẽ được chuyển sang cổng thanh toán ZaloPay.</li>
-  <li>Số tiền còn lại sẽ thanh toán khi hoàn tất bàn giao bé.</li>
-</ul>
+                  <li>Yêu cầu đặt cọc chỉ được áp dụng cho bé đang mở bán và còn sẵn sàng giao dịch.</li>
+                  <li>Hệ thống chỉ hỗ trợ đặt cọc chó qua ZaloPay để tự động xác nhận thanh toán.</li>
+                  <li>Nếu đã có một phiên thanh toán ZaloPay đang chờ, hệ thống sẽ không tạo thêm đơn mới.</li>
+                  <li>Số tiền còn lại sẽ thanh toán khi hoàn tất bàn giao bé.</li>
+                </ul>
               </div>
 
               <div v-if="!canSubmit" class="warning-box mb-4">
@@ -171,16 +176,27 @@
 
               <div class="action-grid">
                 <button
+                  v-if="!hasPendingOrder"
                   type="submit"
                   class="btn btn-main btn-lg btn-block font-weight-bold py-3 shadow-sm"
                   :disabled="isBusy || !canSubmit"
                 >
                   <span v-if="isSubmitting">
-  <i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...
-</span>
-<span v-else>
-  <i class="fas fa-wallet mr-2"></i> THANH TOÁN CỌC BẰNG ZALOPAY
-</span>
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...
+                  </span>
+                  <span v-else>
+                    <i class="fas fa-wallet mr-2"></i> THANH TOÁN CỌC BẰNG ZALOPAY
+                  </span>
+                </button>
+
+                <button
+                  v-if="hasPendingOrder && lastPaymentUrl"
+                  type="button"
+                  class="btn btn-main btn-lg btn-block font-weight-bold py-3 shadow-sm"
+                  :disabled="isBusy"
+                  @click="reopenZaloPayPayment"
+                >
+                  <i class="fas fa-external-link-alt mr-2"></i> MỞ LẠI THANH TOÁN ZALOPAY
                 </button>
 
                 <button
@@ -211,10 +227,10 @@
                 <div class="summary-badge">THÔNG TIN BÉ CHÓ</div>
                 <h4 class="summary-name mb-1">{{ dog.name }}</h4>
                 <p class="summary-sub mb-1">Giống: {{ dog.breedId?.name || "Đang cập nhật" }}</p>
-                <p class="summary-sub mb-1" v-if="dog.farmId?.name">
-                  Nguồn cung: {{ dog.farmId.name }}
+                <p class="summary-sub mb-1">
+                  Nguồn gốc: Trang trại đối tác đã xác minh
                 </p>
-<strong class="summary-price">{{ formatCurrency(dogPrice) }}</strong>
+                <strong class="summary-price">{{ formatCurrency(dogPrice) }}</strong>
               </div>
             </div>
 
@@ -250,7 +266,7 @@
                 </div>
                 <div class="health-row">
                   <span>Tiêm vaccine</span>
-                  <strong>{{ dog.vaccinated ? "Đã có hồ sơ" : "Chưa cập nhật" }}</strong>
+                  <strong>{{ Array.isArray(dog.vaccines) && dog.vaccines.length > 0 ? "Đã có hồ sơ" : "Chưa cập nhật" }}</strong>
                 </div>
               </div>
 
@@ -272,10 +288,6 @@
                   <strong>{{ formatCurrency(depositAmount) }}</strong>
                 </div>
               </div>
-
-
-
-
 
               <div class="payment-box zalopay-box">
                 <div class="payment-title text-center zalopay-title">
@@ -341,13 +353,13 @@ export default {
       currentUser: null,
       currentOrder: null,
       loading: true,
-form: {
-  customerName: "",
-  customerPhone: "",
-  customerAddress: "",
-  paymentMethod: "ZaloPay",
-  note: "",
-},
+      form: {
+        customerName: "",
+        customerPhone: "",
+        customerAddress: "",
+        paymentMethod: "ZaloPay",
+        note: "",
+      },
       isSubmitting: false,
       isCheckingPayment: false,
       statusMessage: "",
@@ -358,58 +370,62 @@ form: {
   },
 
   computed: {
-  dogPrice() {
-    if (!this.dog) return 0;
-    return Number(this.dog.finalPrice || this.dog.price || 0);
+    dogPrice() {
+      if (!this.dog) return 0;
+      return Number(this.dog.finalPrice || this.dog.price || 0);
+    },
+
+    depositAmount() {
+      if (!this.dog) return 0;
+
+      if (this.dog.depositAmount && Number(this.dog.depositAmount) > 0) {
+        return Number(this.dog.depositAmount);
+      }
+
+      if (!this.dogPrice) return 0;
+
+      return Math.round(this.dogPrice * 0.3);
+    },
+
+    remainingAmount() {
+      if (!this.dogPrice) return 0;
+      return this.dogPrice - this.depositAmount;
+    },
+
+    depositRateText() {
+      if (!this.dogPrice) return "---";
+      const rate = Math.round((this.depositAmount / this.dogPrice) * 100);
+      return `${rate}%`;
+    },
+
+    dogImage() {
+      if (!this.dog?.image) return "https://via.placeholder.com/100";
+      if (String(this.dog.image).startsWith("http")) return this.dog.image;
+      return `http://localhost:3000${this.dog.image}`;
+    },
+
+    canSubmit() {
+      if (!this.dog) return false;
+
+      return (
+        this.dog.approvalStatus === "Đã duyệt" &&
+        this.dog.saleStatus === "Sẵn sàng bán" &&
+        this.dog.isPublished
+      );
+    },
+
+    isBusy() {
+      return this.isSubmitting || this.isCheckingPayment;
+    },
+
+    isPendingZaloPayOrder() {
+      return OrderService.isPendingZaloPayPayment(this.currentOrder);
+    },
+
+    hasPendingOrder() {
+      return !!this.currentOrder && this.isPendingZaloPayOrder;
+    },
   },
-
-  depositAmount() {
-    if (!this.dog) return 0;
-
-    if (this.dog.depositAmount && Number(this.dog.depositAmount) > 0) {
-      return Number(this.dog.depositAmount);
-    }
-
-    if (!this.dogPrice) return 0;
-
-    return Math.round(this.dogPrice * 0.3);
-  },
-
-  remainingAmount() {
-    if (!this.dogPrice) return 0;
-    return this.dogPrice - this.depositAmount;
-  },
-
-  depositRateText() {
-    if (!this.dogPrice) return "---";
-    const rate = Math.round((this.depositAmount / this.dogPrice) * 100);
-    return `${rate}%`;
-  },
-
-  dogImage() {
-    if (!this.dog?.image) return "https://via.placeholder.com/100";
-    if (String(this.dog.image).startsWith("http")) return this.dog.image;
-    return `http://localhost:3000${this.dog.image}`;
-  },
-
-  canSubmit() {
-    if (!this.dog) return false;
-
-    return (
-      this.dog.approvalStatus === "Đã duyệt" &&
-      this.dog.saleStatus === "Sẵn sàng bán" &&
-      this.dog.isPublished
-    );
-  },
-
-  isBusy() {
-    return this.isSubmitting || this.isCheckingPayment;
-  },
-
-  isPendingZaloPayOrder() {
-    return OrderService.isPendingZaloPayPayment(this.currentOrder);
-  },
-},
 
   async created() {
     this.initCurrentUser();
@@ -451,10 +467,9 @@ form: {
 
         this.dog = await DogService.getPublicById(dogId);
 
-        const localDog =
-          savedDog && JSON.parse(savedDog);
-
+        const localDog = savedDog ? JSON.parse(savedDog) : null;
         const localDogId = localDog?._id || localDog?.id || "";
+
         if (!localDogId || String(localDogId) !== String(dogId)) {
           localStorage.setItem("checkoutDog", JSON.stringify(this.dog));
         }
@@ -471,12 +486,14 @@ form: {
         if (!this.currentUser || this.currentUser.role !== "customer") return;
 
         const orders = await OrderService.getMyOrders();
-        const currentDogId = this.$route.query.dogId || this.dog?._id || this.dog?.id;
+        const currentDogId =
+          this.$route.query.dogId || this.dog?._id || this.dog?.id;
 
         if (!currentDogId) return;
 
         const matched = (orders || []).find((item) => {
           const orderDogId = item?.dogId?._id || item?.dogId?.id || item?.dogId;
+
           return (
             String(orderDogId) === String(currentDogId) &&
             item.paymentMethod === "ZaloPay" &&
@@ -488,6 +505,16 @@ form: {
         if (matched) {
           this.currentOrder = matched;
           this.form.paymentMethod = "ZaloPay";
+          this.lastPaymentUrl =
+            matched?.paymentUrl ||
+            matched?.zalopayPaymentUrl ||
+            matched?.orderUrl ||
+            "";
+          this.lastQrCode =
+            matched?.qrCode ||
+            matched?.zalopayQrCode ||
+            "";
+
           this.statusMessage =
             "Bạn đang có một đơn cọc ZaloPay chưa hoàn tất. Hãy mở lại link thanh toán hoặc bấm kiểm tra trạng thái.";
           this.statusMessageType = "warning";
@@ -542,16 +569,16 @@ form: {
       return normalized.length >= 10 && normalized.length <= 11;
     },
 
-buildOrderData() {
-  return {
-    customerName: this.form.customerName,
-    customerPhone: this.form.customerPhone,
-    customerAddress: this.form.customerAddress,
-    note: this.form.note,
-    paymentMethod: "ZaloPay",
-    dogId: this.dog._id || this.dog.id,
-  };
-},
+    buildOrderData() {
+      return {
+        customerName: this.form.customerName,
+        customerPhone: this.form.customerPhone,
+        customerAddress: this.form.customerAddress,
+        note: this.form.note,
+        paymentMethod: "ZaloPay",
+        dogId: this.dog._id || this.dog.id,
+      };
+    },
 
     validateBeforeSubmit() {
       if (!this.dog) {
@@ -580,6 +607,13 @@ buildOrderData() {
         return false;
       }
 
+      if (this.hasPendingOrder) {
+        this.showMessage(
+          "Bạn đang có một đơn ZaloPay chưa hoàn tất cho bé này. Hãy mở lại link cũ hoặc kiểm tra trạng thái trước.",
+          "warning"
+        );
+        return false;
+      }
 
       return true;
     },
@@ -587,6 +621,15 @@ buildOrderData() {
     showMessage(message, type = "info") {
       this.statusMessage = message;
       this.statusMessageType = type;
+    },
+
+    reopenZaloPayPayment() {
+      if (!this.lastPaymentUrl) {
+        this.showMessage("Không tìm thấy link thanh toán để mở lại.", "warning");
+        return;
+      }
+
+      window.open(this.lastPaymentUrl, "_blank", "noopener,noreferrer");
     },
 
     async submitDeposit() {
@@ -609,51 +652,53 @@ buildOrderData() {
       const orderData = this.buildOrderData();
 
       try {
-  const response = await OrderService.createDepositZaloPay(orderData);
+        const response = await OrderService.createDepositZaloPay(orderData);
 
-  this.currentOrder = response?.order || null;
-  this.lastPaymentUrl = OrderService.getPaymentUrl(response?.payment);
-  this.lastQrCode = OrderService.getQrCode(response?.payment);
+        this.currentOrder = response?.order || null;
+        this.lastPaymentUrl = OrderService.getPaymentUrl(response?.payment);
+        this.lastQrCode = OrderService.getQrCode(response?.payment);
 
-  sessionStorage.setItem(
-    "zalopay_pending_deposit_order",
-    JSON.stringify({
-      orderId: this.currentOrder?._id || this.currentOrder?.id || "",
-      dogId: this.dog?._id || this.dog?.id || "",
-      dogName: this.dog?.name || "",
-    })
-  );
+        sessionStorage.setItem(
+          "zalopay_pending_deposit_order",
+          JSON.stringify({
+            orderId: this.currentOrder?._id || this.currentOrder?.id || "",
+            dogId: this.dog?._id || this.dog?.id || "",
+            dogName: this.dog?.name || "",
+          })
+        );
 
-  localStorage.setItem("checkoutDog", JSON.stringify(this.dog));
+        localStorage.setItem("checkoutDog", JSON.stringify(this.dog));
 
-  this.showMessage(
-    "Đã tạo phiên thanh toán ZaloPay. Hệ thống sẽ chuyển bạn sang trang thanh toán.",
-    "success"
-  );
+        this.showMessage(
+          "Đã tạo phiên thanh toán ZaloPay. Hệ thống sẽ chuyển bạn sang trang thanh toán.",
+          "success"
+        );
 
-  if (this.lastPaymentUrl) {
-    setTimeout(() => {
-      try {
-        OrderService.openZaloPay(response?.payment);
-      } catch (openError) {
-        console.error("Lỗi mở trang thanh toán ZaloPay:", openError);
-      }
-    }, 500);
-  } else {
-    this.showMessage(
-      "Đã tạo đơn ZaloPay nhưng chưa nhận được link thanh toán. Vui lòng thử lại.",
-      "error"
-    );
-  }
+        if (this.lastPaymentUrl) {
+          setTimeout(() => {
+            try {
+              OrderService.openZaloPay(response?.payment);
+            } catch (openError) {
+              console.error("Lỗi mở trang thanh toán ZaloPay:", openError);
+            }
+          }, 500);
+        } else {
+          this.showMessage(
+            "Đã tạo đơn ZaloPay nhưng chưa nhận được link thanh toán. Vui lòng thử lại.",
+            "error"
+          );
+        }
 
-  await this.loadDogData();
-  return;
-} catch (error) {
-  const message = error.response?.data?.message || error.message || "Có lỗi xảy ra.";
-  this.showMessage(message, "error");
-  alert("❌ Có lỗi xảy ra: " + message);
-  await this.loadDogData();
-} finally {
+        await this.loadDogData();
+      } catch (error) {
+        const message =
+          error.response?.data?.message || error.message || "Có lỗi xảy ra.";
+
+        this.showMessage(message, "error");
+        alert("❌ Có lỗi xảy ra: " + message);
+        await this.loadDogData();
+        await this.tryRestoreLatestPendingOrder();
+      } finally {
         this.isSubmitting = false;
       }
     },
@@ -676,6 +721,7 @@ buildOrderData() {
             "Thanh toán cọc ZaloPay đã thành công. Bé đã được giữ chỗ cho bạn.",
             "success"
           );
+          sessionStorage.removeItem("zalopay_pending_deposit_order");
           await this.loadDogData();
           alert("🎉 Thanh toán cọc thành công! Bé đã được giữ chỗ cho bạn.");
           this.$router.push("/tra-cuu-don");
@@ -692,6 +738,8 @@ buildOrderData() {
           );
           this.lastPaymentUrl = "";
           this.lastQrCode = "";
+          this.currentOrder = null;
+          sessionStorage.removeItem("zalopay_pending_deposit_order");
           await this.loadDogData();
           return;
         }
@@ -701,7 +749,10 @@ buildOrderData() {
           "info"
         );
       } catch (error) {
-        const message = error.response?.data?.message || error.message || "Không thể kiểm tra trạng thái thanh toán.";
+        const message =
+          error.response?.data?.message ||
+          error.message ||
+          "Không thể kiểm tra trạng thái thanh toán.";
         this.showMessage(message, "error");
         alert("❌ " + message);
       } finally {
@@ -860,7 +911,6 @@ buildOrderData() {
   color: #6a1b9a !important;
 }
 
-.proof-textarea,
 .note-textarea {
   min-height: auto;
   padding: 12px 14px;
@@ -886,21 +936,10 @@ buildOrderData() {
   min-height: 108px;
 }
 
-.payment-method-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(106, 27, 154, 0.08);
-}
-
 .payment-method-card.active {
   border-color: #6a1b9a;
   background: #faf5ff;
   box-shadow: 0 12px 24px rgba(106, 27, 154, 0.08);
-}
-
-.payment-method-card input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .method-icon {
@@ -1135,26 +1174,6 @@ buildOrderData() {
   padding: 16px;
 }
 
-.payment-item {
-  color: #2f1b44;
-  font-size: 0.92rem;
-  margin-bottom: 6px;
-}
-
-.payment-note {
-  color: #c2410c;
-  font-size: 0.88rem;
-  font-style: italic;
-  text-align: center;
-  margin-top: 10px;
-  line-height: 1.6;
-}
-
-.cash-box {
-  background-color: #fdf6e3;
-  border-color: #d4a017;
-}
-
 .zalopay-box {
   background-color: #eff6ff;
   border-color: #60a5fa;
@@ -1222,6 +1241,7 @@ buildOrderData() {
     font-size: 1.1rem;
   }
 }
+
 .single-method {
   grid-template-columns: 1fr;
 }

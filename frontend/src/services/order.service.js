@@ -56,20 +56,31 @@ class OrderService {
   // ==============================
   // HELPER CHO FRONTEND
   // ==============================
-  openZaloPay(paymentData) {
-    const orderUrl = paymentData?.order_url || "";
-    if (!orderUrl) {
-      throw new Error("Không tìm thấy liên kết thanh toán ZaloPay.");
-    }
-    window.location.href = orderUrl;
-  }
-
   getPaymentUrl(paymentData) {
-    return paymentData?.order_url || "";
+    return (
+      paymentData?.order_url ||
+      paymentData?.orderUrl ||
+      paymentData?.paymentUrl ||
+      ""
+    );
   }
 
   getQrCode(paymentData) {
-    return paymentData?.qr_code || "";
+    return (
+      paymentData?.qr_code ||
+      paymentData?.qrCode ||
+      ""
+    );
+  }
+
+  openZaloPay(paymentData) {
+    const paymentUrl = this.getPaymentUrl(paymentData);
+
+    if (!paymentUrl) {
+      throw new Error("Không tìm thấy liên kết thanh toán ZaloPay.");
+    }
+
+    window.location.href = paymentUrl;
   }
 
   isZaloPayOrder(order) {
@@ -92,6 +103,13 @@ class OrderService {
       order?.status === "Đã nhận cọc" ||
       order?.paymentStatus === "Đã xác nhận" ||
       order?.paymentStatus === "Đã hoàn tất"
+    );
+  }
+
+  isFailedDeposit(order) {
+    return (
+      order?.status === "Đã hủy" ||
+      order?.paymentStatus === "Thanh toán thất bại"
     );
   }
 }

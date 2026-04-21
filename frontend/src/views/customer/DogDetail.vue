@@ -117,28 +117,23 @@
 
               <div class="line-row">
                 <div class="line-col">
-                  <span class="line-label">Nơi sinh:</span>
+                  <span class="line-label">Khu vực cung cấp:</span>
                   <span class="line-value">{{ dog.birthPlace || "—" }}</span>
                 </div>
                 <div class="line-col">
-                  <span class="line-label">Nguồn cung:</span>
-                  <span class="line-value">{{ dog.farmId?.name || "—" }}</span>
+                  <span class="line-label">Nguồn gốc:</span>
+                  <span class="line-value">Trang trại đối tác đã xác minh</span>
                 </div>
               </div>
 
               <div class="line-row">
                 <div class="line-col">
-                  <span class="line-label">Khu vực:</span>
-                  <span class="line-value">{{ dog.farmId?.address || "—" }}</span>
+                  <span class="line-label">Đơn vị bán:</span>
+                  <span class="line-value">PetShop</span>
                 </div>
                 <div class="line-col">
-                  <span class="line-label">Tẩy giun:</span>
-                  <div class="line-inline-group">
-                    <span class="line-value">{{ formatDate(lastDewormingDate) }}</span>
-                    <button type="button" class="inline-link-btn" @click="showDewormModal = true">
-                      Xem chi tiết
-                    </button>
-                  </div>
+                  <span class="line-label">Tẩy giun gần nhất:</span>
+                  <span class="line-value">{{ formatDate(dog.lastDeworming) }}</span>
                 </div>
               </div>
 
@@ -149,7 +144,12 @@
                     <span class="line-value">
                       {{ vaccineRecords.length > 0 ? `${vaccineRecords.length} mũi` : "Chưa có dữ liệu" }}
                     </span>
-                    <button type="button" class="inline-link-btn" @click="showVaccineModal = true">
+                    <button
+                      v-if="vaccineRecords.length > 0"
+                      type="button"
+                      class="inline-link-btn"
+                      @click="showVaccineModal = true"
+                    >
                       Xem chi tiết
                     </button>
                   </div>
@@ -178,12 +178,12 @@
           </div>
         </div>
 
-        <div class="bottom-section mt-5" v-if="dog.description || dog.fatherName || dog.motherName">
+        <div v-if="dog.description || dog.fatherName || dog.motherName" class="bottom-section mt-5">
           <div class="bottom-grid">
             <div>
               <div class="section-line-title">GIỚI THIỆU VỀ CÚN YÊU</div>
               <div class="bottom-text-content mt-3">
-                {{ dog.description || 'Chưa có thông tin giới thiệu.' }}
+                {{ dog.description || "Chưa có thông tin giới thiệu." }}
               </div>
             </div>
 
@@ -200,9 +200,9 @@
 
       <div v-if="relatedDogs.length > 0" class="related-section dog-related-section">
         <div class="related-head">
-          <h3 class="related-title">Gợi ý các bé chó liên quan</h3>
+          <h3 class="related-title">Các bé chó khác</h3>
           <p class="related-subtitle">
-            Một số bé cùng giống hoặc phù hợp với nhu cầu của bạn
+            Một số bé chó khác bạn có thể quan tâm
           </p>
         </div>
 
@@ -224,7 +224,7 @@
                 class="related-status-badge"
                 :class="getStatusClass(item.saleStatus)"
               >
-                {{ getSaleStatusText(item.saleStatus) }}
+                {{ getCardSaleStatusText(item.saleStatus) }}
               </span>
             </div>
 
@@ -250,30 +250,6 @@
         <router-link to="/dogs/breeds" class="btn btn-primary-custom px-4 py-2">
           Quay lại danh sách
         </router-link>
-      </div>
-    </div>
-
-    <div v-if="showDewormModal" class="custom-modal-overlay" @click.self="showDewormModal = false">
-      <div class="custom-modal-box">
-        <div class="custom-modal-head">
-          <h5 class="mb-0"><i class="fas fa-calendar-alt mr-2"></i>Lịch sử tẩy giun</h5>
-          <button class="custom-modal-close" @click="showDewormModal = false">&times;</button>
-        </div>
-        <div class="custom-modal-body">
-          <div v-if="dewormingRecords.length === 0" class="modal-empty-text">Chưa có dữ liệu chi tiết về các lần tẩy giun.</div>
-          <div v-else class="timeline-list">
-            <div v-for="(item, index) in dewormingRecords" :key="index" class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="timeline-date">{{ formatDate(item.date || item.lastDewormingDate || item.dewormingDate) }}</div>
-                <div class="timeline-note">{{ item.note || item.content || "Đã thực hiện tẩy giun." }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="custom-modal-foot">
-          <button class="btn btn-primary-custom px-4 py-2" @click="showDewormModal = false">Đóng</button>
-        </div>
       </div>
     </div>
 
@@ -312,7 +288,6 @@ export default {
       dog: null,
       loading: true,
       selectedImage: "",
-      showDewormModal: false,
       showVaccineModal: false,
       relatedDogs: [],
     };
@@ -357,64 +332,47 @@ export default {
     },
 
     actionButtonText() {
-  const status = this.dog?.saleStatus;
+      const status = this.dog?.saleStatus;
 
-  if (status === "Đã bán") {
-    return "BÉ ĐÃ BÁN";
-  }
+      if (status === "Đã bán") {
+        return "BÉ ĐÃ BÁN";
+      }
 
-  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
-    return "ĐÃ CÓ NGƯỜI ĐẶT";
-  }
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "ĐÃ CÓ NGƯỜI ĐẶT";
+      }
 
-  if (status === "Ngừng bán") {
-    return "TẠM NGỪNG MỞ BÁN";
-  }
+      if (status === "Ngừng bán") {
+        return "TẠM NGỪNG MỞ BÁN";
+      }
 
-  return "CHƯA MỞ BÁN";
-},
+      return "CHƯA MỞ BÁN";
+    },
 
-actionHint() {
-  const status = this.dog?.saleStatus;
+    actionHint() {
+      const status = this.dog?.saleStatus;
 
-  if (status === "Sẵn sàng bán") {
-    return "Bé hiện vẫn còn nhận đặt cọc.";
-  }
+      if (status === "Sẵn sàng bán") {
+        return "Bé hiện vẫn còn nhận đặt cọc.";
+      }
 
-  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
-    return "Bé hiện đã có khách khác đặt trước.";
-  }
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Bé hiện đã có khách khác đặt trước.";
+      }
 
-  if (status === "Đã bán") {
-    return "Bé đã hoàn tất giao dịch.";
-  }
+      if (status === "Đã bán") {
+        return "Bé đã hoàn tất giao dịch.";
+      }
 
-  if (status === "Ngừng bán") {
-    return "Bé đang được tạm ngừng mở bán trong thời điểm này.";
-  }
+      if (status === "Ngừng bán") {
+        return "Bé đang được tạm ngừng mở bán trong thời điểm này.";
+      }
 
-  return "Bé hiện chưa đủ điều kiện để nhận đặt cọc.";
-},
+      return "Bé hiện chưa đủ điều kiện để nhận đặt cọc.";
+    },
 
     vaccineRecords() {
       return this.dog?.vaccines || [];
-    },
-
-    dewormingRecords() {
-      return this.dog?.dewormingHistory || [];
-    },
-
-    lastDewormingDate() {
-      if (this.dog?.lastDeworming) return this.dog.lastDeworming;
-      if (this.dewormingRecords.length > 0) {
-        return (
-          this.dewormingRecords[0].date ||
-          this.dewormingRecords[0].lastDewormingDate ||
-          this.dewormingRecords[0].dewormingDate ||
-          null
-        );
-      }
-      return null;
     },
   },
 
@@ -462,34 +420,54 @@ actionHint() {
 
       const birth = new Date(birthDate);
       const now = new Date();
+
       let diffMonths =
         (now.getFullYear() - birth.getFullYear()) * 12 +
         (now.getMonth() - birth.getMonth());
 
       if (now.getDate() < birth.getDate()) diffMonths -= 1;
 
-      return diffMonths > 0 ? `${diffMonths} tháng` : "< 1 tháng";
+      if (diffMonths < 0) diffMonths = 0;
+
+      if (diffMonths === 0) {
+        return "Dưới 1 tháng tuổi";
+      }
+
+      if (diffMonths === 1) {
+        return "1 tháng tuổi";
+      }
+
+      return `${diffMonths} tháng tuổi`;
     },
 
-getSaleStatusText(status) {
-  if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
-  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
-    return "Đã có người đặt";
-  }
-  if (status === "Đã bán") return "Đã bán";
-  if (status === "Ngừng bán") return "Tạm ngừng mở bán";
-  return "Chưa mở bán";
-},
+    getSaleStatusText(status) {
+      if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
+      if (status === "Ngừng bán") return "Tạm ngừng mở bán";
+      return "Chưa mở bán";
+    },
 
-getStatusClass(status) {
-  if (status === "Sẵn sàng bán") return "status-ready";
-  if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
-    return "status-deposited";
-  }
-  if (status === "Đã bán") return "status-sold";
-  if (status === "Ngừng bán") return "status-stop";
-  return "status-default";
-},
+    getCardSaleStatusText(status) {
+      if (status === "Sẵn sàng bán") return "Sẵn sàng bán";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
+      return "Sẵn sàng bán";
+    },
+
+    getStatusClass(status) {
+      if (status === "Sẵn sàng bán") return "status-ready";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "status-deposited";
+      }
+      if (status === "Đã bán") return "status-sold";
+      if (status === "Ngừng bán") return "status-stop";
+      return "status-default";
+    },
 
     goToDeposit() {
       if (!this.dog || !this.canDeposit) {
@@ -737,12 +715,6 @@ getStatusClass(status) {
   border-color: #bbf7d0;
 }
 
-.status-pending {
-  background: #fff7ed;
-  color: #c2410c;
-  border-color: #fed7aa;
-}
-
 .status-deposited {
   background: #f5f3ff;
   color: #6d28d9;
@@ -988,29 +960,12 @@ getStatusClass(status) {
   color: #7b7287;
 }
 
-.timeline-list,
 .vaccine-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.timeline-item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.timeline-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #9a4ddd;
-  margin-top: 7px;
-  flex-shrink: 0;
-}
-
-.timeline-content,
 .vaccine-card {
   background: #fcf9ff;
   border: 1px solid #eadcf7;
@@ -1019,14 +974,12 @@ getStatusClass(status) {
   width: 100%;
 }
 
-.timeline-date,
 .vaccine-name {
   color: #2f1b44;
   font-weight: 800;
   margin-bottom: 4px;
 }
 
-.timeline-note,
 .vaccine-date,
 .vaccine-note {
   color: #5b5563;
@@ -1186,11 +1139,6 @@ getStatusClass(status) {
   margin-bottom: 8px;
   line-height: 1.35;
   text-align: center;
-  cursor: pointer;
-}
-
-.related-name:hover {
-  color: #6a1b9a;
 }
 
 .related-price {
@@ -1255,12 +1203,6 @@ getStatusClass(status) {
 
 .related-status-badge.status-ready {
   background: #16a34a;
-  color: #fff;
-  border: none;
-}
-
-.related-status-badge.status-pending {
-  background: #f97316;
   color: #fff;
   border: none;
 }

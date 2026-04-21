@@ -76,7 +76,7 @@
               :class="{ active: statusFilter === 'Đã hủy' }"
               @click="statusFilter = 'Đã hủy'"
             >
-              Đã hủy
+              Đã hủy / Thất bại
             </button>
           </div>
 
@@ -154,11 +154,19 @@
                     <td class="td-actions">
                       <div class="table-actions">
                         <button
-                          v-if="order.status === 'Chờ xác nhận cọc'"
+                          v-if="canCancelOrder(order)"
                           class="btn btn-outline-danger btn-sm"
                           @click="cancelOrder(order)"
                         >
                           Hủy
+                        </button>
+
+                        <button
+                          v-if="canContinuePayment(order)"
+                          class="btn btn-outline-success btn-sm"
+                          @click="continuePayment(order)"
+                        >
+                          Thanh toán tiếp
                         </button>
 
                         <button
@@ -283,12 +291,21 @@
 
             <div class="modal-footer">
               <button
-                v-if="selectedOrder.status === 'Chờ xác nhận cọc'"
+                v-if="canCancelOrder(selectedOrder)"
                 class="btn btn-outline-danger"
                 @click="cancelOrder(selectedOrder)"
               >
                 Hủy đơn
               </button>
+
+              <button
+                v-if="canContinuePayment(selectedOrder)"
+                class="btn btn-outline-success"
+                @click="continuePayment(selectedOrder)"
+              >
+                Thanh toán tiếp
+              </button>
+
               <button class="btn btn-secondary" @click="closeDetail">Đóng</button>
             </div>
           </div>
@@ -457,6 +474,48 @@ export default {
       return "payment-default";
     },
 
+    canCancelOrder(order) {
+      return (
+        order?.status === "Chờ xác nhận cọc" &&
+        order?.paymentStatus === "Chờ thanh toán"
+      );
+    },
+
+    canContinuePayment(order) {
+      return (
+        OrderService.isPendingZaloPayPayment(order) &&
+        !!(
+          order?.paymentUrl ||
+          order?.orderUrl ||
+          order?.zalopayPaymentUrl
+        )
+      );
+    },
+
+    continuePayment(order) {
+      const paymentUrl =
+        order?.paymentUrl ||
+        order?.orderUrl ||
+        order?.zalopayPaymentUrl ||
+        "";
+
+      if (!paymentUrl) {
+        alert("Không tìm thấy liên kết thanh toán để mở lại.");
+        return;
+      }
+
+      sessionStorage.setItem(
+        "zalopay_pending_deposit_order",
+        JSON.stringify({
+          orderId: this.getOrderId(order),
+          dogId: order?.dogId?._id || order?.dogId?.id || order?.dogId || "",
+          dogName: order?.dogId?.name || "",
+        })
+      );
+
+      window.open(paymentUrl, "_blank", "noopener,noreferrer");
+    },
+
     async cancelOrder(order) {
       if (
         !confirm(
@@ -511,7 +570,6 @@ export default {
 
 .order-page-container {
   max-width: 1350px;
-
 }
 
 .order-layout {
@@ -686,7 +744,7 @@ export default {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1080px;
+  min-width: 1180px;
   table-layout: fixed;
 }
 
@@ -743,7 +801,7 @@ export default {
 }
 
 .col-action {
-  width: 140px;
+  width: 190px;
 }
 
 .td-code {
@@ -825,7 +883,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .table-actions .btn {

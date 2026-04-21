@@ -40,7 +40,7 @@
 
         <div class="summary-box summary-cancelled">
           <div class="summary-value">{{ countByStatus("Đã hủy") }}</div>
-          <div class="summary-label">Đã hủy</div>
+          <div class="summary-label">Đã hủy / Thất bại</div>
         </div>
       </div>
 
@@ -167,7 +167,7 @@
                       <i class="fas fa-eye mr-1"></i> Chi tiết
                     </button>
 
-                    <div v-if="order.status === 'Chờ xác nhận cọc'" class="action-row">
+                    <div v-if="canConfirmDeposit(order)" class="action-row">
                       <button
                         class="btn-action btn-confirm"
                         @click="updateStatus(getOrderId(order), 'Đã nhận cọc')"
@@ -184,7 +184,7 @@
                       </button>
                     </div>
 
-                    <div v-else-if="order.status === 'Đã nhận cọc'" class="action-row">
+                    <div v-else-if="canStartDelivery(order)" class="action-row">
                       <button
                         class="btn-action btn-delivery"
                         @click="updateStatus(getOrderId(order), 'Đang giao')"
@@ -201,7 +201,7 @@
                       </button>
                     </div>
 
-                    <div v-else-if="order.status === 'Đang giao'" class="action-row">
+                    <div v-else-if="canFinishOrder(order)" class="action-row">
                       <button
                         class="btn-action btn-finish"
                         @click="updateStatus(getOrderId(order), 'Hoàn thành')"
@@ -216,6 +216,22 @@
                       >
                         <i class="fas fa-times"></i>
                       </button>
+                    </div>
+
+                    <div
+                      v-else-if="isPendingPayment(order)"
+                      class="closed-state text-warning"
+                    >
+                      <i class="fas fa-hourglass-half mr-1"></i>
+                      Đang chờ khách thanh toán
+                    </div>
+
+                    <div
+                      v-else-if="isFailedPayment(order)"
+                      class="closed-state text-danger"
+                    >
+                      <i class="fas fa-times-circle mr-1"></i>
+                      Thanh toán thất bại / đã hủy
                     </div>
 
                     <div v-else class="closed-state">
@@ -340,7 +356,7 @@
                     </div>
                     <div class="detail-row">
                       <span>Trạng thái chó</span>
-                      <strong>{{ selectedOrder.dogId.saleStatus || "---" }}</strong>
+                      <strong>{{ getDogSaleStatusText(selectedOrder.dogId.saleStatus) }}</strong>
                     </div>
                     <div class="detail-row">
                       <span>Duyệt hồ sơ</span>
@@ -428,6 +444,35 @@ export default {
 
     countByStatus(status) {
       return this.orders.filter((order) => order.status === status).length;
+    },
+
+    isPendingPayment(order) {
+      return (
+        order?.status === "Chờ xác nhận cọc" &&
+        order?.paymentStatus === "Chờ thanh toán"
+      );
+    },
+
+    isFailedPayment(order) {
+      return (
+        order?.status === "Đã hủy" ||
+        order?.paymentStatus === "Thanh toán thất bại"
+      );
+    },
+
+    canConfirmDeposit(order) {
+      return (
+        order?.status === "Chờ xác nhận cọc" &&
+        order?.paymentStatus === "Đã xác nhận"
+      );
+    },
+
+    canStartDelivery(order) {
+      return order?.status === "Đã nhận cọc";
+    },
+
+    canFinishOrder(order) {
+      return order?.status === "Đang giao";
     },
 
     async fetchOrders() {
@@ -520,6 +565,16 @@ export default {
       if (!image) return "https://via.placeholder.com/80";
       if (String(image).startsWith("http")) return image;
       return "http://localhost:3000" + image;
+    },
+
+    getDogSaleStatusText(status) {
+      if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
+      if (status === "Ngừng bán") return "Tạm ngừng mở bán";
+      return "Chưa mở bán";
     },
 
     getOrderStatusText(status) {
@@ -833,7 +888,7 @@ export default {
 }
 
 .col-action {
-  width: 170px;
+  width: 210px;
 }
 
 .td-code {

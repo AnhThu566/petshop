@@ -10,9 +10,9 @@
             </router-link>
 
             <div>
-              <h2 class="form-title">Gửi hồ sơ chó</h2>
+              <h2 class="form-title">Cung cấp hồ sơ chó</h2>
               <p class="form-subtitle">
-                Trang trại cung cấp hồ sơ ban đầu, admin sẽ kiểm duyệt và chốt giá bán chính thức.
+                Trang trại cung cấp hồ sơ ban đầu của chó, admin sẽ kiểm duyệt và chốt giá bán chính thức trên hệ thống.
               </p>
             </div>
           </div>
@@ -26,6 +26,7 @@
         <form class="form-body" @submit.prevent="submitDogProfile">
           <div class="main-layout">
             <div class="main-left">
+              <!-- Thông tin cơ bản -->
               <div class="section-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
@@ -113,18 +114,19 @@
                   </div>
 
                   <div class="field">
-                    <label>Nơi sinh ra <span>*</span></label>
+                    <label>Khu vực cung cấp <span>*</span></label>
                     <input
                       v-model.trim="dogLocal.birthPlace"
                       type="text"
                       class="form-control"
-                      placeholder="Ví dụ: Trại Cần Thơ"
+                      placeholder="Ví dụ: Cần Thơ"
                       required
                     />
                   </div>
                 </div>
               </div>
 
+              <!-- Nguồn gốc và mô tả -->
               <div class="section-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
@@ -153,21 +155,22 @@
                   </div>
 
                   <div class="field field-full">
-                    <label>Mô tả chó</label>
+                    <label>Mô tả đặc điểm</label>
                     <textarea
                       v-model.trim="dogLocal.description"
                       class="form-control textarea"
                       rows="4"
-                      placeholder="Mô tả đặc điểm, tính cách, thói quen, điểm nổi bật..."
+                      placeholder="Mô tả ngoại hình, tính cách, thói quen, điểm nổi bật của bé chó..."
                     ></textarea>
                   </div>
                 </div>
               </div>
 
+              <!-- Thông tin sức khỏe ban đầu -->
               <div class="section-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
-                  Hồ sơ sức khỏe
+                  Thông tin sức khỏe ban đầu
                 </div>
 
                 <div class="form-grid">
@@ -190,74 +193,75 @@
                     />
                   </div>
 
-<div class="field field-full">
-  <div class="vaccine-head">
-    <label class="mb-0">Vaccine đã tiêm</label>
-    <button type="button" class="btn-add-outline" @click="addVaccineRow">
-      <i class="fas fa-plus"></i>
-      <span>Thêm vaccine</span>
-    </button>
-  </div>
+                  <div class="field field-full">
+                    <div class="vaccine-head">
+                      <label class="mb-0">Vaccine đã tiêm</label>
+                      <button type="button" class="btn-add-outline" @click="addVaccineRow">
+                        <i class="fas fa-plus"></i>
+                        <span>Thêm vaccine</span>
+                      </button>
+                    </div>
 
-  <div v-if="dogLocal.vaccines.length" class="vaccine-list">
-    <div
-      v-for="(item, index) in dogLocal.vaccines"
-      :key="`vaccine-${index}`"
-      class="vaccine-row"
-    >
-      <div class="vaccine-grid">
-        <div class="field">
-          <label>Tên vaccine</label>
-          <select v-model="item.vaccineId" class="form-control">
-            <option value="">-- Chọn vaccine --</option>
-            <option
-              v-for="vaccine in vaccinesMaster"
-              :key="vaccine._id || vaccine.id"
-              :value="vaccine._id || vaccine.id"
-            >
-              {{ vaccine.name }}
-            </option>
-          </select>
-        </div>
+                    <div v-if="dogLocal.vaccines.length" class="vaccine-list">
+                      <div
+                        v-for="(item, index) in dogLocal.vaccines"
+                        :key="`vaccine-${index}`"
+                        class="vaccine-row"
+                      >
+                        <div class="vaccine-grid">
+                          <div class="field">
+                            <label>Tên vaccine</label>
+                            <select v-model="item.vaccineId" class="form-control">
+                              <option value="">-- Chọn vaccine --</option>
+                              <option
+                                v-for="vaccine in vaccinesMaster"
+                                :key="vaccine._id || vaccine.id"
+                                :value="vaccine._id || vaccine.id"
+                              >
+                                {{ vaccine.name }}
+                              </option>
+                            </select>
+                          </div>
 
-        <div class="field">
-          <label>Ngày tiêm</label>
-          <input
-            v-model="item.dateInjected"
-            type="date"
-            class="form-control"
-            :max="today"
-          />
-        </div>
-      </div>
+                          <div class="field">
+                            <label>Ngày tiêm</label>
+                            <input
+                              v-model="item.dateInjected"
+                              type="date"
+                              class="form-control"
+                              :max="today"
+                            />
+                          </div>
+                        </div>
 
-      <div class="vaccine-row-actions">
-        <button
-          type="button"
-          class="btn-remove-vaccine"
-          @click="removeVaccineRow(index)"
-        >
-          <i class="fas fa-trash-alt"></i>
-          <span>Xóa</span>
-        </button>
-      </div>
-    </div>
-  </div>
+                        <div class="vaccine-row-actions">
+                          <button
+                            type="button"
+                            class="btn-remove-vaccine"
+                            @click="removeVaccineRow(index)"
+                          >
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Xóa</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
 
-  <p v-else class="empty-state">Chưa có vaccine nào được thêm.</p>
-</div>
+                    <p v-else class="empty-state">Chưa có vaccine nào được thêm.</p>
+                  </div>
                 </div>
               </div>
 
+              <!-- Giá cung cấp -->
               <div class="section-card highlight-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
-                  Giá đề xuất
+                  Thông tin giá
                 </div>
 
                 <div class="form-grid one-col">
                   <div class="field">
-                    <label>Giá đề xuất từ trang trại (VNĐ) <span>*</span></label>
+                    <label>Giá cung cấp từ trang trại (VNĐ) <span>*</span></label>
                     <input
                       v-model="dogLocal.proposedPrice"
                       type="number"
@@ -272,6 +276,7 @@
             </div>
 
             <div class="main-right">
+              <!-- Ảnh đại diện -->
               <div class="section-card sticky-card image-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
@@ -307,6 +312,7 @@
                 </div>
               </div>
 
+              <!-- Lưu ý -->
               <div class="section-card note-card">
                 <div class="section-title">
                   <span class="section-dot"></span>
@@ -315,7 +321,7 @@
                 <ul class="note-list">
                   <li>Hồ sơ sau khi gửi sẽ chuyển sang trạng thái <strong>Chờ duyệt</strong>.</li>
                   <li>Admin có thể yêu cầu bổ sung, từ chối hoặc duyệt mở bán.</li>
-                  <li>Giá bán chính thức do admin chốt.</li>
+                  <li>Trang trại nhập giá cung cấp, admin sẽ kiểm duyệt và chốt giá bán chính thức cho khách hàng.</li>
                 </ul>
               </div>
             </div>
@@ -514,7 +520,7 @@ export default {
       }
 
       if (!this.dogLocal.birthPlace?.trim()) {
-        alert("Vui lòng nhập nơi sinh ra.");
+        alert("Vui lòng nhập khu vực cung cấp.");
         return false;
       }
 
@@ -562,7 +568,7 @@ export default {
       }
 
       if (Number(this.dogLocal.proposedPrice) <= 0) {
-        alert("Giá đề xuất phải lớn hơn 0.");
+        alert("Giá cung cấp phải lớn hơn 0.");
         return false;
       }
 
@@ -864,56 +870,6 @@ export default {
   font-size: 1.05rem;
 }
 
-.vaccine-input-wrap {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-}
-
-.btn-add {
-  border: none;
-  border-radius: 14px;
-  padding: 0 18px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  color: #fff;
-  min-height: 48px;
-  box-shadow: 0 10px 20px rgba(21, 128, 61, 0.16);
-}
-
-.btn-add:hover {
-  opacity: 0.96;
-  transform: translateY(-1px);
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.tag-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #ecfdf3;
-  color: #166534;
-  border: 1px solid #ccefd8;
-  border-radius: 999px;
-  padding: 9px 13px;
-  font-weight: 700;
-  font-size: 0.92rem;
-}
-
-.tag-item button {
-  border: none;
-  background: transparent;
-  color: #166534;
-  padding: 0;
-  line-height: 1;
-}
-
 .empty-state {
   margin: 12px 0 0;
   color: #6b7280;
@@ -1053,52 +1009,6 @@ export default {
   cursor: not-allowed;
 }
 
-@media (max-width: 991.98px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .main-left {
-    border-right: none;
-    border-bottom: 1px solid #edf2ee;
-  }
-
-  .sticky-card {
-    position: static;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .form-header,
-  .main-left,
-  .main-right,
-  .submit-bar {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .vaccine-input-wrap {
-    grid-template-columns: 1fr;
-  }
-
-  .image-box {
-    height: 260px;
-  }
-
-  .btn-cancel,
-  .btn-submit {
-    width: 100%;
-  }
-
-  .header-left {
-    flex-direction: column;
-  }
-}
-
 .vaccine-head {
   display: flex;
   align-items: center;
@@ -1167,9 +1077,46 @@ export default {
   background: #feecec;
 }
 
+@media (max-width: 991.98px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .main-left {
+    border-right: none;
+    border-bottom: 1px solid #edf2ee;
+  }
+
+  .sticky-card {
+    position: static;
+  }
+}
+
 @media (max-width: 767.98px) {
+  .form-header,
+  .main-left,
+  .main-right,
+  .submit-bar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .form-grid,
   .vaccine-grid {
     grid-template-columns: 1fr;
+  }
+
+  .image-box {
+    height: 260px;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+
+  .header-left {
+    flex-direction: column;
   }
 }
 </style>

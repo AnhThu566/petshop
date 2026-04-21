@@ -15,7 +15,7 @@
             </div>
           </router-link>
 
-          <div class="top-search">
+          <div class="top-search" ref="searchBoxRef">
             <form class="top-search-box" @submit.prevent="handleSearch">
               <input
                 type="text"
@@ -32,6 +32,7 @@
               <div
                 v-if="isSearchSuggestOpen && searchKeyword"
                 class="search-suggest-panel shadow"
+                @click.stop
               >
                 <div
                   v-if="filteredSearchSuggestions.length"
@@ -73,7 +74,7 @@
               </span>
             </router-link>
 
-            <template v-if="!isLoggedIn || !displayUser">
+            <template v-if="!isActuallyLoggedIn || !displayUser">
               <router-link
                 to="/login"
                 class="top-auth-btn login-btn text-decoration-none"
@@ -91,11 +92,16 @@
               </router-link>
             </template>
 
-            <div class="dropdown user-dropdown" v-else>
+            <div
+              class="dropdown user-dropdown"
+              v-else
+              ref="userDropdownRef"
+              @click.stop
+            >
               <a
                 href="#"
                 class="user-toggle text-decoration-none"
-                @click.prevent="toggleUserDropdown"
+                @click.prevent.stop="toggleUserDropdown"
               >
                 <span class="user-avatar-mini">
                   <img
@@ -118,6 +124,7 @@
               <div
                 class="dropdown-menu dropdown-menu-right shadow border-0 mt-2"
                 :class="{ 'show d-block': isUserDropdownOpen }"
+                @click.stop
               >
                 <template v-if="displayUser.role === 'customer'">
                   <router-link
@@ -332,6 +339,11 @@ export default {
       return this.localUser || this.currentUser || null;
     },
 
+    isActuallyLoggedIn() {
+      const token = localStorage.getItem("token");
+      return !!token && !!this.displayUser;
+    },
+
     headerAvatarUrl() {
       const avatar = this.displayUser?.avatar;
       if (!avatar) return "";
@@ -540,7 +552,13 @@ export default {
       try {
         const data = await AccessoryCategoryService.getAll();
         this.accessoryCategories = Array.isArray(data)
-          ? data.filter((item) => item && (item._id || item.id) && item.name)
+          ? data.filter(
+              (item) =>
+                item &&
+                (item._id || item.id) &&
+                item.name &&
+                (!item.status || item.status === "Hoạt động")
+            )
           : [];
       } catch (error) {
         console.error("Lỗi tải loại phụ kiện:", error);
@@ -564,8 +582,11 @@ export default {
 
     async fetchCartCount() {
       try {
+        const token = localStorage.getItem("token");
+
         if (
-          !this.isLoggedIn ||
+          !token ||
+          !this.isActuallyLoggedIn ||
           !this.displayUser ||
           this.displayUser.role !== "customer"
         ) {
@@ -596,11 +617,13 @@ export default {
     toggleUserDropdown() {
       this.isDogMenuOpen = false;
       this.isAccessoryMenuOpen = false;
+      this.isSearchSuggestOpen = false;
       this.isUserDropdownOpen = !this.isUserDropdownOpen;
     },
 
     openDogMenu() {
       this.isDogMenuOpen = true;
+      this.isAccessoryMenuOpen = false;
     },
 
     closeDogMenu() {
@@ -609,6 +632,7 @@ export default {
 
     openAccessoryMenu() {
       this.isAccessoryMenuOpen = true;
+      this.isDogMenuOpen = false;
     },
 
     closeAccessoryMenu() {
@@ -622,10 +646,34 @@ export default {
         localStorage.removeItem("token");
 
         this.localUser = null;
+        this.cartCount = 0;
         this.closeAllDropdowns();
         window.dispatchEvent(new Event("auth-changed"));
         this.$router.push("/");
       }
+    },
+
+    handleDocumentClick(event) {
+      const userDropdownEl = this.$refs.userDropdownRef;
+      const searchBoxEl = this.$refs.searchBoxRef;
+
+      if (
+        userDropdownEl &&
+        userDropdownEl.contains &&
+        userDropdownEl.contains(event.target)
+      ) {
+        return;
+      }
+
+      if (
+        searchBoxEl &&
+        searchBoxEl.contains &&
+        searchBoxEl.contains(event.target)
+      ) {
+        return;
+      }
+
+      this.closeAllDropdowns();
     },
   },
 
@@ -641,14 +689,14 @@ export default {
     window.addEventListener("cart-updated", this.fetchCartCount);
     window.addEventListener("auth-changed", this.fetchCartCount);
     window.addEventListener("user-updated", this.handleUserUpdated);
-    document.addEventListener("click", this.closeAllDropdowns);
+    document.addEventListener("click", this.handleDocumentClick);
   },
 
   beforeUnmount() {
     window.removeEventListener("cart-updated", this.fetchCartCount);
     window.removeEventListener("auth-changed", this.fetchCartCount);
     window.removeEventListener("user-updated", this.handleUserUpdated);
-    document.removeEventListener("click", this.closeAllDropdowns);
+    document.removeEventListener("click", this.handleDocumentClick);
   },
 };
 </script>

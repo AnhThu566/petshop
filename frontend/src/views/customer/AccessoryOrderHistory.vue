@@ -152,9 +152,10 @@
                     <th>Ngày đặt</th>
                     <th>Sản phẩm</th>
                     <th>Số lượng</th>
-                    <th>Thanh toán</th>
+                    <th>Phương thức</th>
+                    <th>TT thanh toán</th>
                     <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
+                    <th>Trạng thái đơn</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -195,8 +196,14 @@
                     <td>{{ getProductCount(order) }}</td>
 
                     <td>
-                      <span class="payment-badge" :class="getPaymentClass(order.paymentMethod)">
-                        {{ getPaymentText(order.paymentMethod) }}
+                      <span class="payment-badge" :class="getPaymentMethodClass(order.paymentMethod)">
+                        {{ getPaymentMethodText(order.paymentMethod) }}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span class="payment-badge" :class="getPaymentStatusClass(order.paymentStatus)">
+                        {{ getPaymentStatusText(order.paymentStatus) }}
                       </span>
                     </td>
 
@@ -270,11 +277,21 @@
                       <strong>Mã đơn:</strong>
                       {{ selectedOrder.maDonPhuKien || getShortOrderCode(getOrderId(selectedOrder)) }}
                     </p>
-                    <p class="mb-1"><strong>Ngày đặt:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
-                    <p class="mb-1"><strong>Trạng thái:</strong> {{ selectedOrder.status }}</p>
+                    <p class="mb-1">
+                      <strong>Ngày đặt:</strong>
+                      {{ formatDateTime(selectedOrder.createdAt) }}
+                    </p>
+                    <p class="mb-1">
+                      <strong>Trạng thái đơn:</strong>
+                      {{ selectedOrder.status }}
+                    </p>
                     <p class="mb-1">
                       <strong>Phương thức thanh toán:</strong>
-                      {{ getPaymentText(selectedOrder.paymentMethod) }}
+                      {{ getPaymentMethodText(selectedOrder.paymentMethod) }}
+                    </p>
+                    <p class="mb-1">
+                      <strong>Trạng thái thanh toán:</strong>
+                      {{ getPaymentStatusText(selectedOrder.paymentStatus) }}
                     </p>
                     <p class="mb-1">
                       <strong>Tạm tính:</strong>
@@ -383,7 +400,6 @@
 
 <script>
 import AccessoryOrderService from "@/services/accessoryOrder.service";
-import CartService from "@/services/cart.service";
 import AccessoryService from "@/services/accessory.service";
 import CustomerAccountSidebar from "@/components/customer/CustomerAccountSidebar.vue";
 
@@ -488,14 +504,26 @@ export default {
         : 0;
     },
 
-    getPaymentText(paymentMethod) {
+    getPaymentMethodText(paymentMethod) {
       if (paymentMethod === "ZALOPAY") return "ZaloPay";
       return "Thanh toán khi nhận hàng";
     },
 
-    getPaymentClass(paymentMethod) {
+    getPaymentMethodClass(paymentMethod) {
       if (paymentMethod === "ZALOPAY") return "payment-zalopay";
       return "payment-cod";
+    },
+
+    getPaymentStatusText(paymentStatus) {
+      if (paymentStatus === "Đã thanh toán") return "Đã thanh toán";
+      if (paymentStatus === "Thanh toán thất bại") return "Thanh toán thất bại";
+      return "Chưa thanh toán";
+    },
+
+    getPaymentStatusClass(paymentStatus) {
+      if (paymentStatus === "Đã thanh toán") return "payment-paid";
+      if (paymentStatus === "Thanh toán thất bại") return "payment-failed";
+      return "payment-unpaid";
     },
 
     isPromotionPrice(item) {
@@ -573,71 +601,70 @@ export default {
       }
     },
 
-    async buyAgain(order) {
-      if (!order.items || order.items.length === 0) {
-        alert("Đơn này không có sản phẩm để mua lại.");
-        return;
-      }
+async buyAgain(order) {
+  if (!order.items || order.items.length === 0) {
+    alert("Đơn này không có sản phẩm để mua lại.");
+    return;
+  }
 
-      try {
-        const cartResponse = await CartService.getCart();
-        const cartItems = cartResponse?.items || [];
-        let addedCount = 0;
+  try {
+    const checkoutItems = [];
 
-        for (const item of order.items) {
-          const accessoryId =
-            item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
+    for (const item of order.items) {
+      const accessoryId =
+        item.accessoryId?._id || item.accessoryId?.id || item.accessoryId;
 
-          if (!accessoryId) continue;
+      if (!accessoryId) continue;
 
-          const latestAccessory = await AccessoryService.get(accessoryId);
+      const latestAccessory = await AccessoryService.get(accessoryId);
 
-          if (!latestAccessory) continue;
-          if (latestAccessory.status !== "Đang bán") continue;
-          if (Number(latestAccessory.quantity) <= 0) continue;
+      if (!latestAccessory) continue;
+      if (latestAccessory.status !== "Đang bán") continue;
+      if (Number(latestAccessory.quantity || 0) <= 0) continue;
 
-          const currentCartItem = cartItems.find((cartItem) => {
-            const cartAccessoryId =
-              cartItem.accessoryId?._id ||
-              cartItem.accessoryId?.id ||
-              cartItem.accessoryId;
-            return String(cartAccessoryId) === String(accessoryId);
-          });
+      const wantedQty = Number(item.quantity || 1);
+      const availableQty = Number(latestAccessory.quantity || 0);
+      const finalQty = wantedQty > availableQty ? availableQty : wantedQty;
 
-          const existingQty = Number(currentCartItem?.quantity || 0);
-          const buyQty = Number(item.quantity || 1);
-          const allowedQty = Number(latestAccessory.quantity || 0) - existingQty;
+      if (finalQty <= 0) continue;
 
-          if (allowedQty <= 0) continue;
+      checkoutItems.push({
+        accessoryId: latestAccessory._id || latestAccessory.id,
+        quantity: finalQty,
+        name: latestAccessory.name || "",
+        price: Number(latestAccessory.finalPrice || latestAccessory.price || 0),
+        image: latestAccessory.image || "",
+        stock: Number(latestAccessory.quantity || 0),
+        status: latestAccessory.status || "",
+      });
+    }
 
-          const finalQty = buyQty > allowedQty ? allowedQty : buyQty;
-          if (finalQty <= 0) continue;
+    if (checkoutItems.length === 0) {
+      alert("Không có sản phẩm nào còn đủ điều kiện để mua lại.");
+      return;
+    }
 
-          await CartService.addToCart(
-            latestAccessory._id || latestAccessory.id,
-            finalQty
-          );
+    sessionStorage.setItem(
+      "buy_now_checkout",
+      JSON.stringify({
+        type: "accessory_rebuy",
+        items: checkoutItems,
+      })
+    );
 
-          addedCount += finalQty;
-        }
+    this.closeDetail();
 
-        window.dispatchEvent(new Event("cart-updated"));
-
-        if (addedCount <= 0) {
-          alert("Không có sản phẩm nào còn đủ điều kiện để mua lại.");
-          return;
-        }
-
-        alert("Đã thêm lại các sản phẩm còn phù hợp vào giỏ hàng!");
-        this.closeDetail();
-        this.$router.push("/cart");
-      } catch (error) {
-        alert(
-          "Không thể mua lại lúc này: " +
-            (error.response?.data?.message || error.message)
-        );
-      }
-    },
+    this.$router.push({
+      path: "/accessory-checkout",
+      query: { mode: "buy-now" },
+    });
+  } catch (error) {
+    alert(
+      "Không thể mua lại lúc này: " +
+        (error.response?.data?.message || error.message)
+    );
+  }
+},
 
     getAccessoryImage(item) {
       if (!item?.image) {
@@ -697,7 +724,6 @@ export default {
 
 .order-page-container {
   max-width: 1350px;
-
 }
 
 .order-layout {
@@ -936,7 +962,7 @@ export default {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1180px;
+  min-width: 1320px;
 }
 
 .order-table thead th {
@@ -1035,6 +1061,21 @@ export default {
 .payment-zalopay {
   background: #e8f1ff;
   color: #1d4ed8;
+}
+
+.payment-paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.payment-unpaid {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payment-failed {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .status-waiting {

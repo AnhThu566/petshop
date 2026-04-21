@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const Accessory = require("../models/accessory.model");
+const AccessoryOrderItem = require("../models/accessoryOrderItem.model");
 const AccessoryCategory = require("../models/accessoryCategory.model");
 const ApiError = require("../api-error");
 
@@ -389,6 +390,7 @@ exports.update = async (req, res, next) => {
   }
 };
 
+
 // 5. Xóa phụ kiện
 exports.delete = async (req, res, next) => {
   try {
@@ -398,6 +400,27 @@ exports.delete = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy phụ kiện để xóa"));
     }
 
+    // =========================================================
+    // RÀNG BUỘC:
+    // Nếu phụ kiện này đã từng xuất hiện trong bất kỳ đơn hàng nào
+    // thì không cho xóa để tránh mất lịch sử giao dịch.
+    // =========================================================
+    const relatedOrderItem = await AccessoryOrderItem.findOne({
+      accessoryId: accessory._id,
+    });
+
+    if (relatedOrderItem) {
+      return next(
+        new ApiError(
+          400,
+          "Không thể xóa phụ kiện này vì đã phát sinh trong đơn hàng."
+        )
+      );
+    }
+
+    // =========================================================
+    // Chỉ xóa thật khi phụ kiện chưa từng phát sinh đơn hàng
+    // =========================================================
     removeImageFile(accessory.image);
     await Accessory.findByIdAndDelete(req.params.id);
 

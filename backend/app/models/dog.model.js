@@ -61,7 +61,7 @@ const dogSchema = new mongoose.Schema(
     // Mã chó hệ thống - do admin/hệ thống cấp
     systemDogCode: {
       type: String,
-      default: null,
+      default: undefined,
       unique: true,
       sparse: true,
       trim: true,
@@ -135,11 +135,13 @@ const dogSchema = new mongoose.Schema(
       default: [],
     },
 
+    // Giữ tên field để tránh sửa nhiều chỗ,
+    // nhưng nghiệp vụ hiểu là khu vực cung cấp / nguồn cung ban đầu
     birthPlace: {
       type: String,
-      required: [true, "Nơi sinh ra là bắt buộc"],
+      required: [true, "Khu vực cung cấp là bắt buộc"],
       trim: true,
-      maxlength: [255, "Nơi sinh ra không được vượt quá 255 ký tự"],
+      maxlength: [255, "Khu vực cung cấp không được vượt quá 255 ký tự"],
     },
 
     fatherName: {
@@ -167,7 +169,10 @@ const dogSchema = new mongoose.Schema(
       type: String,
       required: [true, "Tình trạng sức khỏe là bắt buộc"],
       trim: true,
-      maxlength: [500, "Tình trạng sức khỏe không được vượt quá 500 ký tự"],
+      enum: {
+        values: ["Rất tốt", "Tốt", "Đang theo dõi"],
+        message: "Tình trạng sức khỏe không hợp lệ",
+      },
     },
 
     vaccines: {
@@ -186,14 +191,15 @@ const dogSchema = new mongoose.Schema(
       },
     },
 
-    // Giá do trang trại đề xuất
+    // Giữ tên field để tránh vỡ code cũ,
+    // nhưng nghiệp vụ hiểu là giá cung cấp từ trang trại
     proposedPrice: {
       type: Number,
-      required: [true, "Giá đề xuất là bắt buộc"],
-      min: [1, "Giá đề xuất phải lớn hơn 0"],
+      required: [true, "Giá cung cấp là bắt buộc"],
+      min: [1, "Giá cung cấp phải lớn hơn 0"],
     },
 
-    // Giá cuối cùng do admin chốt
+    // Giá cuối cùng do admin chốt để bán cho khách
     finalPrice: {
       type: Number,
       default: null,
@@ -206,7 +212,11 @@ const dogSchema = new mongoose.Schema(
       min: [0, "Tiền cọc không được âm"],
       validate: {
         validator: function (value) {
-          return value == null || this.finalPrice == null || Number(value) <= Number(this.finalPrice);
+          return (
+            value == null ||
+            this.finalPrice == null ||
+            Number(value) <= Number(this.finalPrice)
+          );
         },
         message: "Tiền cọc không được lớn hơn giá bán cuối cùng",
       },
@@ -276,6 +286,10 @@ dogSchema.pre("validate", function () {
     this.systemDogCode = this.systemDogCode.trim().toUpperCase();
   }
 
+  if (!this.systemDogCode || !String(this.systemDogCode).trim()) {
+    this.systemDogCode = undefined;
+  }
+
   if (typeof this.name === "string") this.name = this.name.trim();
   if (typeof this.coatColor === "string") this.coatColor = this.coatColor.trim();
   if (typeof this.birthPlace === "string") this.birthPlace = this.birthPlace.trim();
@@ -298,7 +312,7 @@ dogSchema.pre("validate", function () {
   }
 
   if (!this.birthPlace) {
-    throw new Error("Nơi sinh ra là bắt buộc");
+    throw new Error("Khu vực cung cấp là bắt buộc");
   }
 
   if (this.birthDate && this.birthDate > new Date()) {
@@ -318,7 +332,7 @@ dogSchema.pre("validate", function () {
   }
 
   if (this.proposedPrice != null && this.proposedPrice < 1) {
-    throw new Error("Giá đề xuất phải lớn hơn 0");
+    throw new Error("Giá cung cấp phải lớn hơn 0");
   }
 
   if (this.finalPrice != null && this.finalPrice < 1) {

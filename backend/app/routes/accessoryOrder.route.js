@@ -3,6 +3,7 @@ const accessoryOrderController = require("../controllers/accessoryOrder.controll
 const {
   requireAdmin,
   requireCustomer,
+  requireCustomerToPurchase,
 } = require("../middlewares/auth.middleware");
 
 const router = express.Router();
@@ -18,16 +19,19 @@ router.post("/zalopay/callback", accessoryOrderController.zalopayCallback);
 // ==============================
 
 // Khách tạo đơn phụ kiện COD
-router.post("/", requireCustomer, accessoryOrderController.create);
+// Chỉ customer đang hoạt động mới được mua mới
+router.post("/", requireCustomerToPurchase, accessoryOrderController.create);
 
 // Khách tạo thanh toán ZaloPay
+// Chỉ customer đang hoạt động mới được mua mới
 router.post(
   "/zalopay/create",
-  requireCustomer,
+  requireCustomerToPurchase,
   accessoryOrderController.createZaloPayOrder
 );
 
 // Khách xem lịch sử đơn của mình
+// Dù tài khoản bị khóa/ngừng hoạt động thì vẫn nên xem được đơn cũ
 router.get("/my-orders", requireCustomer, accessoryOrderController.findMyOrders);
 
 // Khách kiểm tra lại trạng thái thanh toán ZaloPay

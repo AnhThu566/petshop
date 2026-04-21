@@ -7,7 +7,7 @@
             <i class="fas fa-paw mr-2"></i>Quản lý & phê duyệt hồ sơ chó
           </h4>
           <p class="page-subtitle mb-0">
-            Kiểm tra hồ sơ do trang trại gửi, phản hồi, phê duyệt và mở bán.
+            Kiểm tra hồ sơ do trang trại cung cấp, phản hồi, phê duyệt và mở bán.
           </p>
         </div>
 
@@ -27,7 +27,7 @@
                 <input
                   type="text"
                   class="form-control border-right-0"
-                  placeholder="Tìm tên chó, mã tại trại, trại..."
+                  placeholder="Tìm tên chó, mã tại trại, mã hệ thống, trang trại..."
                   v-model.trim="searchText"
                 />
                 <div class="input-group-append">
@@ -100,9 +100,9 @@
                   <th style="width: 11%;">Mã tại trại</th>
                   <th style="width: 11%;">Mã hệ thống</th>
                   <th style="width: 15%;" class="text-left">Tên chó</th>
-                  <th style="width: 12%;">Nguồn cung</th>
+                  <th style="width: 12%;">Trang trại cung cấp</th>
                   <th style="width: 11%;">Giống chó</th>
-                  <th style="width: 10%;">Giá đề xuất</th>
+                  <th style="width: 10%;">Giá cung cấp</th>
                   <th style="width: 10%;">Duyệt hồ sơ</th>
                   <th style="width: 10%;">Trạng thái bán</th>
                   <th style="width: 7%;">Xem</th>
@@ -207,17 +207,17 @@
                     <div class="detail-meta-list mt-3 text-left">
                       <div class="detail-meta-item">
                         <i class="fas fa-warehouse text-secondary mr-2"></i>
-                        <span><strong>Trang trại:</strong> {{ selectedDog.farmId?.name || "---" }}</span>
+                        <span><strong>Trang trại cung cấp:</strong> {{ selectedDog.farmId?.name || "---" }}</span>
                       </div>
 
                       <div class="detail-meta-item">
                         <i class="fas fa-map-marker-alt text-secondary mr-2"></i>
-                        <span><strong>Địa chỉ:</strong> {{ selectedDog.farmId?.address || "---" }}</span>
+                        <span><strong>Địa chỉ trại:</strong> {{ selectedDog.farmId?.address || "---" }}</span>
                       </div>
 
                       <div class="detail-meta-item">
                         <i class="fas fa-phone-alt text-secondary mr-2"></i>
-                        <span><strong>Liên hệ:</strong> {{ selectedDog.farmId?.phone || "---" }}</span>
+                        <span><strong>Liên hệ trại:</strong> {{ selectedDog.farmId?.phone || "---" }}</span>
                       </div>
                     </div>
                   </div>
@@ -253,7 +253,7 @@
                     </div>
 
                     <div class="info-card">
-                      <small>Nơi sinh</small>
+                      <small>Khu vực cung cấp</small>
                       <strong>{{ selectedDog.birthPlace || "---" }}</strong>
                     </div>
 
@@ -268,12 +268,12 @@
                     </div>
 
                     <div class="info-card">
-                      <small>Giá đề xuất từ trại</small>
+                      <small>Giá cung cấp từ trại</small>
                       <strong class="text-primary">{{ formatCurrency(selectedDog.proposedPrice) }}</strong>
                     </div>
 
                     <div class="info-card">
-                      <small>Giá bán cuối cùng</small>
+                      <small>Giá bán chính thức</small>
                       <strong class="text-success">{{ formatCurrency(selectedDog.finalPrice) }}</strong>
                     </div>
 
@@ -288,7 +288,7 @@
                     </div>
 
                     <div class="info-card info-card-full">
-                      <small>Mô tả</small>
+                      <small>Mô tả đặc điểm</small>
                       <div class="content-text">
                         {{ selectedDog.description || "Chưa có mô tả." }}
                       </div>
@@ -482,7 +482,7 @@
               </div>
 
               <div class="approve-info-box mb-3">
-                <div class="approve-info-label">Giá đề xuất từ trang trại</div>
+                <div class="approve-info-label">Giá cung cấp từ trang trại</div>
                 <div class="approve-info-value">
                   {{ formatCurrency(approveForm.proposedPrice) }}
                 </div>
@@ -556,7 +556,6 @@
 
 <script>
 import DogService from "@/services/dog.service";
-import DogHealthRecordService from "@/services/dogHealthRecord.service";
 import VaccineService from "@/services/vaccine.service";
 
 export default {
@@ -565,7 +564,6 @@ export default {
   data() {
     return {
       dogs: [],
-      healthRecords: [],
       vaccinesMaster: [],
       searchText: "",
       filterApprovalStatus: "Chờ duyệt",
@@ -629,45 +627,22 @@ export default {
     async loadPageData() {
       try {
         this.loading = true;
-        const [dogs, healthRecords, vaccines] = await Promise.all([
+        const [dogs, vaccines] = await Promise.all([
           DogService.getAll(),
-          DogHealthRecordService.getAll(),
           VaccineService.getAll(),
         ]);
 
-        this.healthRecords = Array.isArray(healthRecords) ? healthRecords : [];
         this.vaccinesMaster = Array.isArray(vaccines)
           ? vaccines.filter((item) => item?.status === "Hoạt động")
           : [];
 
-        const rawDogs = Array.isArray(dogs) ? dogs : [];
-        this.dogs = rawDogs.map((dog) => ({
-          ...dog,
-          healthRecord: this.getLatestHealthRecordForDog(dog, this.healthRecords),
-        }));
+        this.dogs = Array.isArray(dogs) ? dogs : [];
       } catch (error) {
         console.error("Lỗi lấy danh sách chó:", error);
         alert("Không thể tải danh sách hồ sơ chó.");
       } finally {
         this.loading = false;
       }
-    },
-
-    getLatestHealthRecordForDog(dog, allRecords = []) {
-      const dogId = dog?._id || dog?.id;
-      if (!dogId) return null;
-
-      return (
-        allRecords
-          .filter((record) => {
-            const recordDogId = record.dogId?._id || record.dogId?.id || record.dogId;
-            return String(recordDogId) === String(dogId);
-          })
-          .sort(
-            (a, b) =>
-              new Date(b.checkedAt || b.createdAt) - new Date(a.checkedAt || a.createdAt)
-          )[0] || null
-      );
     },
 
     countByApprovalStatus(status) {

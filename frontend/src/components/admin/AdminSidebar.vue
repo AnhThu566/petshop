@@ -1,245 +1,260 @@
 <template>
-  <div
-    class="sidebar bg-dark text-white p-3 shadow"
-    style="width: 260px; min-height: 100vh;"
-  >
-    <div class="text-center mb-4 mt-2 border-bottom border-secondary pb-3">
-      <h4 class="text-warning font-weight-bold mb-0">
-        <i class="fas fa-paw"></i> PetShop
-      </h4>
-      <small class="text-muted">Quản trị viên</small>
+  <div class="admin-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="fas fa-paw"></i>
+      </div>
+      <div class="brand-text">
+        <h4>PetShop Admin</h4>
+        <small>Quản trị hệ thống</small>
+      </div>
     </div>
 
-    <ul class="nav flex-column">
-      <p
-        class="text-muted text-uppercase font-weight-bold mb-2 mt-3"
-        style="font-size: 0.8rem;"
+    <div class="menu-group">
+      <p class="group-title">Tổng quan</p>
+
+      <router-link
+        to="/admin/dashboard"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
       >
-        Quản lý hệ thống
-      </p>
+        <i class="fas fa-chart-line"></i>
+        <span>Bảng điều khiển</span>
+      </router-link>
+    </div>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/dashboard"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-primary"
-        >
-          <i class="fas fa-chart-line mr-2 w-20"></i>
-          Bảng Điều Khiển
-        </router-link>
-      </li>
+    <div class="menu-group">
+      <p class="group-title">Quản lý chó</p>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/dog"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-primary"
-        >
-          <i class="fas fa-check-circle mr-2 w-20"></i>
-          Duyệt Thú Cưng
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/dog"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-dog"></i>
+        <span>Duyệt thú cưng</span>
+      </router-link>
 
+      <router-link
+        to="/admin/breed"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-dna"></i>
+        <span>Quản lý giống chó</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/dog-care-records"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-success"
-        >
-          <i
-            class="fas fa-heartbeat mr-2 w-20"
-            style="color: #4caf50;"
-          ></i>
-          <span>Theo dõi sau bán</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/vaccine"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-syringe"></i>
+        <span>Quản lý Vaccine</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          :to="{ name: 'admin-customer' }"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-danger"
-        >
-          <i class="fas fa-users mr-2 w-20"></i>
-          Quản Lý Khách Hàng
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/orders"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-file-invoice-dollar"></i>
+        <span>Quản lý đặt cọc</span>
+      </router-link>
+    </div>
 
-      <li class="nav-item mb-2">
-        <router-link
-          :to="{ name: 'admin-farm' }"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-success"
-        >
-          <i class="fas fa-house-user mr-2 w-20"></i>
-          Quản Lý Trang Trại
-        </router-link>
-      </li>
+    <div class="menu-group">
+      <p class="group-title">Người dùng</p>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/breed"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-info"
-        >
-          <i class="fas fa-dna mr-2 w-20"></i>
-          Quản Lý Giống Chó
-        </router-link>
-      </li>
+      <router-link
+        :to="{ name: 'admin-customer' }"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-users"></i>
+        <span>Quản lý khách hàng</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/vaccine"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i class="fas fa-syringe mr-2 w-20"></i>
-          Quản Lý Vaccine
-        </router-link>
-      </li>
+      <router-link
+        :to="{ name: 'admin-farm' }"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-house-user"></i>
+        <span>Quản lý trang trại</span>
+      </router-link>
+    </div>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/orders"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-file-invoice-dollar mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Quản lý Đặt cọc</span>
-        </router-link>
-      </li>
+    <div class="menu-group">
+      <p class="group-title">Phụ kiện</p>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/accessory"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-box-open mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Quản lý Phụ kiện</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/accessory-category"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-tags"></i>
+        <span>Loại phụ kiện</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/accessory-category"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-tags mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Loại Phụ kiện</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/accessory"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-box-open"></i>
+        <span>Quản lý phụ kiện</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/services"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-concierge-bell mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Quản lý Dịch vụ</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/accessory-orders"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-box"></i>
+        <span>Quản lý đơn phụ kiện</span>
+      </router-link>
+    </div>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/service-category"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-th-list mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Loại Dịch vụ</span>
-        </router-link>
-      </li>
+    <div class="menu-group">
+      <p class="group-title">Dịch vụ</p>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/service-bookings"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-calendar-check mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Quản lý Đặt lịch dịch vụ</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/service-category"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-th-list"></i>
+        <span>Loại dịch vụ</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-        <router-link
-          to="/admin/accessory-orders"
-          class="nav-link text-white rounded menu-item"
-          active-class="bg-warning"
-        >
-          <i
-            class="fas fa-box mr-2 w-20"
-            style="color: #ff9800;"
-          ></i>
-          <span>Quản lý Đơn phụ kiện</span>
-        </router-link>
-      </li>
+      <router-link
+        to="/admin/services"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-concierge-bell"></i>
+        <span>Quản lý dịch vụ</span>
+      </router-link>
 
-      <li class="nav-item mb-2">
-  <router-link
-    to="/admin/dog-reminders"
-    class="nav-link text-white rounded menu-item"
-    active-class="bg-info"
-  >
-    <i
-      class="fas fa-bell mr-2 w-20"
-      style="color: #29b6f6;"
-    ></i>
-    <span>Nhắc lịch chó</span>
-  </router-link>
-</li>
-
-<li class="nav-item mb-2">
-  <router-link
-    to="/admin/notifications"
-    class="nav-link text-white rounded menu-item"
-    active-class="bg-warning"
-  >
-    <i
-      class="fas fa-bell mr-2 w-20"
-      style="color: #ffca28;"
-    ></i>
-    <span>Quản lý Thông báo</span>
-  </router-link>
-</li>
-    </ul>
+      <router-link
+        to="/admin/service-bookings"
+        class="nav-link menu-item"
+        active-class="menu-item-active"
+      >
+        <i class="fas fa-calendar-check"></i>
+        <span>Quản lý đặt lịch dịch vụ</span>
+      </router-link>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.menu-item:hover {
-  background-color: #495057;
-  transition: 0.3s;
+.admin-sidebar {
+  width: 280px;
+  min-height: 100vh;
+  padding: 20px 16px;
+  background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+  color: #fff;
+  box-shadow: 8px 0 24px rgba(15, 23, 42, 0.18);
 }
 
-.w-20 {
-  width: 25px;
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.brand-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.brand-text h4 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #f9fafb;
+}
+
+.brand-text small {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.menu-group + .menu-group {
+  margin-top: 18px;
+}
+
+.group-title {
+  margin: 0 0 10px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: #f3f4f6;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.22s ease;
+}
+
+.menu-item i {
+  width: 22px;
   text-align: center;
+  font-size: 1rem;
+  color: #fbbf24;
+  flex-shrink: 0;
 }
 
-.nav-link i {
-  display: inline-block;
+.menu-item span {
+  line-height: 1.2;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.menu-item-active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff !important;
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+}
+
+.menu-item-active i {
+  color: #ffffff;
+}
+
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-radius: 20px;
+  }
 }
 </style>

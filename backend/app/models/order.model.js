@@ -115,6 +115,18 @@ const orderSchema = new mongoose.Schema(
       index: true,
     },
 
+    paymentUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    qrCode: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     paymentProof: {
       type: String,
       default: "",
@@ -167,10 +179,21 @@ orderSchema.pre("validate", function () {
     this.remainingAmount = expectedRemaining;
   }
 
+  this.customerName = String(this.customerName || "").trim();
+  this.customerPhone = String(this.customerPhone || "").trim();
+  this.customerAddress = String(this.customerAddress || "").trim();
+  this.note = String(this.note || "").trim();
+  this.paymentProvider = String(this.paymentProvider || "").trim();
+  this.paymentProviderOrderId = String(this.paymentProviderOrderId || "").trim();
+  this.paymentTransactionId = String(this.paymentTransactionId || "").trim();
+  this.paymentUrl = String(this.paymentUrl || "").trim();
+  this.qrCode = String(this.qrCode || "").trim();
+  this.paymentProof = String(this.paymentProof || "").trim();
+
   if (
     this.paymentMethod === "Chuyển khoản" &&
     this.paymentStatus === "Đã gửi minh chứng" &&
-    !String(this.paymentProof || "").trim()
+    !this.paymentProof
   ) {
     throw new Error("Đơn chuyển khoản phải có minh chứng thanh toán");
   }
@@ -182,14 +205,16 @@ orderSchema.pre("validate", function () {
       this.paymentStatus === "Đã xác nhận" ||
       this.paymentStatus === "Đã hoàn tất"
     ) {
-      if (!String(this.paymentProviderOrderId || "").trim()) {
+      if (!this.paymentProviderOrderId) {
         throw new Error("Đơn ZaloPay thiếu mã giao dịch app_trans_id");
       }
     }
   } else {
-    if (!this.paymentProvider) {
-      this.paymentProvider = "";
-    }
+    this.paymentProvider = "";
+    this.paymentProviderOrderId = "";
+    this.paymentTransactionId = "";
+    this.paymentUrl = "";
+    this.qrCode = "";
   }
 });
 

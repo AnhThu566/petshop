@@ -27,6 +27,7 @@ const normalizeDecodedUser = (decoded = {}) => {
       decoded.farm_id ||
       decoded?.farmInfo?._id ||
       null,
+    status: String(decoded.status || "").toLowerCase(), // thêm status từ token
   };
 };
 
@@ -92,10 +93,41 @@ const checkRole = (allowedRoles = []) => {
   };
 };
 
+// =========================================================
+// Middleware này dùng cho các API cần "mua mới"
+// Nếu tài khoản customer bị khóa/ngừng hoạt động thì chặn
+// Nhưng KHÔNG dùng middleware này cho API xem lịch sử đơn cũ
+// =========================================================
+const requireActiveCustomer = (req, res, next) => {
+  if (!req.user) {
+    return next(new ApiError(401, "Bạn chưa đăng nhập"));
+  }
+
+  const role = String(req.user.role || "").toLowerCase();
+  const status = String(req.user.status || "").toLowerCase();
+
+  if (role !== "customer") {
+    return next(new ApiError(403, "Bạn không có quyền truy cập"));
+  }
+
+  // Chỉ cho customer active mua mới
+  if (status && status !== "active") {
+    return next(
+      new ApiError(
+        403,
+        "Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động, không thể thực hiện mua hàng."
+      )
+    );
+  }
+
+  next();
+};
+
 exports.getTokenFromHeader = getTokenFromHeader;
 exports.verifyToken = verifyToken;
 exports.optionalAuth = optionalAuth;
 exports.checkRole = checkRole;
+exports.requireActiveCustomer = requireActiveCustomer;
 
 exports.requireLogin = [verifyToken];
 
@@ -103,3 +135,12 @@ exports.requireAdmin = [verifyToken, checkRole(["admin"])];
 exports.requireFarm = [verifyToken, checkRole(["farm"])];
 exports.requireCustomer = [verifyToken, checkRole(["customer"])];
 exports.requireAdminOrFarm = [verifyToken, checkRole(["admin", "farm"])];
+
+// =========================================================
+// Dùng bộ này cho API mua mới của customer
+// =========================================================
+exports.requireCustomerToPurchase = [
+  verifyToken,
+  checkRole(["customer"]),
+  requireActiveCustomer,
+];

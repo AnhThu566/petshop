@@ -32,6 +32,9 @@ const accessoryOrderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // =========================================================
+    // COD hoặc ZALOPAY
+    // =========================================================
     paymentMethod: {
       type: String,
       enum: ["COD", "ZALOPAY"],
@@ -39,17 +42,30 @@ const accessoryOrderSchema = new mongoose.Schema(
       required: true,
     },
 
-paymentStatus: {
-  type: String,
-  enum: [
-    "Chưa thanh toán",
-    "Đang thanh toán",
-    "Đã thanh toán",
-    "Thanh toán thất bại",
-  ],
-  default: "Chưa thanh toán",
-},
+    // =========================================================
+    // Trạng thái thanh toán
+    // - COD:
+    //    + lúc mới tạo đơn: Chưa thanh toán
+    //    + khi hoàn thành: Đã thanh toán
+    //
+    // - ZALOPAY:
+    //    + lúc mới tạo đơn: Chưa thanh toán
+    //    + thanh toán thành công: Đã thanh toán
+    //    + thanh toán fail / hủy / hết hạn: Thanh toán thất bại
+    // =========================================================
+    paymentStatus: {
+      type: String,
+      enum: [
+        "Chưa thanh toán",
+        "Đã thanh toán",
+        "Thanh toán thất bại",
+      ],
+      default: "Chưa thanh toán",
+    },
 
+    // =========================================================
+    // appTransId: mã giao dịch phía app dùng để query/callback ZaloPay
+    // =========================================================
     appTransId: {
       type: String,
       default: "",
@@ -57,10 +73,30 @@ paymentStatus: {
       index: true,
     },
 
+    // =========================================================
+    // zpTransId: mã giao dịch thật do ZaloPay trả về
+    // =========================================================
     zpTransId: {
       type: String,
       default: "",
       trim: true,
+    },
+
+    // =========================================================
+    // stockReserved:
+    // true  = đơn này đang giữ kho / đã trừ kho
+    // false = không còn giữ kho nữa
+    //
+    // Dùng để tránh hoàn kho 2 lần.
+    // Ví dụ:
+    // - COD tạo đơn => stockReserved = true
+    // - ZALOPAY tạo đơn => stockReserved = true
+    // - nếu ZALOPAY fail hoặc hủy => hoàn kho xong đổi về false
+    // - nếu thanh toán thành công => vẫn giữ true
+    // =========================================================
+    stockReserved: {
+      type: Boolean,
+      default: false,
     },
 
     shippingFee: {
@@ -75,6 +111,9 @@ paymentStatus: {
       min: 0,
     },
 
+    // =========================================================
+    // Trạng thái xử lý đơn hàng
+    // =========================================================
     status: {
       type: String,
       enum: [

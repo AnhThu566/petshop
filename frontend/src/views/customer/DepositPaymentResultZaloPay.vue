@@ -97,11 +97,11 @@
 
           <div class="result-actions">
             <button
-  type="button"
-  class="action-btn primary-btn"
-  :disabled="rechecking"
-  @click="checkPaymentStatus(true)"
->
+              type="button"
+              class="action-btn primary-btn"
+              :disabled="rechecking"
+              @click="checkPaymentStatus(true)"
+            >
               <span v-if="rechecking">
                 <i class="fas fa-spinner fa-spin mr-2"></i>
                 Đang kiểm tra lại
@@ -203,6 +203,10 @@ export default {
       sessionStorage.removeItem("zalopay_pending_deposit_order");
     },
 
+    clearCheckoutDog() {
+      localStorage.removeItem("checkoutDog");
+    },
+
     sleep(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
     },
@@ -218,21 +222,6 @@ export default {
 
       if (orderDogId) this.dogId = orderDogId;
       if (orderDogName) this.dogName = orderDogName;
-    },
-
-    isPaidOrder(order) {
-      return (
-        order?.status === "Đã nhận cọc" ||
-        order?.paymentStatus === "Đã xác nhận" ||
-        order?.paymentStatus === "Đã hoàn tất"
-      );
-    },
-
-    isFailedOrder(order) {
-      return (
-        order?.status === "Đã hủy" ||
-        order?.paymentStatus === "Thanh toán thất bại"
-      );
     },
 
     async checkPaymentStatus(isManual = false) {
@@ -261,18 +250,19 @@ export default {
 
           this.applyOrderData(latestOrder);
 
-          if (this.isPaidOrder(latestOrder)) {
+          if (OrderService.isPaidDeposit(latestOrder)) {
             this.statusType = "success";
             this.clearPendingPaymentInfo();
-            localStorage.removeItem("checkoutDog");
+            this.clearCheckoutDog();
             return;
           }
 
-          if (this.isFailedOrder(latestOrder)) {
+          if (OrderService.isFailedDeposit(latestOrder)) {
             this.statusType = "failed";
             this.errorMessage =
               "Thanh toán ZaloPay đã thất bại, bị hủy hoặc đã hết hiệu lực.";
             this.clearPendingPaymentInfo();
+            this.clearCheckoutDog();
             return;
           }
 
