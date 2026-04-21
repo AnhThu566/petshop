@@ -6,13 +6,6 @@ class OrderService {
   }
 
   // ==============================
-  // KHÁCH HÀNG - ĐẶT CỌC THỦ CÔNG
-  // ==============================
-  async createDeposit(data) {
-    return (await this.api.post("/deposit", data)).data;
-  }
-
-  // ==============================
   // KHÁCH HÀNG - ĐẶT CỌC QUA ZALOPAY
   // ==============================
   async createDepositZaloPay(data) {
@@ -66,9 +59,14 @@ class OrderService {
   }
 
   getQrCode(paymentData) {
+    return paymentData?.qr_code || paymentData?.qrCode || "";
+  }
+
+  getAppTransId(paymentData) {
     return (
-      paymentData?.qr_code ||
-      paymentData?.qrCode ||
+      paymentData?.app_trans_id ||
+      paymentData?.appTransId ||
+      paymentData?.paymentProviderOrderId ||
       ""
     );
   }
@@ -100,9 +98,14 @@ class OrderService {
 
   isPaidDeposit(order) {
     return (
-      order?.status === "Đã nhận cọc" ||
-      order?.paymentStatus === "Đã xác nhận" ||
-      order?.paymentStatus === "Đã hoàn tất"
+      this.isZaloPayOrder(order) &&
+      (
+        order?.status === "Đã nhận cọc" ||
+        order?.status === "Đang giao" ||
+        order?.status === "Hoàn thành" ||
+        order?.paymentStatus === "Đã xác nhận" ||
+        order?.paymentStatus === "Đã hoàn tất"
+      )
     );
   }
 
@@ -111,6 +114,36 @@ class OrderService {
       order?.status === "Đã hủy" ||
       order?.paymentStatus === "Thanh toán thất bại"
     );
+  }
+
+  canCustomerCancel(order) {
+    return order?.status === "Chờ xác nhận cọc";
+  }
+
+  getOrderDisplayText(order) {
+    if (!order) return "---";
+
+    if (this.isPendingZaloPayPayment(order)) {
+      return "Chờ thanh toán";
+    }
+
+    if (order?.status === "Đã nhận cọc") {
+      return "Đã nhận cọc";
+    }
+
+    if (order?.status === "Đang giao") {
+      return "Đang giao";
+    }
+
+    if (order?.status === "Hoàn thành") {
+      return "Hoàn thành";
+    }
+
+    if (this.isFailedDeposit(order)) {
+      return "Đã hủy";
+    }
+
+    return order?.status || "---";
   }
 }
 

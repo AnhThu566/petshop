@@ -152,6 +152,25 @@ exports.register = async (req, res, next) => {
       return next(new ApiError(400, "Tên đăng nhập hoặc Email đã tồn tại!"));
     }
 
+    // Tạo mã khách hàng tự động: KH001, KH002...
+    const lastCustomer = await User.findOne({
+      role: "customer",
+      customerCode: { $exists: true, $ne: "" },
+    }).sort({ customerCode: -1 });
+
+    let nextCustomerCode = "KH001";
+
+    if (lastCustomer && lastCustomer.customerCode) {
+      const lastNumber = parseInt(
+        String(lastCustomer.customerCode).replace("KH", ""),
+        10
+      );
+
+      if (!Number.isNaN(lastNumber)) {
+        nextCustomerCode = "KH" + String(lastNumber + 1).padStart(3, "0");
+      }
+    }
+
     const newUser = new User({
       username,
       password,
@@ -160,6 +179,7 @@ exports.register = async (req, res, next) => {
       phone: phone || "",
       role: "customer",
       status: "active",
+      customerCode: nextCustomerCode,
     });
 
     await newUser.save();
@@ -167,6 +187,7 @@ exports.register = async (req, res, next) => {
     return res.send({
       message: "Đăng ký thành công!",
       username: newUser.username,
+      customerCode: newUser.customerCode,
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi server: " + error.message));

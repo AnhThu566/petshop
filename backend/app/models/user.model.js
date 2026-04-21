@@ -12,7 +12,13 @@ const userSchema = new mongoose.Schema(
     address: { type: String, default: "" },
     avatar: { type: String, default: "" },
     email: { type: String, required: true, unique: true, trim: true },
-    customerCode: { type: String, default: "" },
+customerCode: {
+  type: String,
+  unique: true,
+  sparse: true,
+  trim: true,
+  default: "",
+},
     role: {
       type: String,
       enum: ["admin", "farm", "customer"],

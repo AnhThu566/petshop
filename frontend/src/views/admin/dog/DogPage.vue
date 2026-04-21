@@ -1,330 +1,360 @@
 <template>
-  <div class="admin-dog-page">
-    <div class="page-card">
-      <div class="page-header">
+  <div class="admin-dog-page bg-light py-4">
+    <div class="container-fluid px-2">
+      <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 flex-wrap">
         <div>
-          <h4 class="page-title">
-            <i class="fas fa-paw mr-2"></i>Quản lý & phê duyệt hồ sơ chó
+          <h4 class="font-weight-bold text-dark mb-1">
+            <i class="fas fa-paw mr-2 text-primary"></i>
+            QUẢN LÝ & PHÊ DUYỆT HỒ SƠ CHÓ
           </h4>
-          <p class="page-subtitle mb-0">
+          <div class="small text-muted">
             Kiểm tra hồ sơ do trang trại cung cấp, phản hồi, phê duyệt và mở bán.
-          </p>
+          </div>
         </div>
 
         <button
-          class="btn btn-refresh btn-sm font-weight-bold"
+          class="btn btn-outline-primary btn-sm mt-2 mt-md-0"
           @click="loadPageData"
+          :disabled="loading"
         >
           <i class="fas fa-sync-alt mr-1"></i> Làm mới
         </button>
       </div>
 
-      <div class="page-body">
-        <div class="filter-card">
-          <div class="row">
-            <div class="col-lg-4 mb-2 mb-lg-0">
-              <div class="input-group shadow-sm">
-                <input
-                  type="text"
-                  class="form-control border-right-0"
-                  placeholder="Tìm tên chó, mã tại trại, mã hệ thống, trang trại..."
-                  v-model.trim="searchText"
-                />
-                <div class="input-group-append">
-                  <button class="btn btn-search px-3" type="button">
-                    <i class="fas fa-search"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
+      <div class="summary-row mb-4">
+        <div class="summary-box summary-waiting">
+          <div class="summary-value">{{ countByApprovalStatus("Chờ duyệt") }}</div>
+          <div class="summary-label">Chờ duyệt</div>
+        </div>
 
-            <div class="col-lg-4 mb-2 mb-lg-0">
-              <select class="form-control shadow-sm" v-model="filterApprovalStatus">
-                <option value="Tất cả">Tất cả trạng thái duyệt</option>
-                <option value="Chờ duyệt">Chờ duyệt</option>
-                <option value="Cần bổ sung">Cần bổ sung</option>
-                <option value="Đã duyệt">Đã duyệt</option>
-                <option value="Từ chối">Từ chối</option>
-              </select>
-            </div>
+        <div class="summary-box summary-failed">
+          <div class="summary-value">{{ countByApprovalStatus("Cần bổ sung") }}</div>
+          <div class="summary-label">Cần bổ sung</div>
+        </div>
 
-            <div class="col-lg-4">
-              <select class="form-control shadow-sm" v-model="filterSaleStatus">
-                <option value="Tất cả">Tất cả trạng thái bán</option>
-                <option value="Chưa mở bán">Chưa mở bán</option>
-                <option value="Sẵn sàng bán">Sẵn sàng bán</option>
-                <option value="Chờ thanh toán">Chờ thanh toán</option>
-                <option value="Đã đặt cọc">Đã đặt cọc</option>
-                <option value="Đang giao">Đang giao</option>
-                <option value="Đã bán">Đã bán</option>
-                <option value="Ngừng bán">Ngừng bán</option>
-              </select>
+        <div class="summary-box summary-confirmed">
+          <div class="summary-value">{{ countByApprovalStatus("Đã duyệt") }}</div>
+          <div class="summary-label">Đã duyệt</div>
+        </div>
+
+        <div class="summary-box summary-cancelled">
+          <div class="summary-value">{{ countByApprovalStatus("Từ chối") }}</div>
+          <div class="summary-label">Từ chối</div>
+        </div>
+      </div>
+
+      <div class="row mb-3 align-items-center">
+        <div class="col-lg-5 col-md-12 mb-2 mb-lg-0">
+          <div class="input-group input-group-sm shadow-sm">
+            <div class="input-group-prepend">
+              <span class="input-group-text bg-white text-primary border-right-0">
+                <i class="fas fa-search"></i>
+              </span>
             </div>
+            <input
+              type="text"
+              class="form-control border-left-0"
+              placeholder="Tìm tên chó, mã tại trại, mã hệ thống, trang trại..."
+              v-model.trim="searchText"
+            />
           </div>
         </div>
 
-        <div class="summary-row">
-          <div class="summary-box summary-pending">
-            <div class="summary-value">{{ countByApprovalStatus("Chờ duyệt") }}</div>
-            <div class="summary-label">Chờ duyệt</div>
-          </div>
-
-          <div class="summary-box summary-need-fix">
-            <div class="summary-value">{{ countByApprovalStatus("Cần bổ sung") }}</div>
-            <div class="summary-label">Cần bổ sung</div>
-          </div>
-
-          <div class="summary-box summary-approved">
-            <div class="summary-value">{{ countByApprovalStatus("Đã duyệt") }}</div>
-            <div class="summary-label">Đã duyệt</div>
-          </div>
-
-          <div class="summary-box summary-rejected">
-            <div class="summary-value">{{ countByApprovalStatus("Từ chối") }}</div>
-            <div class="summary-label">Từ chối</div>
-          </div>
+        <div class="col-lg-3 col-md-6 mb-2 mb-lg-0">
+          <select class="form-control form-control-sm shadow-sm" v-model="filterApprovalStatus">
+            <option value="Tất cả">Tất cả trạng thái duyệt</option>
+            <option value="Chờ duyệt">Chờ duyệt</option>
+            <option value="Cần bổ sung">Cần bổ sung</option>
+            <option value="Đã duyệt">Đã duyệt</option>
+            <option value="Từ chối">Từ chối</option>
+          </select>
         </div>
 
-        <div v-if="loading" class="empty-state">
-          <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-          <div>Đang tải danh sách hồ sơ chó...</div>
+        <div class="col-lg-3 col-md-6 mb-2 mb-lg-0">
+          <select class="form-control form-control-sm shadow-sm" v-model="filterSaleStatus">
+            <option value="Tất cả">Tất cả trạng thái bán</option>
+            <option value="Chưa mở bán">Chưa mở bán</option>
+            <option value="Sẵn sàng bán">Sẵn sàng bán</option>
+            <option value="Chờ thanh toán">Chờ thanh toán</option>
+            <option value="Đã đặt cọc">Đã đặt cọc</option>
+            <option value="Đang giao">Đang giao</option>
+            <option value="Đã bán">Đã bán</option>
+            <option value="Ngừng bán">Ngừng bán</option>
+          </select>
         </div>
 
-        <div v-else class="table-card">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 text-center align-middle admin-table">
-              <thead>
-                <tr>
-                  <th style="width: 5%;">STT</th>
-                  <th style="width: 8%;">Ảnh</th>
-                  <th style="width: 11%;">Mã tại trại</th>
-                  <th style="width: 11%;">Mã hệ thống</th>
-                  <th style="width: 15%;" class="text-left">Tên chó</th>
-                  <th style="width: 12%;">Trang trại cung cấp</th>
-                  <th style="width: 11%;">Giống chó</th>
-                  <th style="width: 10%;">Giá cung cấp</th>
-                  <th style="width: 10%;">Duyệt hồ sơ</th>
-                  <th style="width: 10%;">Trạng thái bán</th>
-                  <th style="width: 7%;">Xem</th>
-                </tr>
-              </thead>
+        <div class="col-lg-1 col-md-12 text-lg-right">
+          <div class="small text-muted font-weight-bold">
+            Tổng: {{ filteredDogs.length }}
+          </div>
+        </div>
+      </div>
 
-              <tbody>
-                <tr v-for="(dog, index) in filteredDogs" :key="dog._id || dog.id">
-                  <td>{{ index + 1 }}</td>
+      <div v-if="loading" class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+          <i class="fas fa-spinner fa-spin fa-3x mb-3 d-block"></i>
+          Đang tải danh sách hồ sơ chó...
+        </div>
+      </div>
 
-                  <td>
-                    <img
-                      :src="getDogImage(dog)"
-                      class="dog-thumb"
-                    />
-                  </td>
+      <div v-else class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center mb-0 admin-dog-table">
+            <thead class="bg-light">
+              <tr class="small text-secondary">
+                <th class="py-3">STT</th>
+                <th class="py-3">Ảnh</th>
+                <th class="py-3">Mã tại trại</th>
+                <th class="py-3">Mã hệ thống</th>
+                <th class="py-3 text-left">Tên chó</th>
+                <th class="py-3">Trang trại cung cấp</th>
+                <th class="py-3">Giống chó</th>
+                <th class="py-3">Giá cung cấp</th>
+                <th class="py-3">Duyệt hồ sơ</th>
+                <th class="py-3">Trạng thái bán</th>
+                <th class="py-3">Thao tác</th>
+              </tr>
+            </thead>
 
-                  <td class="font-weight-bold text-primary">{{ dog.farmDogCode || "---" }}</td>
-                  <td class="font-weight-bold text-info">{{ dog.systemDogCode || "---" }}</td>
-                  <td class="font-weight-bold text-dark text-left">{{ dog.name || "---" }}</td>
-                  <td class="text-secondary font-weight-bold">{{ dog.farmId?.name || "---" }}</td>
-                  <td class="text-success font-weight-bold">{{ dog.breedId?.name || "---" }}</td>
-                  <td class="text-danger font-weight-bold">{{ formatCurrency(dog.proposedPrice) }}</td>
+            <tbody>
+              <tr v-for="(dog, index) in filteredDogs" :key="dog._id || dog.id">
+                <td>{{ index + 1 }}</td>
 
-                  <td>
-                    <span :class="getApprovalStatusClass(dog.approvalStatus)" class="badge px-3 py-2">
+                <td>
+                  <img :src="getDogImage(dog)" class="dog-thumb" />
+                </td>
+
+                <td class="font-weight-bold text-primary">
+                  {{ dog.farmDogCode || "---" }}
+                </td>
+
+                <td class="font-weight-bold text-info">
+                  {{ dog.systemDogCode || "---" }}
+                </td>
+
+                <td class="text-left font-weight-bold text-dark">
+                  {{ dog.name || "---" }}
+                </td>
+
+                <td>
+                  {{ dog.farmId?.name || "---" }}
+                </td>
+
+                <td class="font-weight-bold">
+                  {{ dog.breedId?.name || "---" }}
+                </td>
+
+                <td class="text-danger font-weight-bold">
+                  {{ formatCurrency(dog.proposedPrice) }}
+                </td>
+
+                <td>
+                  <div class="d-flex flex-column align-items-center">
+                    <span :class="getApprovalStatusClass(dog.approvalStatus)" class="status-badge">
                       {{ dog.approvalStatus }}
                     </span>
                     <div
                       v-if="['Cần bổ sung', 'Từ chối'].includes(dog.approvalStatus) && dog.rejectionReason"
-                      class="text-danger small font-italic mt-1"
-                      style="line-height: 1.25;"
+                      class="reject-note mt-1"
                     >
                       {{ dog.rejectionReason }}
                     </div>
-                  </td>
+                  </div>
+                </td>
 
-                  <td>
-                    <span :class="getSaleStatusClass(dog.saleStatus)" class="badge px-3 py-2">
-                      {{ dog.saleStatus }}
-                    </span>
-                  </td>
+                <td>
+                  <span :class="getSaleStatusClass(dog.saleStatus)" class="status-badge">
+                    {{ dog.saleStatus }}
+                  </span>
+                </td>
 
-                  <td>
-                    <button
-                      class="btn btn-sm btn-view font-weight-bold"
-                      @click="viewDetail(dog)"
-                      title="Xem chi tiết"
-                    >
-                      <i class="fas fa-eye"></i>
-                    </button>
-                  </td>
-                </tr>
+                <td>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="viewDetail(dog)"
+                    title="Xem chi tiết"
+                  >
+                    <i class="fas fa-eye mr-1"></i> Chi tiết
+                  </button>
+                </td>
+              </tr>
 
-                <tr v-if="filteredDogs.length === 0">
-                  <td colspan="11" class="py-5 text-center text-muted">
-                    <i class="fas fa-folder-open fa-2x mb-2 opacity-50"></i><br />
-                    Không có dữ liệu phù hợp.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+              <tr v-if="filteredDogs.length === 0">
+                <td colspan="11" class="py-5 text-center text-muted">
+                  <i class="fas fa-folder-open fa-2x mb-3 d-block"></i>
+                  Không có dữ liệu phù hợp.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       <!-- CHI TIẾT -->
       <div
         v-if="showDetailModal"
-        class="modal fade show d-block admin-modal-backdrop"
+        class="modal fade show d-block"
         tabindex="-1"
+        style="background: rgba(0, 0, 0, 0.45);"
       >
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content border-0 shadow admin-modal-content" v-if="selectedDog">
-            <div class="modal-header admin-modal-header">
-              <h5 class="modal-title mb-0 font-weight-bold">
+          <div class="modal-content border-0 shadow" v-if="selectedDog">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title mb-0">
                 <i class="fas fa-paw mr-2"></i>Chi tiết hồ sơ: {{ selectedDog.name }}
               </h5>
-              <button type="button" class="admin-modal-close" @click="closeDetailModal">
+              <button type="button" class="close text-white" @click="closeDetailModal">
                 <span>&times;</span>
               </button>
             </div>
 
-            <div class="modal-body p-3 p-md-4">
-              <div class="detail-layout">
-                <div class="detail-left">
-                  <div class="detail-side-card text-center">
-                    <img
-                      :src="getDogImage(selectedDog)"
-                      class="detail-main-image mb-3"
-                    />
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-lg-4 mb-3">
+                  <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                      <img
+                        :src="getDogImage(selectedDog)"
+                        class="detail-main-image mb-3"
+                      />
 
-                    <h4 class="detail-dog-name mb-1">
-                      {{ selectedDog.name || "---" }}
-                    </h4>
+                      <h4 class="font-weight-bold text-dark mb-2">
+                        {{ selectedDog.name || "---" }}
+                      </h4>
 
-                    <div class="code-chip-wrap">
-                      <span class="code-chip">Trại: {{ selectedDog.farmDogCode || "---" }}</span>
-                      <span class="code-chip code-chip-blue">Hệ thống: {{ selectedDog.systemDogCode || "---" }}</span>
-                    </div>
-
-                    <div class="detail-meta-list mt-3 text-left">
-                      <div class="detail-meta-item">
-                        <i class="fas fa-warehouse text-secondary mr-2"></i>
-                        <span><strong>Trang trại cung cấp:</strong> {{ selectedDog.farmId?.name || "---" }}</span>
+                      <div class="code-chip-wrap">
+                        <span class="code-chip">Trại: {{ selectedDog.farmDogCode || "---" }}</span>
+                        <span class="code-chip code-chip-blue">Hệ thống: {{ selectedDog.systemDogCode || "---" }}</span>
                       </div>
 
-                      <div class="detail-meta-item">
-                        <i class="fas fa-map-marker-alt text-secondary mr-2"></i>
-                        <span><strong>Địa chỉ trại:</strong> {{ selectedDog.farmId?.address || "---" }}</span>
-                      </div>
+                      <div class="detail-meta-list mt-3 text-left">
+                        <div class="detail-meta-item">
+                          <i class="fas fa-warehouse text-secondary mr-2"></i>
+                          <span><strong>Trang trại cung cấp:</strong> {{ selectedDog.farmId?.name || "---" }}</span>
+                        </div>
 
-                      <div class="detail-meta-item">
-                        <i class="fas fa-phone-alt text-secondary mr-2"></i>
-                        <span><strong>Liên hệ trại:</strong> {{ selectedDog.farmId?.phone || "---" }}</span>
+                        <div class="detail-meta-item">
+                          <i class="fas fa-map-marker-alt text-secondary mr-2"></i>
+                          <span><strong>Địa chỉ trại:</strong> {{ selectedDog.farmId?.address || "---" }}</span>
+                        </div>
+
+                        <div class="detail-meta-item">
+                          <i class="fas fa-phone-alt text-secondary mr-2"></i>
+                          <span><strong>Liên hệ trại:</strong> {{ selectedDog.farmId?.phone || "---" }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="detail-right">
-                  <div class="section-heading">Thông tin hồ sơ chó</div>
+                <div class="col-lg-8">
+                  <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                      <h6 class="font-weight-bold text-primary mb-3">Thông tin hồ sơ chó</h6>
 
-                  <div class="info-grid mt-3">
-                    <div class="info-card">
-                      <small>Giống chó</small>
-                      <strong>{{ selectedDog.breedId?.name || "---" }}</strong>
-                    </div>
+                      <div class="info-grid">
+                        <div class="info-card">
+                          <small>Giống chó</small>
+                          <strong>{{ selectedDog.breedId?.name || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Giới tính</small>
-                      <strong>{{ selectedDog.gender || "---" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Giới tính</small>
+                          <strong>{{ selectedDog.gender || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Ngày sinh</small>
-                      <strong>{{ formatDate(selectedDog.birthDate) }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Ngày sinh</small>
+                          <strong>{{ formatDate(selectedDog.birthDate) }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Màu lông</small>
-                      <strong>{{ selectedDog.coatColor || "---" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Màu lông</small>
+                          <strong>{{ selectedDog.coatColor || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Cân nặng</small>
-                      <strong>{{ selectedDog.weight || "---" }} kg</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Cân nặng</small>
+                          <strong>{{ selectedDog.weight || "---" }} kg</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Khu vực cung cấp</small>
-                      <strong>{{ selectedDog.birthPlace || "---" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Khu vực cung cấp</small>
+                          <strong>{{ selectedDog.birthPlace || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Tên chó bố</small>
-                      <strong>{{ selectedDog.fatherName || "---" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Tên chó bố</small>
+                          <strong>{{ selectedDog.fatherName || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Tên chó mẹ</small>
-                      <strong>{{ selectedDog.motherName || "---" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Tên chó mẹ</small>
+                          <strong>{{ selectedDog.motherName || "---" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Giá cung cấp từ trại</small>
-                      <strong class="text-primary">{{ formatCurrency(selectedDog.proposedPrice) }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Giá cung cấp từ trại</small>
+                          <strong class="text-primary">{{ formatCurrency(selectedDog.proposedPrice) }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Giá bán chính thức</small>
-                      <strong class="text-success">{{ formatCurrency(selectedDog.finalPrice) }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Giá bán chính thức</small>
+                          <strong class="text-success">{{ formatCurrency(selectedDog.finalPrice) }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Tình trạng sức khỏe</small>
-                      <strong>{{ selectedDog.healthStatus || "Tốt" }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Tình trạng sức khỏe</small>
+                          <strong>{{ selectedDog.healthStatus || "Tốt" }}</strong>
+                        </div>
 
-                    <div class="info-card">
-                      <small>Ngày tẩy giun gần nhất</small>
-                      <strong>{{ formatDate(selectedDog.lastDeworming) }}</strong>
-                    </div>
+                        <div class="info-card">
+                          <small>Ngày tẩy giun gần nhất</small>
+                          <strong>{{ formatDate(selectedDog.lastDeworming) }}</strong>
+                        </div>
 
-                    <div class="info-card info-card-full">
-                      <small>Mô tả đặc điểm</small>
-                      <div class="content-text">
-                        {{ selectedDog.description || "Chưa có mô tả." }}
+                        <div class="info-card info-card-full">
+                          <small>Mô tả đặc điểm</small>
+                          <div class="content-text">
+                            {{ selectedDog.description || "Chưa có mô tả." }}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="section-heading mt-4">Vaccine đã tiêm</div>
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                      <h6 class="font-weight-bold text-primary mb-3">Vaccine đã tiêm</h6>
 
-                  <div class="vaccine-section mt-3">
-                    <div
-                      v-if="selectedDog.vaccines && selectedDog.vaccines.length"
-                      class="table-responsive"
-                    >
-                      <table class="table table-bordered vaccine-table mb-0">
-                        <thead>
-                          <tr>
-                            <th style="width: 70%;">Tên vaccine</th>
-                            <th style="width: 30%;">Ngày tiêm</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr
-                            v-for="(vaccine, index) in selectedDog.vaccines"
-                            :key="index"
-                          >
-                            <td class="font-weight-bold text-dark">
-                              {{ vaccine.vaccineName || getVaccineName(vaccine.vaccineId) || "---" }}
-                            </td>
-                            <td>{{ formatDate(vaccine.dateInjected) }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                      <div
+                        v-if="selectedDog.vaccines && selectedDog.vaccines.length"
+                        class="table-responsive"
+                      >
+                        <table class="table table-bordered vaccine-table mb-0">
+                          <thead>
+                            <tr>
+                              <th style="width: 70%;">Tên vaccine</th>
+                              <th style="width: 30%;">Ngày tiêm</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              v-for="(vaccine, index) in selectedDog.vaccines"
+                              :key="index"
+                            >
+                              <td class="font-weight-bold text-dark">
+                                {{ vaccine.vaccineName || getVaccineName(vaccine.vaccineId) || "---" }}
+                              </td>
+                              <td>{{ formatDate(vaccine.dateInjected) }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
 
-                    <div v-else class="empty-vaccine-box">
-                      Chưa có dữ liệu vaccine.
+                      <div v-else class="empty-vaccine-box">
+                        Chưa có dữ liệu vaccine.
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -357,7 +387,7 @@
                   </button>
 
                   <button
-                    class="btn btn-approve font-weight-bold shadow-sm px-4 mb-2"
+                    class="btn btn-primary font-weight-bold shadow-sm px-4 mb-2"
                     @click="openApproveModal(selectedDog)"
                   >
                     <i class="fas fa-check mr-1"></i> Phê duyệt
@@ -373,7 +403,7 @@
                   </button>
                 </template>
 
-                <div class="text-muted font-italic font-weight-bold d-flex align-items-center mb-2" v-else>
+                <div class="text-muted small font-italic d-flex align-items-center mb-2" v-else>
                   <i class="fas fa-check-double mr-1 text-success"></i> Đã xử lý / đang giao dịch
                 </div>
               </div>
@@ -385,8 +415,9 @@
       <!-- PHẢN HỒI -->
       <div
         v-if="showResponseModal"
-        class="modal fade show d-block admin-modal-backdrop"
+        class="modal fade show d-block"
         tabindex="-1"
+        style="background: rgba(0, 0, 0, 0.45);"
       >
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-0 shadow-lg response-modal-content">
@@ -462,12 +493,13 @@
       <!-- PHÊ DUYỆT -->
       <div
         v-if="showApproveModal"
-        class="modal fade show d-block admin-modal-backdrop"
+        class="modal fade show d-block"
         tabindex="-1"
+        style="background: rgba(0, 0, 0, 0.45);"
       >
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-0 shadow-lg approve-modal-content">
-            <div class="modal-header approve-modal-header">
+            <div class="modal-header bg-primary text-white">
               <h5 class="modal-title font-weight-bold">
                 <i class="fas fa-check-circle mr-2"></i>Phê duyệt & mở bán
               </h5>
@@ -535,7 +567,7 @@
                 Hủy
               </button>
               <button
-                class="btn btn-approve font-weight-bold"
+                class="btn btn-primary font-weight-bold"
                 :disabled="!isApproveModalPriceValid"
                 @click="confirmApproveDog"
               >
@@ -829,9 +861,9 @@ export default {
     getApprovalStatusClass(status) {
       if (status === "Chờ duyệt") return "badge-warning text-dark";
       if (status === "Cần bổ sung") return "badge-warning text-dark";
-      if (status === "Đã duyệt") return "badge-success";
+      if (status === "Đã duyệt") return "badge-primary";
       if (status === "Từ chối") return "badge-danger";
-      return "badge-secondary";
+      return "badge-light border";
     },
 
     getSaleStatusClass(status) {
@@ -853,262 +885,76 @@ export default {
 </script>
 
 <style scoped>
-.admin-dog-page {
-  padding: 14px;
-  background: #f5f7fb;
-}
-
-.page-card {
-  background: #ffffff;
-  border: 1px solid #e7ebf3;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 22px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e9edf5;
-}
-
-.page-title {
-  font-weight: 800;
-  margin-bottom: 6px;
-  color: #2b3445;
-}
-
-.page-subtitle {
-  color: #6b7280;
-}
-
-.page-body {
-  padding: 22px;
-  background: #f7f9fc;
-}
-
-.filter-card,
-.table-card {
-  background: #ffffff;
-  border: 1px solid #e6ebf2;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.03);
-}
-
-.filter-card {
-  padding: 16px;
-  margin-bottom: 18px;
-}
-
-.table-card {
-  overflow: hidden;
-}
-
-.empty-state {
-  text-align: center;
-  color: #6b7280;
-  padding: 60px 20px;
-}
-
 .summary-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
 }
 
 .summary-box {
   border-radius: 14px;
   padding: 14px 16px;
-  border: 1px solid transparent;
-  box-shadow: none;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 .summary-value {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
   margin-bottom: 6px;
 }
 
 .summary-label {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
-.summary-pending {
-  background: #fff6e8;
-  border-color: #f5d9a6;
+.summary-waiting {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.summary-pending .summary-value,
-.summary-pending .summary-label {
-  color: #b7791f;
+.summary-confirmed {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
-.summary-need-fix {
-  background: #fff3e8;
-  border-color: #f7cfaa;
+.summary-failed {
+  background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-.summary-need-fix .summary-value,
-.summary-need-fix .summary-label {
-  color: #c66a12;
+.summary-cancelled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-.summary-approved {
-  background: #f2f3ff;
-  border-color: #d9ddff;
-}
-
-.summary-approved .summary-value,
-.summary-approved .summary-label {
-  color: #5558d9;
-}
-
-.summary-rejected {
-  background: #fff1f3;
-  border-color: #f2c7d0;
-}
-
-.summary-rejected .summary-value,
-.summary-rejected .summary-label {
-  color: #c7364f;
-}
-
-.admin-table thead th {
-  background: #f8fafc;
-  color: #667085;
-  font-size: 0.84rem;
-  text-transform: uppercase;
-  font-weight: 700;
-  white-space: nowrap;
-  border-bottom: 1px solid #e6ebf2;
-}
-
-.admin-table td,
-.admin-table th {
-  vertical-align: middle;
-}
-
-.admin-table tbody td {
-  color: #1f2937;
-  border-color: #edf1f6;
-}
-
-.admin-table tbody tr:hover {
-  background: #fafbfe;
+.admin-dog-table {
+  min-width: 1480px;
 }
 
 .dog-thumb {
   width: 54px;
   height: 54px;
   object-fit: cover;
-  border-radius: 50%;
-  border: 1px solid #e1e7ef;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
 }
 
-.btn-refresh {
-  border: 1px solid #d7def0;
-  color: #536080;
-  background: #ffffff;
-  border-radius: 12px;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.btn-refresh:hover {
-  background: #f6f8fc;
-  color: #3d4966;
-}
-
-.btn-search {
-  background: #6b6ee8;
-  border-color: #6b6ee8;
-  color: #fff;
-}
-
-.btn-search:hover {
-  background: #5b5ed8;
-  border-color: #5b5ed8;
-  color: #fff;
-}
-
-.btn-view {
-  border-color: #d7dcff;
-  color: #5a5edc;
-  background: #ffffff;
-  border-radius: 10px;
-}
-
-.btn-view:hover {
-  background: #f3f4ff;
-  color: #4f53cf;
-  border-color: #c9ceff;
-}
-
-.btn-approve {
-  background: #6b6ee8;
-  border-color: #6b6ee8;
-  color: #fff;
-}
-
-.btn-approve:hover {
-  background: #5b5ed8;
-  border-color: #5b5ed8;
-  color: #fff;
-}
-
-.admin-modal-backdrop {
-  background: rgba(17, 24, 39, 0.38);
-  overflow-y: auto;
-}
-
-.admin-modal-content {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.admin-modal-header {
-  background: #ffffff;
-  color: #2b3445;
-  border-bottom: 1px solid #e8edf5;
-  padding: 16px 20px;
-}
-
-.approve-modal-header {
-  background: #ffffff;
-  color: #2b3445;
-  border-bottom: 1px solid #e8edf5;
-}
-
-.admin-modal-close {
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  font-size: 28px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-}
-
-.detail-layout {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 18px;
-}
-
-.detail-side-card {
-  background: #ffffff;
-  border: 1px solid #e8edf5;
-  border-radius: 16px;
-  padding: 18px;
-  height: 100%;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
+.reject-note {
+  color: #dc2626;
+  font-size: 0.76rem;
+  font-style: italic;
+  line-height: 1.25;
+  max-width: 140px;
 }
 
 .detail-main-image {
@@ -1116,11 +962,7 @@ export default {
   max-height: 255px;
   object-fit: cover;
   border-radius: 14px;
-}
-
-.detail-dog-name {
-  color: #1f2937;
-  font-weight: 800;
+  border: 1px solid #dee2e6;
 }
 
 .code-chip-wrap {
@@ -1134,17 +976,17 @@ export default {
   display: inline-flex;
   padding: 7px 12px;
   border-radius: 999px;
-  background: #f4f5ff;
-  color: #585dd8;
-  border: 1px solid #dde1ff;
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
   font-weight: 700;
   font-size: 0.86rem;
 }
 
 .code-chip-blue {
-  background: #eef2ff;
-  color: #4d57c7;
-  border-color: #d7ddff;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
 }
 
 .detail-meta-list {
@@ -1161,13 +1003,6 @@ export default {
   line-height: 1.45;
 }
 
-.section-heading {
-  font-weight: 800;
-  color: #111827;
-  border-bottom: 1px solid #e8edf5;
-  padding-bottom: 10px;
-}
-
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1176,19 +1011,18 @@ export default {
 
 .info-card {
   background: #ffffff;
-  border: 1px solid #e7ebf3;
-  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   padding: 14px 16px;
   min-height: 82px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.02);
 }
 
 .info-card small {
   display: block;
-  color: #667085;
+  color: #6b7280;
   margin-bottom: 4px;
   font-weight: 600;
 }
@@ -1207,39 +1041,12 @@ export default {
   margin-top: 4px;
 }
 
-.vaccine-section {
-  background: #ffffff;
-  border: 1px solid #e7ebf3;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.02);
-}
-
-.vaccine-table thead th {
-  background: #f8fafc;
-  color: #667085;
-  font-size: 0.84rem;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
-
-.vaccine-table td,
-.vaccine-table th {
-  vertical-align: middle;
-  color: #1f2937;
-}
-
 .empty-vaccine-box {
   padding: 14px 16px;
   border-radius: 12px;
-  background: #fafbfe;
+  background: #f8fafc;
   color: #667085;
   border: 1px dashed #dbe4ef;
-}
-
-.response-modal-content,
-.approve-modal-content {
-  border-radius: 16px;
 }
 
 .response-textarea {
@@ -1255,9 +1062,9 @@ export default {
 }
 
 .approve-info-box {
-  border: 1px solid #e1e5ff;
-  background: #f7f8ff;
-  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 12px;
   padding: 14px 16px;
 }
 
@@ -1271,7 +1078,7 @@ export default {
 .approve-info-value {
   font-size: 1.02rem;
   font-weight: 800;
-  color: #575cd8;
+  color: #1d4ed8;
 }
 
 .approve-price-input {
@@ -1284,92 +1091,17 @@ export default {
 }
 
 .approve-price-input:focus {
-  border-color: #7a7eea;
-  box-shadow: 0 0 0 3px rgba(107, 110, 232, 0.12);
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
 }
 
-.form-control,
-.form-control::placeholder,
-select.form-control {
-  color: #111827;
-}
-
-.form-control::placeholder {
-  color: #98a2b3;
-}
-
-.text-primary {
-  color: #575cd8 !important;
-}
-
-.text-info {
-  color: #5c63c9 !important;
-}
-
-.text-success {
-  color: #111827 !important;
-}
-
-.text-dark {
-  color: #111827 !important;
-}
-
-.badge {
-  font-weight: 700;
-  border-radius: 999px;
-}
-
-.badge-warning {
-  background: #fff4db !important;
-  color: #a16207 !important;
-  border: 1px solid #f6deb0;
-}
-
-.badge-success {
-  background: #eef2ff !important;
-  color: #5558d9 !important;
-  border: 1px solid #d9ddff;
-}
-
-.badge-danger {
-  background: #fff1f3 !important;
-  color: #c7364f !important;
-  border: 1px solid #f2c7d0;
-}
-
-.badge-secondary {
-  background: #f3f4f6 !important;
-  color: #4b5563 !important;
-  border: 1px solid #e5e7eb;
-}
-
-.badge-info {
-  background: #eef6ff !important;
-  color: #2563eb !important;
-  border: 1px solid #cfe0ff;
-}
-
-.badge-primary {
-  background: #f2f3ff !important;
-  color: #5558d9 !important;
-  border: 1px solid #d9ddff;
-}
-
-.badge-dark {
-  background: #eef1f5 !important;
-  color: #344054 !important;
-  border: 1px solid #dce3eb;
-}
-
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
   .summary-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .detail-layout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 991.98px) {
   .info-grid {
     grid-template-columns: 1fr;
   }
@@ -1379,13 +1111,15 @@ select.form-control {
   }
 }
 
+@media (max-width: 767.98px) {
+  .summary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 575.98px) {
   .summary-row {
     grid-template-columns: 1fr;
-  }
-
-  .page-body {
-    padding: 14px;
   }
 }
 </style>

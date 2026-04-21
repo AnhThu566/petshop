@@ -1,192 +1,277 @@
 <template>
-  <div class="service-admin-page">
-    <div class="page-header">
-      <div>
-        <h2>Quản lý dịch vụ</h2>
-        <p>Thêm, cập nhật và quản lý các dịch vụ trong hệ thống.</p>
-      </div>
-
-      <div class="header-actions">
-        <router-link to="/admin/service-bookings" class="btn-secondary">
-          Quản lý lịch đặt
-        </router-link>
-        <button class="btn-primary" @click="openCreateModal">
-          + Thêm dịch vụ
-        </button>
-      </div>
-    </div>
-
-    <div class="toolbar">
-      <input
-        v-model.trim="keyword"
-        type="text"
-        class="search-input"
-        placeholder="Tìm theo mã, tên hoặc mô tả dịch vụ..."
-      />
-    </div>
-
-    <div v-if="loading" class="state-box">
-      <div class="spinner"></div>
-      <p>Đang tải danh sách dịch vụ...</p>
-    </div>
-
-    <div v-else-if="errorMessage" class="state-box error-box">
-      <p>{{ errorMessage }}</p>
-      <button class="btn-primary" @click="loadServices">Tải lại</button>
-    </div>
-
-    <div v-else class="table-card">
-      <table class="service-table">
-        <thead>
-          <tr>
-            <th>Ảnh</th>
-            <th>Mã DV</th>
-            <th>Tên dịch vụ</th>
-            <th>Danh mục</th>
-            <th>Giá</th>
-            <th>Trạng thái</th>
-            <th class="text-center">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="filteredServices.length === 0">
-            <td colspan="7" class="empty-row">Không có dịch vụ phù hợp.</td>
-          </tr>
-
-          <tr
-            v-for="service in filteredServices"
-            :key="service._id || service.id"
-          >
-            <td>
-              <img
-                :src="getImageUrl(service.image)"
-                :alt="service.name"
-                class="service-thumb"
-              />
-            </td>
-            <td>{{ service.serviceCode || "---" }}</td>
-            <td>
-              <div class="service-name-cell">
-                <strong>{{ service.name }}</strong>
-                <small>{{ truncateText(service.description, 70) }}</small>
-              </div>
-            </td>
-            <td>{{ service.categoryId?.name || "---" }}</td>
-            <td class="price">{{ formatCurrency(service.price) }}</td>
-            <td>
-              <span class="status-badge" :class="getStatusClass(service.status)">
-                {{ service.status }}
-              </span>
-            </td>
-            <td class="text-center">
-              <div class="action-group">
-                <button class="btn-edit" @click="openEditModal(service)">
-                  Sửa
-                </button>
-                <button class="btn-delete" @click="handleDelete(service)">
-                  Xóa
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>{{ isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới" }}</h3>
-          <button class="btn-close" @click="closeModal">×</button>
+  <div class="service-admin-page bg-light py-4" style="min-height: 100vh;">
+    <div class="container-fluid px-2">
+      <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 flex-wrap">
+        <div>
+          <h4 class="font-weight-bold text-dark mb-1">
+            <i class="fas fa-concierge-bell mr-2 text-primary"></i>
+            QUẢN LÝ DỊCH VỤ
+          </h4>
+          <div class="small text-muted">
+            Thêm, cập nhật và quản lý các dịch vụ trong hệ thống.
+          </div>
         </div>
 
-        <form class="modal-body" @submit.prevent="submitForm">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Tên dịch vụ</label>
-              <input v-model.trim="form.name" type="text" required />
+        <div class="d-flex flex-wrap mt-2 mt-md-0">
+          <router-link to="/admin/service-bookings" class="btn btn-outline-primary btn-sm mr-2 mb-2 mb-md-0">
+            <i class="fas fa-calendar-check mr-1"></i> Quản lý lịch đặt
+          </router-link>
+          <button class="btn btn-primary btn-sm" @click="openCreateModal">
+            <i class="fas fa-plus mr-1"></i> Thêm dịch vụ
+          </button>
+        </div>
+      </div>
+
+      <div class="row mb-3 align-items-center">
+        <div class="col-lg-6 col-md-8 mb-2 mb-md-0">
+          <div class="input-group input-group-sm shadow-sm">
+            <div class="input-group-prepend">
+              <span class="input-group-text bg-white text-primary border-right-0">
+                <i class="fas fa-search"></i>
+              </span>
+            </div>
+            <input
+              v-model.trim="keyword"
+              type="text"
+              class="form-control border-left-0"
+              placeholder="Tìm theo mã, tên hoặc mô tả dịch vụ..."
+            />
+          </div>
+        </div>
+
+        <div class="col-lg-6 col-md-4 text-md-right">
+          <div class="small text-muted font-weight-bold">
+            Tổng: {{ filteredServices.length }} dịch vụ
+          </div>
+        </div>
+      </div>
+
+      <div v-if="loading" class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+          <i class="fas fa-spinner fa-spin fa-3x mb-3 d-block"></i>
+          Đang tải danh sách dịch vụ...
+        </div>
+      </div>
+
+      <div v-else-if="errorMessage" class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-danger">
+          <i class="fas fa-exclamation-circle fa-3x mb-3 d-block opacity-75"></i>
+          <p class="mb-3">{{ errorMessage }}</p>
+          <button class="btn btn-primary btn-sm" @click="loadServices">Tải lại</button>
+        </div>
+      </div>
+
+      <div v-else class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 service-table">
+            <thead class="bg-light">
+              <tr class="small text-secondary">
+                <th class="py-3 text-center col-image">Ảnh</th>
+                <th class="py-3 text-center col-code">Mã DV</th>
+                <th class="py-3 text-left col-name">Tên dịch vụ</th>
+                <th class="py-3 text-center col-category">Danh mục</th>
+                <th class="py-3 text-center col-price">Giá</th>
+                <th class="py-3 text-center col-status">Trạng thái</th>
+                <th class="py-3 text-center col-action">Thao tác</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-if="filteredServices.length === 0">
+                <td colspan="7" class="py-5 text-center text-muted">
+                  <i class="fas fa-folder-open fa-2x mb-3 d-block"></i>
+                  Không có dịch vụ phù hợp.
+                </td>
+              </tr>
+
+              <tr
+                v-for="service in filteredServices"
+                :key="service._id || service.id"
+              >
+                <td class="text-center">
+                  <img
+                    :src="getImageUrl(service.image)"
+                    :alt="service.name"
+                    class="service-thumb"
+                  />
+                </td>
+
+                <td class="text-center font-weight-bold text-primary">
+                  {{ service.serviceCode || "---" }}
+                </td>
+
+                <td class="text-left">
+                  <div class="service-name-cell">
+                    <strong class="text-dark">{{ service.name }}</strong>
+                    <small>{{ truncateText(service.description, 70) }}</small>
+                  </div>
+                </td>
+
+                <td class="text-center">
+                  <span class="soft-badge">
+                    {{ service.categoryId?.name || "---" }}
+                  </span>
+                </td>
+
+                <td class="text-center text-danger font-weight-bold">
+                  {{ formatCurrency(service.price) }}
+                </td>
+
+                <td class="text-center">
+                  <span class="status-badge" :class="getStatusClass(service.status)">
+                    {{ service.status }}
+                  </span>
+                </td>
+
+                <td class="text-center">
+                  <div class="d-flex justify-content-center flex-wrap">
+                    <button class="btn btn-sm btn-outline-warning mr-1 mb-1" @click="openEditModal(service)">
+                      <i class="fas fa-edit mr-1"></i>Sửa
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger mb-1" @click="handleDelete(service)">
+                      <i class="fas fa-trash mr-1"></i>Xóa
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div v-if="showModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.45);">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-header" :class="isEditMode ? 'modal-head-warning' : 'modal-head-primary'">
+              <h5 class="modal-title mb-0" :class="isEditMode ? 'text-dark' : 'text-white'">
+                <i class="fas mr-2" :class="isEditMode ? 'fa-edit' : 'fa-plus-circle'"></i>
+                {{ isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới" }}
+              </h5>
+              <button type="button" class="close" :class="isEditMode ? '' : 'text-white'" @click="closeModal">
+                <span>&times;</span>
+              </button>
             </div>
 
-            <div class="form-group">
-              <label>Giá dịch vụ</label>
-              <input
-                v-model.number="form.price"
-                type="number"
-                min="0"
-                required
-              />
-            </div>
+            <form class="modal-body form-modal-body" @submit.prevent="submitForm">
+              <div class="row">
+                <div class="col-md-7">
+                  <div class="form-group">
+                    <label class="form-label">Tên dịch vụ <span class="text-danger">*</span></label>
+                    <input v-model.trim="form.name" type="text" class="form-control custom-input" required />
+                  </div>
 
-            <div class="form-group">
-              <label>Danh mục dịch vụ</label>
-              <select v-model="form.categoryId" required>
-                <option value="">-- Chọn danh mục --</option>
-                <option
-                  v-for="category in categories"
-                  :key="category._id || category.id"
-                  :value="category._id || category.id"
-                >
-                  {{ category.name }}
-                </option>
-              </select>
-            </div>
+                  <div class="form-row">
+                    <div class="form-group col-md-6">
+                      <label class="form-label">Giá dịch vụ</label>
+                      <input
+                        v-model.number="form.price"
+                        type="number"
+                        min="0"
+                        class="form-control custom-input"
+                        required
+                      />
+                    </div>
 
-            <div class="form-group">
-              <label>Trạng thái</label>
-              <select v-model="form.status" required>
-                <option value="Đang hoạt động">Đang hoạt động</option>
-                <option value="Ngừng hoạt động">Ngừng hoạt động</option>
-              </select>
-            </div>
+                    <div class="form-group col-md-6">
+                      <label class="form-label">Danh mục dịch vụ</label>
+                      <select v-model="form.categoryId" class="form-control custom-input" required>
+                        <option value="">-- Chọn danh mục --</option>
+                        <option
+                          v-for="category in categories"
+                          :key="category._id || category.id"
+                          :value="category._id || category.id"
+                        >
+                          {{ category.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
 
-            <div class="form-group full-width">
-              <label>Mô tả</label>
-              <textarea
-                v-model.trim="form.description"
-                rows="4"
-                placeholder="Nhập mô tả dịch vụ..."
-              ></textarea>
-            </div>
+                  <div class="form-group">
+                    <label class="form-label">Trạng thái</label>
+                    <select v-model="form.status" class="form-control custom-input" required>
+                      <option value="Đang hoạt động">Đang hoạt động</option>
+                      <option value="Ngừng hoạt động">Ngừng hoạt động</option>
+                    </select>
+                  </div>
 
-            <div class="form-group full-width">
-              <label>
-                Hình ảnh
-                <span class="required-star">*</span>
-              </label>
-              <input type="file" accept="image/*" @change="handleFileChange" />
-              <small class="form-hint">
-                Khi thêm dịch vụ mới, bắt buộc phải chọn hình ảnh.
-              </small>
+                  <div class="form-group">
+                    <label class="form-label">Mô tả</label>
+                    <textarea
+                      v-model.trim="form.description"
+                      rows="4"
+                      class="form-control custom-input"
+                      placeholder="Nhập mô tả dịch vụ..."
+                    ></textarea>
+                  </div>
+                </div>
 
-              <div v-if="previewImage" class="preview-wrap">
-                <img :src="previewImage" alt="preview" class="preview-image" />
+                <div class="col-md-5">
+                  <label class="form-label">
+                    Hình ảnh <span class="text-danger">*</span>
+                  </label>
+
+                  <div class="image-preview-container mb-3">
+                    <div class="image-preview-box">
+                      <img
+                        v-if="previewImage"
+                        :src="previewImage"
+                        alt="preview"
+                        class="preview-image"
+                      />
+                      <div v-else class="text-muted text-center">
+                        <i class="fas fa-image fa-4x mb-2 opacity-25"></i>
+                        <p class="small mb-0">Chưa có ảnh dịch vụ</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="custom-file text-left">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      class="custom-file-input"
+                      id="serviceImage"
+                      @change="handleFileChange"
+                    />
+                    <label class="custom-file-label text-truncate" for="serviceImage">
+                      {{ selectedFile?.name || "Chọn ảnh dịch vụ..." }}
+                    </label>
+                  </div>
+
+                  <small class="form-hint d-block mt-2">
+                    Khi thêm dịch vụ mới, bắt buộc phải chọn hình ảnh.
+                  </small>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="closeModal">
-              Hủy
-            </button>
-            <button type="submit" class="btn-primary" :disabled="submitting">
-              {{
-                submitting
-                  ? "Đang lưu..."
-                  : isEditMode
-                  ? "Cập nhật"
-                  : "Tạo mới"
-              }}
-            </button>
+              <div class="modal-footer px-0 pb-0">
+                <button type="button" class="btn btn-secondary" @click="closeModal">
+                  Hủy
+                </button>
+                <button type="submit" class="btn btn-primary" :disabled="submitting">
+                  {{
+                    submitting
+                      ? "Đang lưu..."
+                      : isEditMode
+                      ? "Cập nhật"
+                      : "Tạo mới"
+                  }}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
+
+      <div v-if="showModal" class="modal-backdrop fade show"></div>
+
+      <transition name="fade">
+        <div v-if="successMessage" class="toast-success">
+          {{ successMessage }}
+        </div>
+      </transition>
     </div>
-
-    <transition name="fade">
-      <div v-if="successMessage" class="toast-success">
-        {{ successMessage }}
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -425,85 +510,47 @@ export default {
 </script>
 
 <style scoped>
-.service-admin-page {
-  padding: 24px;
-  background: #f8fafc;
-  min-height: 100vh;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.page-header h2 {
-  margin: 0 0 6px;
-  font-size: 28px;
-  color: #0f172a;
-}
-
-.page-header p {
-  margin: 0;
-  color: #64748b;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toolbar {
-  margin-bottom: 18px;
-}
-
-.search-input {
-  width: 100%;
-  max-width: 420px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid #dbe2ea;
-  padding: 0 14px;
-  outline: none;
-}
-
-.search-input:focus {
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
-}
-
-.table-card {
-  background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-}
-
 .service-table {
-  width: 100%;
-  border-collapse: collapse;
+  min-width: 1120px;
 }
 
 .service-table th,
 .service-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid #eef2f7;
-  text-align: left;
   vertical-align: middle;
+  font-size: 0.95rem;
 }
 
-.service-table th {
-  background: #f8fafc;
-  color: #334155;
-  font-size: 14px;
+.service-table thead th {
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.text-center {
-  text-align: center;
+.col-image {
+  width: 110px;
+}
+
+.col-code {
+  width: 120px;
+}
+
+.col-name {
+  width: 280px;
+}
+
+.col-category {
+  width: 180px;
+}
+
+.col-price {
+  width: 140px;
+}
+
+.col-status {
+  width: 160px;
+}
+
+.col-action {
+  width: 150px;
 }
 
 .service-thumb {
@@ -512,6 +559,7 @@ export default {
   object-fit: cover;
   border-radius: 12px;
   background: #f1f5f9;
+  border: 1px solid #e5e7eb;
 }
 
 .service-name-cell {
@@ -525,9 +573,18 @@ export default {
   line-height: 1.5;
 }
 
-.price {
-  font-weight: 700;
-  color: #dc2626;
+.soft-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge {
@@ -548,171 +605,68 @@ export default {
   color: #b91c1c;
 }
 
-.action-group {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
+.form-modal-body {
+  padding: 22px;
 }
 
-.btn-primary,
-.btn-secondary,
-.btn-edit,
-.btn-delete {
-  border: none;
-  cursor: pointer;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 10px;
+.form-label {
   font-weight: 700;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-}
-
-.btn-secondary {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.btn-edit {
-  background: #f59e0b;
-  color: #fff;
-}
-
-.btn-delete {
-  background: #ef4444;
-  color: #fff;
-}
-
-.state-box {
-  background: #fff;
-  border-radius: 18px;
-  padding: 46px 20px;
-  text-align: center;
-}
-
-.error-box {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.empty-row {
-  text-align: center;
-  color: #64748b;
-  padding: 28px 12px !important;
-}
-
-.spinner {
-  width: 42px;
-  height: 42px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  margin: 0 auto 14px;
-  animation: spin 0.8s linear infinite;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  padding: 16px;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: 760px;
-  background: #fff;
-  border-radius: 20px;
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid #eef2f7;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.btn-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: #f1f5f9;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.full-width {
-  grid-column: 1 / -1;
-}
-
-.form-group label {
-  display: block;
+  color: #212529;
   margin-bottom: 8px;
-  font-weight: 700;
-  color: #334155;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  border: 1px solid #dbe2ea;
+.custom-input {
+  border-radius: 10px;
+  min-height: 44px;
+  border: 1px solid #ced4da;
+  font-size: 0.94rem;
+}
+
+.custom-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+.modal-head-primary {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.modal-head-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.image-preview-container {
+  position: relative;
+}
+
+.image-preview-box {
+  height: 250px;
+  overflow: hidden;
+  border: 1px solid #dee2e6;
   border-radius: 12px;
-  padding: 12px 14px;
-  outline: none;
-}
-
-.preview-wrap {
-  margin-top: 10px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .preview-image {
-  width: 180px;
-  height: 130px;
   object-fit: cover;
-  border-radius: 12px;
+  width: 100%;
+  height: 100%;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.required-star {
-  color: #dc2626;
-  font-weight: 700;
+.custom-file-label::after {
+  content: "Chọn ảnh" !important;
+  background-color: #0d6efd;
+  color: white;
 }
 
 .form-hint {
   display: inline-block;
-  margin-top: 6px;
   color: #64748b;
   font-size: 13px;
 }
@@ -727,6 +681,7 @@ export default {
   border-radius: 12px;
   font-weight: 700;
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
+  z-index: 2000;
 }
 
 .fade-enter-active,
@@ -739,23 +694,9 @@ export default {
   opacity: 0;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 900px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 991.98px) {
   .service-table {
-    min-width: 900px;
-  }
-
-  .table-card {
-    overflow-x: auto;
+    min-width: 980px;
   }
 }
 </style>

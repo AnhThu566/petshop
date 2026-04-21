@@ -8,7 +8,7 @@
           Đặt cọc đón bé về nhà
         </h2>
         <p class="page-subtitle mb-0">
-          Kiểm tra thông tin bé chó và thanh toán khoản cọc qua ZaloPay để hệ thống tự xác nhận.
+          Kiểm tra thông tin bé chó và thanh toán khoản cọc qua ZaloPay để hệ thống ghi nhận giao dịch.
         </p>
       </div>
 
@@ -60,7 +60,7 @@
                       class="form-control"
                       v-model.trim="form.customerName"
                       placeholder="Nhập họ tên..."
-                      :disabled="isBusy"
+                      :disabled="isBusy || isPaidDeposit"
                       required
                     />
                   </div>
@@ -81,7 +81,7 @@
                       class="form-control"
                       v-model.trim="form.customerPhone"
                       placeholder="Nhập số điện thoại..."
-                      :disabled="isBusy"
+                      :disabled="isBusy || isPaidDeposit"
                       required
                     />
                   </div>
@@ -103,16 +103,14 @@
                     class="form-control"
                     v-model.trim="form.customerAddress"
                     placeholder="Nhập địa chỉ nhận bé..."
-                    :disabled="isBusy"
+                    :disabled="isBusy || isPaidDeposit"
                     required
                   />
                 </div>
               </div>
 
               <div class="form-group mb-4">
-                <label class="field-label">
-                  Phương thức thanh toán cọc
-                </label>
+                <label class="field-label">Phương thức thanh toán cọc</label>
 
                 <div class="payment-method-grid single-method">
                   <div class="payment-method-card active fixed-method">
@@ -122,7 +120,7 @@
                     <div class="method-content">
                       <div class="method-title">ZaloPay</div>
                       <div class="method-desc">
-                        Thanh toán cọc online, hệ thống tự xác nhận khi giao dịch thành công.
+                        Thanh toán cọc online, giao dịch thành công sẽ tự động ghi nhận đơn đã nhận cọc.
                       </div>
                     </div>
                   </div>
@@ -136,7 +134,7 @@
                   </div>
                   <div class="small text-muted line-height-17">
                     Sau khi bấm xác nhận, hệ thống sẽ tạo phiên thanh toán và chuyển bạn sang ZaloPay để hoàn tất giao dịch.
-                    Khi thanh toán thành công, đơn cọc sẽ được cập nhật tự động.
+                    Khi thanh toán thành công, đơn sẽ tự động chuyển sang trạng thái <strong>Đã nhận cọc</strong>.
                   </div>
                 </div>
               </div>
@@ -146,6 +144,11 @@
                 Bạn đang có một đơn đặt cọc ZaloPay chưa hoàn tất cho bé này. Hãy mở lại link thanh toán hoặc bấm kiểm tra trạng thái trước khi tạo đơn mới.
               </div>
 
+              <div v-if="isPaidDeposit" class="info-box success mb-4">
+                <i class="fas fa-check-circle mr-2"></i>
+                Đơn cọc của bạn đã được ghi nhận thành công. Bé này đã được giữ chỗ cho bạn.
+              </div>
+
               <div class="form-group mb-4">
                 <label class="field-label">Ghi chú thêm</label>
                 <textarea
@@ -153,7 +156,7 @@
                   v-model.trim="form.note"
                   rows="3"
                   placeholder="Lời nhắn thêm cho quản trị viên..."
-                  :disabled="isBusy"
+                  :disabled="isBusy || isPaidDeposit"
                 ></textarea>
               </div>
 
@@ -163,20 +166,21 @@
                 </div>
                 <ul class="policy-list mb-0">
                   <li>Yêu cầu đặt cọc chỉ được áp dụng cho bé đang mở bán và còn sẵn sàng giao dịch.</li>
-                  <li>Hệ thống chỉ hỗ trợ đặt cọc chó qua ZaloPay để tự động xác nhận thanh toán.</li>
+                  <li>Hệ thống chỉ hỗ trợ đặt cọc chó qua ZaloPay.</li>
                   <li>Nếu đã có một phiên thanh toán ZaloPay đang chờ, hệ thống sẽ không tạo thêm đơn mới.</li>
+                  <li>Khi thanh toán thành công, đơn sẽ tự động chuyển sang trạng thái đã nhận cọc.</li>
                   <li>Số tiền còn lại sẽ thanh toán khi hoàn tất bàn giao bé.</li>
                 </ul>
               </div>
 
-              <div v-if="!canSubmit" class="warning-box mb-4">
+              <div v-if="!canSubmit && !hasPendingOrder && !isPaidDeposit" class="warning-box mb-4">
                 <i class="fas fa-exclamation-circle mr-2"></i>
                 Bé chó này hiện không còn ở trạng thái sẵn sàng đặt cọc.
               </div>
 
               <div class="action-grid">
                 <button
-                  v-if="!hasPendingOrder"
+                  v-if="showCreateButton"
                   type="submit"
                   class="btn btn-main btn-lg btn-block font-weight-bold py-3 shadow-sm"
                   :disabled="isBusy || !canSubmit"
@@ -213,6 +217,29 @@
                     <i class="fas fa-sync-alt mr-2"></i> KIỂM TRA THANH TOÁN ZALOPAY
                   </span>
                 </button>
+
+                <button
+                  v-if="currentOrder && canCancelOrder"
+                  type="button"
+                  class="btn btn-outline-danger btn-lg btn-block font-weight-bold py-3 shadow-sm"
+                  :disabled="isBusy"
+                  @click="cancelDepositOrder"
+                >
+                  <span v-if="isCancelling">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Đang hủy...
+                  </span>
+                  <span v-else>
+                    <i class="fas fa-times-circle mr-2"></i> HỦY ĐƠN ĐẶT CỌC
+                  </span>
+                </button>
+
+                <router-link
+                  v-if="isPaidDeposit"
+                  to="/tra-cuu-don"
+                  class="btn btn-outline-main btn-lg btn-block font-weight-bold py-3 shadow-sm text-center"
+                >
+                  <i class="fas fa-clipboard-list mr-2"></i> XEM ĐƠN CỦA TÔI
+                </router-link>
               </div>
             </form>
           </div>
@@ -247,7 +274,7 @@
               >
                 <div class="status-title">Trạng thái đơn cọc</div>
                 <div class="status-value">
-                  {{ currentOrder.status }} - {{ currentOrder.paymentStatus }}
+                  {{ OrderService.getOrderDisplayText(currentOrder) }}
                 </div>
                 <div v-if="currentOrder.paymentMethod === 'ZaloPay'" class="payment-extra mt-2">
                   Phương thức: ZaloPay
@@ -297,7 +324,7 @@
                   Sau khi tạo đơn cọc, bạn sẽ được chuyển sang ZaloPay để thanh toán online.
                 </div>
 
-                <div v-if="lastPaymentUrl" class="mt-3 text-center">
+                <div v-if="lastPaymentUrl && hasPendingOrder" class="mt-3 text-center">
                   <a
                     :href="lastPaymentUrl"
                     target="_blank"
@@ -308,8 +335,12 @@
                   </a>
                 </div>
 
-                <div v-if="lastQrCode" class="mt-3 text-center qr-text">
+                <div v-if="lastQrCode && hasPendingOrder" class="mt-3 text-center qr-text">
                   Phiên thanh toán đã được tạo. Bạn có thể mở lại link thanh toán hoặc bấm kiểm tra trạng thái sau khi thanh toán xong.
+                </div>
+
+                <div v-if="isPaidDeposit" class="mt-3 text-center qr-text">
+                  Giao dịch cọc đã được ghi nhận thành công.
                 </div>
               </div>
 
@@ -349,6 +380,7 @@ export default {
 
   data() {
     return {
+      OrderService,
       dog: null,
       currentUser: null,
       currentOrder: null,
@@ -357,11 +389,11 @@ export default {
         customerName: "",
         customerPhone: "",
         customerAddress: "",
-        paymentMethod: "ZaloPay",
         note: "",
       },
       isSubmitting: false,
       isCheckingPayment: false,
+      isCancelling: false,
       statusMessage: "",
       statusMessageType: "info",
       lastPaymentUrl: "",
@@ -383,7 +415,6 @@ export default {
       }
 
       if (!this.dogPrice) return 0;
-
       return Math.round(this.dogPrice * 0.3);
     },
 
@@ -410,27 +441,39 @@ export default {
       return (
         this.dog.approvalStatus === "Đã duyệt" &&
         this.dog.saleStatus === "Sẵn sàng bán" &&
-        this.dog.isPublished
+        this.dog.isPublished === true
       );
     },
 
     isBusy() {
-      return this.isSubmitting || this.isCheckingPayment;
+      return this.isSubmitting || this.isCheckingPayment || this.isCancelling;
     },
 
     isPendingZaloPayOrder() {
       return OrderService.isPendingZaloPayPayment(this.currentOrder);
     },
 
+    isPaidDeposit() {
+      return OrderService.isPaidDeposit(this.currentOrder);
+    },
+
     hasPendingOrder() {
       return !!this.currentOrder && this.isPendingZaloPayOrder;
+    },
+
+    showCreateButton() {
+      return !this.hasPendingOrder && !this.isPaidDeposit;
+    },
+
+    canCancelOrder() {
+      return !!this.currentOrder && OrderService.canCustomerCancel(this.currentOrder);
     },
   },
 
   async created() {
     this.initCurrentUser();
     await this.loadDogData();
-    await this.tryRestoreLatestPendingOrder();
+    await this.restoreLatestOrderState();
   },
 
   methods: {
@@ -481,7 +524,7 @@ export default {
       }
     },
 
-    async tryRestoreLatestPendingOrder() {
+    async restoreLatestOrderState() {
       try {
         if (!this.currentUser || this.currentUser.role !== "customer") return;
 
@@ -496,15 +539,13 @@ export default {
 
           return (
             String(orderDogId) === String(currentDogId) &&
-            item.paymentMethod === "ZaloPay" &&
-            item.status === "Chờ xác nhận cọc" &&
-            item.paymentStatus === "Chờ thanh toán"
+            OrderService.isZaloPayOrder(item) &&
+            item.status !== "Đã hủy"
           );
         });
 
         if (matched) {
           this.currentOrder = matched;
-          this.form.paymentMethod = "ZaloPay";
           this.lastPaymentUrl =
             matched?.paymentUrl ||
             matched?.zalopayPaymentUrl ||
@@ -515,12 +556,20 @@ export default {
             matched?.zalopayQrCode ||
             "";
 
-          this.statusMessage =
-            "Bạn đang có một đơn cọc ZaloPay chưa hoàn tất. Hãy mở lại link thanh toán hoặc bấm kiểm tra trạng thái.";
-          this.statusMessageType = "warning";
+          if (OrderService.isPendingZaloPayPayment(matched)) {
+            this.showMessage(
+              "Bạn đang có một đơn cọc ZaloPay chưa hoàn tất. Hãy mở lại link thanh toán hoặc bấm kiểm tra trạng thái.",
+              "warning"
+            );
+          } else if (OrderService.isPaidDeposit(matched)) {
+            this.showMessage(
+              "Đơn cọc của bạn đã được ghi nhận thành công.",
+              "success"
+            );
+          }
         }
       } catch (error) {
-        console.error("Không thể khôi phục đơn ZaloPay đang chờ:", error);
+        console.error("Không thể khôi phục trạng thái đơn ZaloPay:", error);
       }
     },
 
@@ -535,11 +584,11 @@ export default {
     },
 
     getSaleStatusText(status) {
-      if (status === "Sẵn sàng bán") return "Sẵn sàng đặt cọc";
-      if (status === "Chờ thanh toán") return "Đang chờ xác nhận cọc";
-      if (status === "Đã đặt cọc") return "Đã được giữ chỗ";
-      if (status === "Đang giao") return "Đang bàn giao";
-      if (status === "Đã bán") return "Đã có chủ mới";
+      if (status === "Sẵn sàng bán") return "Còn nhận đặt cọc";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
       if (status === "Ngừng bán") return "Tạm ngừng mở bán";
       return "Chưa mở bán";
     },
@@ -558,9 +607,7 @@ export default {
 
       if (OrderService.isPaidDeposit(order)) return "status-ready";
       if (OrderService.isPendingZaloPayPayment(order)) return "status-hold";
-      if (order.status === "Đã hủy" || order.paymentStatus === "Thanh toán thất bại") {
-        return "status-stop";
-      }
+      if (OrderService.isFailedDeposit(order)) return "status-stop";
       return "status-hold";
     },
 
@@ -575,7 +622,6 @@ export default {
         customerPhone: this.form.customerPhone,
         customerAddress: this.form.customerAddress,
         note: this.form.note,
-        paymentMethod: "ZaloPay",
         dogId: this.dog._id || this.dog.id,
       };
     },
@@ -612,6 +658,11 @@ export default {
           "Bạn đang có một đơn ZaloPay chưa hoàn tất cho bé này. Hãy mở lại link cũ hoặc kiểm tra trạng thái trước.",
           "warning"
         );
+        return false;
+      }
+
+      if (this.isPaidDeposit) {
+        this.showMessage("Đơn cọc cho bé này đã được ghi nhận.", "warning");
         return false;
       }
 
@@ -690,6 +741,7 @@ export default {
         }
 
         await this.loadDogData();
+        await this.restoreLatestOrderState();
       } catch (error) {
         const message =
           error.response?.data?.message || error.message || "Có lỗi xảy ra.";
@@ -697,7 +749,7 @@ export default {
         this.showMessage(message, "error");
         alert("❌ Có lỗi xảy ra: " + message);
         await this.loadDogData();
-        await this.tryRestoreLatestPendingOrder();
+        await this.restoreLatestOrderState();
       } finally {
         this.isSubmitting = false;
       }
@@ -718,20 +770,17 @@ export default {
 
         if (OrderService.isPaidDeposit(this.currentOrder)) {
           this.showMessage(
-            "Thanh toán cọc ZaloPay đã thành công. Bé đã được giữ chỗ cho bạn.",
+            "Thanh toán cọc ZaloPay đã thành công. Đơn của bạn đã ở trạng thái Đã nhận cọc.",
             "success"
           );
           sessionStorage.removeItem("zalopay_pending_deposit_order");
           await this.loadDogData();
-          alert("🎉 Thanh toán cọc thành công! Bé đã được giữ chỗ cho bạn.");
+          alert("🎉 Thanh toán cọc thành công! Đơn của bạn đã được ghi nhận.");
           this.$router.push("/tra-cuu-don");
           return;
         }
 
-        if (
-          this.currentOrder?.status === "Đã hủy" ||
-          this.currentOrder?.paymentStatus === "Thanh toán thất bại"
-        ) {
+        if (OrderService.isFailedDeposit(this.currentOrder)) {
           this.showMessage(
             "Phiên thanh toán ZaloPay không thành công hoặc đã hết hạn. Bạn có thể tạo lại đơn mới nếu bé còn sẵn sàng bán.",
             "warning"
@@ -757,6 +806,39 @@ export default {
         alert("❌ " + message);
       } finally {
         this.isCheckingPayment = false;
+      }
+    },
+
+    async cancelDepositOrder() {
+      if (!this.currentOrder?._id && !this.currentOrder?.id) {
+        this.showMessage("Không tìm thấy đơn để hủy.", "warning");
+        return;
+      }
+
+      if (!confirm("Bạn có chắc muốn hủy đơn đặt cọc này không?")) return;
+
+      this.isCancelling = true;
+
+      try {
+        const orderId = this.currentOrder._id || this.currentOrder.id;
+        const response = await OrderService.cancelByCustomer(orderId);
+
+        this.currentOrder = response?.order || null;
+        this.lastPaymentUrl = "";
+        this.lastQrCode = "";
+        sessionStorage.removeItem("zalopay_pending_deposit_order");
+
+        this.showMessage("Hủy đơn đặt cọc thành công.", "success");
+        await this.loadDogData();
+        await this.restoreLatestOrderState();
+      } catch (error) {
+        const message =
+          error.response?.data?.message || error.message || "Không thể hủy đơn đặt cọc.";
+
+        this.showMessage(message, "error");
+        alert("❌ " + message);
+      } finally {
+        this.isCancelling = false;
       }
     },
   },

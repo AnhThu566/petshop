@@ -1,25 +1,37 @@
 <template>
-  <div class="p-2">
-    <h4 class="mb-4 text-dark font-weight-bold">
-      <i class="fas fa-house-user text-success"></i> QUẢN LÝ DANH MỤC TRẠI CHÓ
-    </h4>
+  <div class="farm-page bg-light py-3">
+    <div class="w-100 px-2">
+      <div class="page-header mb-4">
+        <div>
+          <h4 class="page-title">
+            <i class="fas fa-house-user text-success mr-2"></i>
+            QUẢN LÝ DANH MỤC TRẠI CHÓ
+          </h4>
+          <p class="page-subtitle mb-0">
+            Quản lý hồ sơ trại cung cấp chó, tài khoản chủ trại và trạng thái hợp tác.
+          </p>
+        </div>
+      </div>
 
-    <div v-if="isFormOpen">
-      <FarmForm
-        :farmData="editingFarm"
-        :users="allUsers"
-        @save="handleSave"
-        @cancel="isFormOpen = false"
-      />
-    </div>
+      <transition name="fade-slide" mode="out-in">
+        <div v-if="isFormOpen" key="form-view">
+          <FarmForm
+            :farmData="editingFarm"
+            :users="allUsers"
+            @save="handleSave"
+            @cancel="closeForm"
+          />
+        </div>
 
-    <div v-else>
-      <FarmList
-        :farms="allFarms"
-        @show-form="openAddForm"
-        @edit="openEditForm"
-        @delete="handleDeleteFarm"
-      />
+        <div v-else key="list-view">
+          <FarmList
+            :farms="allFarms"
+            @show-form="openAddForm"
+            @edit="openEditForm"
+            @delete="handleDeleteFarm"
+          />
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -53,7 +65,11 @@ export default {
       try {
         this.allFarms = await FarmService.getAll();
       } catch (error) {
-        console.log("Lỗi khi lấy danh sách trại chó:", error);
+        console.error("Lỗi khi lấy danh sách trại chó:", error);
+        alert(
+          "❌ Không thể tải danh sách trại chó: " +
+            (error.response?.data?.message || error.message)
+        );
       }
     },
 
@@ -108,6 +124,11 @@ export default {
       this.isFormOpen = true;
     },
 
+    closeForm() {
+      this.isFormOpen = false;
+      this.editingFarm = null;
+    },
+
     async handleSave(formData) {
       try {
         const id = formData.get("_id");
@@ -116,14 +137,11 @@ export default {
           await FarmService.update(id, formData);
           alert("✅ Cập nhật thông tin trại thành công!");
         } else {
-          // Luồng hiện tại: admin tạo tài khoản farm kèm hồ sơ trại
           await AuthService.registerFarm(formData);
           alert("🎉 Đã thêm tài khoản và hồ sơ trại mới thành công!");
         }
 
-        this.isFormOpen = false;
-        this.editingFarm = null;
-
+        this.closeForm();
         await Promise.all([this.retrieveFarms(), this.retrieveUsers()]);
       } catch (error) {
         const errorMessage = error.response?.data?.message || error.message;
@@ -139,7 +157,8 @@ export default {
           await this.retrieveFarms();
         } catch (error) {
           const errorMessage =
-            error.response?.data?.message || "Lỗi hệ thống không xác định khi xóa!";
+            error.response?.data?.message ||
+            "Lỗi hệ thống không xác định khi xóa!";
           alert("❌ LỖI: " + errorMessage);
         }
       }
@@ -152,3 +171,53 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.farm-page {
+  min-height: 100%;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 1.35rem;
+}
+
+.page-subtitle {
+  color: #6b7280;
+  font-size: 0.94rem;
+  font-weight: 500;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+@media (max-width: 991.98px) {
+  .page-title {
+    font-size: 1.15rem;
+  }
+}
+</style>

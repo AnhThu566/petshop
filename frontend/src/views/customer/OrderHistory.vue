@@ -20,7 +20,7 @@
               <input
                 type="text"
                 v-model.trim="searchText"
-                placeholder="Tìm theo mã đơn hoặc tên bé chó"
+                placeholder="Tìm theo mã đơn, tên bé chó hoặc trạng thái"
               />
             </div>
 
@@ -44,7 +44,7 @@
               :class="{ active: statusFilter === 'Chờ xác nhận cọc' }"
               @click="statusFilter = 'Chờ xác nhận cọc'"
             >
-              Chờ xác nhận
+              Chờ thanh toán
             </button>
 
             <button
@@ -76,7 +76,7 @@
               :class="{ active: statusFilter === 'Đã hủy' }"
               @click="statusFilter = 'Đã hủy'"
             >
-              Đã hủy / Thất bại
+              Đã hủy
             </button>
           </div>
 
@@ -138,7 +138,7 @@
 
                     <td class="td-center">
                       <span class="order-badge" :class="getStatusClass(order.status)">
-                        {{ getOrderStatusText(order.status) }}
+                        {{ getOrderStatusText(order) }}
                       </span>
                     </td>
 
@@ -217,7 +217,7 @@
                   </div>
                   <div class="detail-row">
                     <span>Trạng thái đơn</span>
-                    <strong>{{ getOrderStatusText(selectedOrder.status) }}</strong>
+                    <strong>{{ getOrderStatusText(selectedOrder) }}</strong>
                   </div>
                   <div class="detail-row">
                     <span>Thanh toán</span>
@@ -330,6 +330,7 @@ export default {
 
   data() {
     return {
+      OrderService,
       orders: [],
       currentUser: null,
       searchText: "",
@@ -346,12 +347,14 @@ export default {
 
         const dogName = order.dogId?.name ? order.dogId.name.toLowerCase() : "";
         const shortCode = this.getShortOrderCode(this.getOrderId(order)).toLowerCase();
-        const paymentStatus = (order.paymentStatus || "").toLowerCase();
+        const orderStatus = this.getOrderStatusText(order).toLowerCase();
+        const paymentStatus = this.getPaymentStatusText(order.paymentStatus).toLowerCase();
 
         const matchSearch =
           !keyword ||
           dogName.includes(keyword) ||
           shortCode.includes(keyword) ||
+          orderStatus.includes(keyword) ||
           paymentStatus.includes(keyword);
 
         const matchStatus =
@@ -435,13 +438,9 @@ export default {
       return "Chưa mở bán";
     },
 
-    getOrderStatusText(status) {
-      if (status === "Chờ xác nhận cọc") return "Chờ xác nhận";
-      if (status === "Đã nhận cọc") return "Đã nhận cọc";
-      if (status === "Đang giao") return "Đang giao";
-      if (status === "Hoàn thành") return "Hoàn thành";
-      if (status === "Đã hủy") return "Đã hủy";
-      return status || "---";
+    getOrderStatusText(order) {
+      if (!order) return "---";
+      return OrderService.getOrderDisplayText(order);
     },
 
     getPaymentStatusText(status) {
@@ -449,9 +448,6 @@ export default {
       if (status === "Đã xác nhận") return "Đã xác nhận";
       if (status === "Đã hoàn tất") return "Đã hoàn tất";
       if (status === "Thanh toán thất bại") return "Thanh toán thất bại";
-      if (status === "Đã hủy xác nhận") return "Đã hủy";
-      if (status === "Đã hủy") return "Đã hủy";
-      if (status === "Chưa thanh toán") return "Chưa thanh toán";
       return status || "---";
     },
 
@@ -469,8 +465,6 @@ export default {
       if (status === "Đã xác nhận") return "payment-confirmed";
       if (status === "Đã hoàn tất") return "payment-completed";
       if (status === "Thanh toán thất bại") return "payment-cancelled";
-      if (status === "Đã hủy" || status === "Đã hủy xác nhận") return "payment-cancelled";
-      if (status === "Chưa thanh toán") return "payment-default";
       return "payment-default";
     },
 

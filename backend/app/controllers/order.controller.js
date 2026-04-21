@@ -204,8 +204,8 @@ const markOrderPaidByZaloPay = async ({
   const oldPaymentStatus = order.paymentStatus;
   const oldDogSaleStatus = dog.saleStatus;
 
-  // Giống luồng phụ kiện: đã thanh toán nhưng vẫn chờ admin xử lý tiếp
-  order.status = "Chờ xác nhận cọc";
+  // Thanh toán thành công => đơn tự động chuyển sang Đã nhận cọc
+  order.status = "Đã nhận cọc";
   order.paymentStatus = "Đã xác nhận";
   order.paymentMethod = "ZaloPay";
   order.paymentProvider = "ZALOPAY";
@@ -226,7 +226,7 @@ const markOrderPaidByZaloPay = async ({
     oldPaymentStatus,
     newPaymentStatus: order.paymentStatus,
     req: reqLike,
-    note: "ZaloPay xác nhận thanh toán cọc thành công",
+    note: "ZaloPay xác nhận thanh toán cọc thành công, đơn tự động chuyển sang Đã nhận cọc",
   });
 
   if (oldDogSaleStatus !== dog.saleStatus) {
@@ -235,7 +235,7 @@ const markOrderPaidByZaloPay = async ({
       oldStatus: oldDogSaleStatus,
       newStatus: dog.saleStatus,
       req: reqLike,
-      note: "Đồng bộ trạng thái chó sau khi ZaloPay thanh toán thành công",
+      note: "Đồng bộ trạng thái chó sang Đã đặt cọc sau khi ZaloPay thanh toán thành công",
     });
   }
 };
@@ -324,8 +324,6 @@ exports.createDepositZaloPay = async (req, res, next) => {
       );
     }
 
-    // Nếu đã có đơn pending của chính khách thì trả lại đơn cũ
-    // Nếu đã có người khác đặt trước thì chặn
     const existingOrders = await Order.find({
       dogId,
       status: { $in: ACTIVE_ORDER_STATUSES },

@@ -1,14 +1,11 @@
 const mongoose = require("mongoose");
 
-const ORDER_PAYMENT_METHODS = ["Chuyển khoản", "Tiền mặt", "ZaloPay"];
+const ORDER_PAYMENT_METHODS = ["ZaloPay"];
 
 const ORDER_PAYMENT_STATUSES = [
-  "Chưa thanh toán",
   "Chờ thanh toán",
-  "Đã gửi minh chứng",
   "Đã xác nhận",
   "Đã hoàn tất",
-  "Đã hủy xác nhận",
   "Thanh toán thất bại",
 ];
 
@@ -89,14 +86,14 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       enum: ORDER_PAYMENT_METHODS,
-      default: "Chuyển khoản",
+      default: "ZaloPay",
       index: true,
     },
 
     paymentProvider: {
       type: String,
-      enum: ["", "ZALOPAY"],
-      default: "",
+      enum: ["ZALOPAY"],
+      default: "ZALOPAY",
       trim: true,
       index: true,
     },
@@ -127,16 +124,10 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
 
-    paymentProof: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
     paymentStatus: {
       type: String,
       enum: ORDER_PAYMENT_STATUSES,
-      default: "Chưa thanh toán",
+      default: "Chờ thanh toán",
       index: true,
     },
 
@@ -183,38 +174,42 @@ orderSchema.pre("validate", function () {
   this.customerPhone = String(this.customerPhone || "").trim();
   this.customerAddress = String(this.customerAddress || "").trim();
   this.note = String(this.note || "").trim();
-  this.paymentProvider = String(this.paymentProvider || "").trim();
+  this.paymentMethod = "ZaloPay";
+  this.paymentProvider = "ZALOPAY";
   this.paymentProviderOrderId = String(this.paymentProviderOrderId || "").trim();
   this.paymentTransactionId = String(this.paymentTransactionId || "").trim();
   this.paymentUrl = String(this.paymentUrl || "").trim();
   this.qrCode = String(this.qrCode || "").trim();
-  this.paymentProof = String(this.paymentProof || "").trim();
 
-  if (
-    this.paymentMethod === "Chuyển khoản" &&
-    this.paymentStatus === "Đã gửi minh chứng" &&
-    !this.paymentProof
-  ) {
-    throw new Error("Đơn chuyển khoản phải có minh chứng thanh toán");
+  if (!ORDER_PAYMENT_STATUSES.includes(this.paymentStatus)) {
+    throw new Error("Trạng thái thanh toán không hợp lệ");
   }
 
-  if (this.paymentMethod === "ZaloPay") {
-    this.paymentProvider = "ZALOPAY";
+  if (!ORDER_STATUSES.includes(this.status)) {
+    throw new Error("Trạng thái đơn hàng không hợp lệ");
+  }
 
-    if (
-      this.paymentStatus === "Đã xác nhận" ||
-      this.paymentStatus === "Đã hoàn tất"
-    ) {
-      if (!this.paymentProviderOrderId) {
-        throw new Error("Đơn ZaloPay thiếu mã giao dịch app_trans_id");
-      }
-    }
-  } else {
-    this.paymentProvider = "";
-    this.paymentProviderOrderId = "";
-    this.paymentTransactionId = "";
-    this.paymentUrl = "";
-    this.qrCode = "";
+  if (
+    ["Đã xác nhận", "Đã hoàn tất"].includes(this.paymentStatus) &&
+    !this.paymentProviderOrderId
+  ) {
+    throw new Error("Đơn ZaloPay thiếu mã giao dịch app_trans_id");
+  }
+
+  if (this.status === "Đã nhận cọc" && this.paymentStatus !== "Đã xác nhận") {
+    throw new Error("Đơn chỉ được ở trạng thái 'Đã nhận cọc' khi cọc đã được xác nhận");
+  }
+
+  if (this.status === "Đang giao" && this.paymentStatus !== "Đã xác nhận") {
+    throw new Error("Đơn chỉ được giao khi khoản cọc đã được xác nhận");
+  }
+
+  if (this.status === "Hoàn thành" && this.paymentStatus !== "Đã hoàn tất") {
+    this.paymentStatus = "Đã hoàn tất";
+  }
+
+  if (this.status === "Đã hủy" && this.paymentStatus === "Chờ thanh toán") {
+    this.paymentStatus = "Thanh toán thất bại";
   }
 });
 
