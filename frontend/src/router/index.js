@@ -137,17 +137,7 @@ const routes = [
   component: () => import("@/views/customer/DogByBreed.vue"),
   props: true,
 },
-{
-  path: "/dogs/farms",
-  name: "dog-farms",
-  component: () => import("@/views/customer/DogFarmList.vue"),
-},
-{
-  path: "/dogs/farms/:id",
-  name: "dogs-by-farm",
-  component: () => import("@/views/customer/DogByFarm.vue"),
-  props: true,
-},
+
 {
   path: "/accessory-checkout",
   name: "AccessoryCheckout",
@@ -310,6 +300,9 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior() {
+    return { top: 0, left: 0, behavior: "smooth" };
+  },
 });
 
 const normalizeRole = (role) => String(role || "").toLowerCase();

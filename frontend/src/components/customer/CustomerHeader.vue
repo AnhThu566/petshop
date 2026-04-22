@@ -5,9 +5,9 @@
         <div class="top-inner">
           <router-link to="/" class="brand-logo text-decoration-none">
             <div class="brand-logo-box">
-              <div class="brand-logo-icon">
-                <i class="fas fa-paw"></i>
-              </div>
+<div class="brand-logo-icon">
+  <img src="/logo-ct550.png" alt="Logo" class="brand-logo-image" />
+</div>
               <div class="brand-logo-content">
                 <div class="brand-logo-text">PETSHOP</div>
                 <div class="brand-logo-sub">Chó cảnh • Phụ kiện • Dịch vụ</div>
@@ -280,9 +280,43 @@
               </div>
             </div>
 
-            <router-link to="/services" class="bottom-menu-item text-decoration-none">
-              Dịch vụ
-            </router-link>
+<div
+  class="menu-dropdown service-menu-dropdown"
+  @mouseenter="openServiceMenu"
+  @mouseleave="closeServiceMenu"
+>
+  <router-link
+    to="/services"
+    class="bottom-menu-item text-decoration-none dropdown-toggle-link"
+    :class="{ active: isServiceMenuActive }"
+    @click="closeAllDropdowns"
+  >
+    Dịch vụ
+    <i class="fas fa-chevron-down menu-caret ml-2"></i>
+  </router-link>
+
+  <div
+    class="menu-dropdown-panel service-dropdown-panel shadow"
+    :class="{ 'show-dropdown': isServiceMenuOpen }"
+  >
+    <router-link
+      v-for="category in serviceCategories"
+      :key="category._id || category.id"
+      :to="`/services?category=${category._id || category.id}`"
+      class="menu-dropdown-item service-dropdown-item text-decoration-none"
+      @click="closeAllDropdowns"
+    >
+      {{ category.name }}
+    </router-link>
+
+    <div
+      v-if="!serviceCategories.length"
+      class="menu-dropdown-item service-dropdown-item empty-dropdown-item"
+    >
+      Chưa có loại dịch vụ
+    </div>
+  </div>
+</div>
 
             <router-link to="/tra-cuu-don" class="bottom-menu-item text-decoration-none">
               Đơn hàng của tôi
@@ -302,6 +336,7 @@
 
 <script>
 import AccessoryCategoryService from "@/services/accessoryCategory.service";
+import ServiceCategoryService from "@/services/serviceCategory.service";
 import BreedService from "@/services/breed.service";
 import CartService from "@/services/cart.service";
 
@@ -320,17 +355,15 @@ export default {
   },
 
   data() {
-    return {
-      isUserDropdownOpen: false,
-      isDogMenuOpen: false,
-      isAccessoryMenuOpen: false,
-      isSearchSuggestOpen: false,
-      accessoryCategories: [],
-      breedMenuList: [],
-      cartCount: 0,
-      localUser: null,
-      baseImageUrl: "http://localhost:3000",
-      searchKeyword: "",
+return {
+  isUserDropdownOpen: false,
+  isDogMenuOpen: false,
+  isAccessoryMenuOpen: false,
+  isServiceMenuOpen: false,
+  isSearchSuggestOpen: false,
+  accessoryCategories: [],
+  serviceCategories: [],
+  breedMenuList: [],
     };
   },
 
@@ -368,6 +401,11 @@ export default {
       return path.startsWith("/accessories") || path.startsWith("/accessory/");
     },
 
+    isServiceMenuActive() {
+  const path = this.$route.path || "";
+  return path.startsWith("/services") || path.startsWith("/service/");
+},
+
     searchSuggestions() {
       const breedItems = this.breedMenuList.map((breed) => ({
         key: `breed-${breed._id || breed.id}`,
@@ -378,14 +416,14 @@ export default {
         id: breed._id || breed.id,
       }));
 
-      const accessoryItems = this.accessoryCategories.map((category) => ({
-        key: `accessory-${category._id || category.id}`,
-        type: "accessory-category",
-        label: category.name,
-        group: "Loại phụ kiện",
-        icon: "fas fa-box",
-        id: category._id || category.id,
-      }));
+const serviceItems = this.serviceCategories.map((category) => ({
+  key: `service-${category._id || category.id}`,
+  type: "service-category",
+  label: category.name,
+  group: "Loại dịch vụ",
+  icon: "fas fa-concierge-bell",
+  id: category._id || category.id,
+}));
 
       const fixedItems = [
         {
@@ -406,7 +444,7 @@ export default {
         },
       ];
 
-      return [...breedItems, ...accessoryItems, ...fixedItems];
+return [...breedItems, ...accessoryItems, ...serviceItems, ...fixedItems];
     },
 
     filteredSearchSuggestions() {
@@ -499,18 +537,18 @@ export default {
         return;
       }
 
-      const matchedAccessoryCategory = this.accessoryCategories.find((category) =>
-        this.normalizeText(category.name).includes(normalizedKeyword)
-      );
+const matchedServiceCategory = this.serviceCategories.find((category) =>
+  this.normalizeText(category.name).includes(normalizedKeyword)
+);
 
-      if (matchedAccessoryCategory) {
-        this.isSearchSuggestOpen = false;
-        this.searchKeyword = "";
-        this.$router.push(
-          `/accessories?category=${matchedAccessoryCategory._id || matchedAccessoryCategory.id}`
-        );
-        return;
-      }
+if (matchedServiceCategory) {
+  this.isSearchSuggestOpen = false;
+  this.searchKeyword = "";
+  this.$router.push(
+    `/services?category=${matchedServiceCategory._id || matchedServiceCategory.id}`
+  );
+  return;
+}
 
       this.isSearchSuggestOpen = false;
 
@@ -542,11 +580,18 @@ export default {
         this.$router.push(`/accessories?category=${item.id}`);
         return;
       }
+      if (item.type === "service-category") {
+  this.$router.push(`/services?category=${item.id}`);
+  return;
+}
 
       if (item.type === "page" && item.path) {
         this.$router.push(item.path);
       }
+
     },
+
+    
 
     async fetchAccessoryCategories() {
       try {
@@ -565,6 +610,24 @@ export default {
         this.accessoryCategories = [];
       }
     },
+
+    async fetchServiceCategories() {
+  try {
+    const data = await ServiceCategoryService.getAll();
+    this.serviceCategories = Array.isArray(data)
+      ? data.filter(
+          (item) =>
+            item &&
+            (item._id || item.id) &&
+            item.name &&
+            (!item.status || item.status === "Hoạt động")
+        )
+      : [];
+  } catch (error) {
+    console.error("Lỗi tải loại dịch vụ:", error);
+    this.serviceCategories = [];
+  }
+},
 
     async fetchBreedMenu() {
       try {
@@ -607,12 +670,13 @@ export default {
       }
     },
 
-    closeAllDropdowns() {
-      this.isUserDropdownOpen = false;
-      this.isDogMenuOpen = false;
-      this.isAccessoryMenuOpen = false;
-      this.isSearchSuggestOpen = false;
-    },
+closeAllDropdowns() {
+  this.isUserDropdownOpen = false;
+  this.isDogMenuOpen = false;
+  this.isAccessoryMenuOpen = false;
+  this.isServiceMenuOpen = false;
+  this.isSearchSuggestOpen = false;
+},
 
     toggleUserDropdown() {
       this.isDogMenuOpen = false;
@@ -675,16 +739,26 @@ export default {
 
       this.closeAllDropdowns();
     },
+    openServiceMenu() {
+  this.isServiceMenuOpen = true;
+  this.isDogMenuOpen = false;
+  this.isAccessoryMenuOpen = false;
+},
+
+closeServiceMenu() {
+  this.isServiceMenuOpen = false;
+},
   },
 
   async mounted() {
     this.syncUserFromStorage();
 
-    await Promise.all([
-      this.fetchAccessoryCategories(),
-      this.fetchBreedMenu(),
-      this.fetchCartCount(),
-    ]);
+await Promise.all([
+  this.fetchAccessoryCategories(),
+  this.fetchServiceCategories(),
+  this.fetchBreedMenu(),
+  this.fetchCartCount(),
+]);
 
     window.addEventListener("cart-updated", this.fetchCartCount);
     window.addEventListener("auth-changed", this.fetchCartCount);
@@ -1220,6 +1294,45 @@ export default {
   transition: all 0.2s ease;
 }
 
+.service-dropdown-panel {
+  min-width: 420px;
+  max-width: min(1100px, calc(100vw - 40px));
+  padding: 16px 18px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  border-radius: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: #cdb7ea #f7f0fd;
+}
+
+.service-dropdown-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #4b3a60;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  white-space: nowrap;
+  background: #faf6ff;
+  border: 1px solid #eadcf6;
+  transition: all 0.2s ease;
+}
+
+.service-dropdown-item:hover {
+  background: #f3e8ff;
+  color: #6f42a4;
+  border-color: #d9c2f3;
+}
+
 .accessory-dropdown-item:hover {
   background: #f3e8ff;
   color: #6f42a4;
@@ -1238,24 +1351,28 @@ export default {
 }
 
 .breed-dropdown-panel::-webkit-scrollbar,
-.accessory-dropdown-panel::-webkit-scrollbar {
+.accessory-dropdown-panel::-webkit-scrollbar,
+.service-dropdown-panel::-webkit-scrollbar {
   height: 8px;
 }
 
 .breed-dropdown-panel::-webkit-scrollbar-track,
-.accessory-dropdown-panel::-webkit-scrollbar-track {
+.accessory-dropdown-panel::-webkit-scrollbar-track,
+.service-dropdown-panel::-webkit-scrollbar-track {
   background: #f7f0fd;
   border-radius: 999px;
 }
 
 .breed-dropdown-panel::-webkit-scrollbar-thumb,
-.accessory-dropdown-panel::-webkit-scrollbar-thumb {
+.accessory-dropdown-panel::-webkit-scrollbar-thumb,
+.service-dropdown-panel::-webkit-scrollbar-thumb {
   background: #cdb7ea;
   border-radius: 999px;
 }
 
 .breed-dropdown-panel::-webkit-scrollbar-thumb:hover,
-.accessory-dropdown-panel::-webkit-scrollbar-thumb:hover {
+.accessory-dropdown-panel::-webkit-scrollbar-thumb:hover,
+.service-dropdown-panel::-webkit-scrollbar-thumb:hover {
   background: #b795df;
 }
 
@@ -1384,26 +1501,35 @@ export default {
     transform: none;
   }
 
-  .breed-dropdown-panel,
-  .accessory-dropdown-panel {
-    min-width: 280px;
-    max-width: calc(100vw - 24px);
-    width: max-content;
-    padding: 12px 14px;
-    gap: 10px;
-  }
+.breed-dropdown-panel,
+.accessory-dropdown-panel,
+.service-dropdown-panel {
+  min-width: 280px;
+  max-width: calc(100vw - 24px);
+  width: max-content;
+  padding: 12px 14px;
+  gap: 10px;
+}
 
-  .breed-dropdown-item,
-  .accessory-dropdown-item {
-    min-height: 38px;
-    padding: 0 14px;
-    font-size: 0.88rem;
-  }
+.breed-dropdown-item,
+.accessory-dropdown-item,
+.service-dropdown-item {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.88rem;
+}
 
   .bottom-menu-item.router-link-active::after,
   .bottom-menu-item:hover::after,
   .bottom-menu-item.active::after {
     bottom: -6px;
   }
+}
+
+.brand-logo-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
 }
 </style>

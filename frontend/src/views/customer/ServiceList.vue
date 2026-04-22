@@ -8,49 +8,10 @@
         </p>
       </div>
 
-      <div v-if="categories.length" class="filter-bar">
-        <button
-          type="button"
-          class="filter-chip"
-          :class="{ active: !selectedCategoryId }"
-          @click="selectCategory('')"
-        >
-          Tất cả
-        </button>
-
-        <button
-          v-for="cat in categories"
-          :key="cat._id || cat.id"
-          type="button"
-          class="filter-chip"
-          :class="{ active: String(selectedCategoryId) === String(cat._id || cat.id) }"
-          @click="selectCategory(cat._id || cat.id)"
-        >
-          {{ cat.name }}
-        </button>
-      </div>
-
-      <div class="toolbar-card">
-        <div class="toolbar">
-          <div class="search-box">
-            <span class="search-icon">
-              <i class="fas fa-search"></i>
-            </span>
-            <input
-              v-model.trim="keyword"
-              type="text"
-              placeholder="Tìm theo tên dịch vụ..."
-            />
-          </div>
-
-          <router-link
-            v-if="isCustomer"
-            to="/service-bookings"
-            class="btn-history"
-          >
-            Lịch sử đặt dịch vụ
-          </router-link>
-        </div>
+      <div class="page-action-bar" v-if="isCustomer">
+        <router-link to="/service-bookings" class="btn-history">
+          Lịch sử đặt dịch vụ
+        </router-link>
       </div>
 
       <div v-if="loading" class="empty-panel">
@@ -64,24 +25,15 @@
         <button class="reset-filter-btn" @click="loadServices">Tải lại</button>
       </div>
 
-      <div v-else-if="filteredServices.length === 0" class="empty-panel">
+      <div v-else-if="services.length === 0" class="empty-panel">
         <i class="fas fa-concierge-bell empty-icon"></i>
-        <p>Hiện chưa có dịch vụ phù hợp để hiển thị</p>
-
-        <button
-          v-if="selectedCategoryId || keyword"
-          type="button"
-          class="reset-filter-btn"
-          @click="resetFilters"
-        >
-          Xem tất cả dịch vụ
-        </button>
+        <p>Hiện chưa có dịch vụ để hiển thị</p>
       </div>
 
       <div v-else class="service-grid">
         <div
           class="service-col"
-          v-for="service in filteredServices"
+          v-for="service in services"
           :key="service._id || service.id"
         >
           <div class="service-card">
@@ -114,6 +66,14 @@
                 </div>
               </div>
 
+              <div class="service-status-note">
+                {{
+                  service.status === "Đang hoạt động"
+                    ? "Có thể đặt lịch ngay"
+                    : "Dịch vụ hiện tạm ngừng"
+                }}
+              </div>
+
               <div class="card-actions">
                 <button
                   class="detail-btn"
@@ -142,45 +102,19 @@
 
 <script>
 import ServiceService from "@/services/service.service";
-import ServiceCategoryService from "@/services/serviceCategory.service";
 
 export default {
   name: "ServiceList",
   data() {
     return {
       services: [],
-      categories: [],
       loading: false,
       errorMessage: "",
-      keyword: "",
-      selectedCategoryId: "",
       baseImageUrl: "http://localhost:3000",
       fallbackImage: "https://via.placeholder.com/600x400?text=Service",
     };
   },
   computed: {
-    filteredServices() {
-      const keyword = this.keyword.toLowerCase().trim();
-
-      return this.services.filter((service) => {
-        const serviceCategoryId =
-          service.categoryId?._id || service.categoryId?.id || service.categoryId || "";
-
-        const matchCategory =
-          !this.selectedCategoryId ||
-          String(serviceCategoryId) === String(this.selectedCategoryId);
-
-        const name = String(service.name || "").toLowerCase();
-        const category = String(service.categoryId?.name || "").toLowerCase();
-
-        const matchKeyword =
-          !keyword ||
-          name.includes(keyword) ||
-          category.includes(keyword);
-
-        return matchCategory && matchKeyword;
-      });
-    },
     isCustomer() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       return user?.role === "customer";
@@ -202,33 +136,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    async loadCategories() {
-      try {
-        const data = await ServiceCategoryService.getAll();
-        this.categories = Array.isArray(data)
-          ? data.filter(
-              (item) =>
-                item &&
-                (item._id || item.id) &&
-                item.name &&
-                (!item.status || item.status === "Hoạt động")
-            )
-          : [];
-      } catch (error) {
-        console.error("Lỗi loadCategories:", error);
-        this.categories = [];
-      }
-    },
-
-    selectCategory(categoryId = "") {
-      this.selectedCategoryId = categoryId;
-    },
-
-    resetFilters() {
-      this.keyword = "";
-      this.selectedCategoryId = "";
     },
 
     goToDetail(service) {
@@ -254,7 +161,7 @@ export default {
     },
   },
   async mounted() {
-    await Promise.all([this.loadServices(), this.loadCategories()]);
+    await this.loadServices();
   },
 };
 </script>
@@ -274,11 +181,11 @@ export default {
 }
 
 .page-head {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .page-title {
-  color: #2f1b44;
+  color: #5a2d91;
   font-size: 2.05rem;
   font-weight: 900;
   margin-bottom: 8px;
@@ -291,83 +198,10 @@ export default {
   font-weight: 500;
 }
 
-.filter-bar {
+.page-action-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   justify-content: center;
-  margin: 18px 0 22px;
-}
-
-.filter-chip {
-  border: 1px solid #ddc8f0;
-  background: #ffffff;
-  color: #7b2fc0;
-  border-radius: 999px;
-  padding: 9px 16px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  transition: all 0.2s ease;
-}
-
-.filter-chip:hover {
-  background: #f7f1fd;
-  border-color: #c9a7e7;
-}
-
-.filter-chip.active {
-  background: linear-gradient(135deg, #9a4ddd, #7522b2);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 8px 16px rgba(117, 34, 178, 0.16);
-}
-
-.toolbar-card {
-  background: #ffffff;
-  border: 1px solid #eee2f7;
-  border-radius: 20px;
-  box-shadow: 0 10px 24px rgba(106, 27, 154, 0.05);
-  padding: 14px;
   margin-bottom: 24px;
-}
-
-.toolbar {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.search-box {
-  flex: 1;
-  min-width: 260px;
-  position: relative;
-}
-
-.search-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9b8ab2;
-  z-index: 2;
-}
-
-.search-box input {
-  width: 100%;
-  height: 46px;
-  padding: 0 16px 0 44px;
-  border-radius: 14px;
-  border: 1px solid #e7d9f3;
-  background: #fff;
-  outline: none;
-  font-size: 14px;
-}
-
-.search-box input:focus {
-  border-color: #c9a7e7;
-  box-shadow: 0 0 0 4px rgba(154, 77, 221, 0.1);
 }
 
 .btn-history {
@@ -438,7 +272,7 @@ export default {
   transition: all 0.25s ease;
   display: flex;
   flex-direction: column;
-  min-height: 450px;
+  min-height: 430px;
 }
 
 .service-card:hover {
@@ -448,7 +282,7 @@ export default {
 
 .card-image-wrap {
   position: relative;
-  height: 250px;
+  height: 235px;
   background: #f7f1fd;
   overflow: hidden;
   cursor: pointer;
@@ -501,7 +335,7 @@ export default {
 }
 
 .card-body-custom {
-  padding: 16px 16px 18px;
+  padding: 14px 16px 18px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -528,7 +362,7 @@ export default {
 
 .price-block {
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .service-price {
@@ -536,6 +370,15 @@ export default {
   font-size: 1.08rem;
   font-weight: 900;
   line-height: 1.2;
+}
+
+.service-status-note {
+  text-align: center;
+  font-size: 0.83rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  min-height: 20px;
+  color: #7a4db3;
 }
 
 .card-actions {
@@ -629,10 +472,6 @@ export default {
 @media (max-width: 575.98px) {
   .service-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filter-bar {
-    justify-content: flex-start;
   }
 }
 </style>

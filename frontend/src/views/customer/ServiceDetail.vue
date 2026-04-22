@@ -14,13 +14,27 @@
       </div>
 
       <div v-else-if="service" class="detail-wrapper">
-        <div class="breadcrumb-box">
-          <router-link to="/">Trang chủ</router-link>
-          <span>/</span>
-          <router-link to="/services">Dịch vụ</router-link>
-          <span>/</span>
-          <strong>{{ service.name }}</strong>
-        </div>
+<div class="breadcrumb-row">
+  <router-link to="/" class="crumb-link">Trang chủ</router-link>
+  <span class="crumb-sep">/</span>
+  <router-link to="/services" class="crumb-link">Dịch vụ</router-link>
+
+  <template v-if="service && serviceCategoryName">
+    <span class="crumb-sep">/</span>
+    <span class="crumb-link crumb-link-static">
+      {{ serviceCategoryName }}
+    </span>
+  </template>
+
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ service?.name || "Chi tiết dịch vụ" }}</span>
+</div>
+
+<div class="back-row" v-if="service">
+  <button class="back-btn" @click="goBack">
+    <i class="fas fa-arrow-left mr-1"></i> Quay lại
+  </button>
+</div>
 
         <div class="detail-card">
           <div class="detail-left">
@@ -201,22 +215,30 @@ export default {
       },
     };
   },
-  computed: {
-    isCustomer() {
-      const user = JSON.parse(localStorage.getItem("user") || "null");
-      return user?.role === "customer";
-    },
-    canBook() {
-      return this.service?.status === "Đang hoạt động";
-    },
-    minDate() {
-      const today = new Date();
-      return today.toISOString().split("T")[0];
-    },
-    currentServiceId() {
-      return this.service?._id || this.service?.id || "";
-    },
+computed: {
+  isCustomer() {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return user?.role === "customer";
   },
+  canBook() {
+    return this.service?.status === "Đang hoạt động";
+  },
+  minDate() {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  },
+  currentServiceId() {
+    return this.service?._id || this.service?.id || "";
+  },
+  serviceCategoryName() {
+    return (
+      this.service?.categoryId?.name ||
+      this.service?.categoryName ||
+      this.service?.category?.name ||
+      "Loại dịch vụ"
+    );
+  },
+},
   methods: {
     async loadServiceDetail() {
       this.loading = true;
@@ -329,6 +351,10 @@ export default {
       event.target.src = this.fallbackImage;
     },
 
+    goBack() {
+  this.$router.push("/services");
+},
+
     showSuccess(message) {
       this.successMessage = message;
       setTimeout(() => {
@@ -385,24 +411,57 @@ export default {
   animation: spin 0.8s linear infinite;
 }
 
-.breadcrumb-box {
+.breadcrumb-row {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 16px;
-  color: #7b6c8f;
-  font-size: 14px;
-  font-weight: 600;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.92rem;
 }
 
-.breadcrumb-box a {
-  color: #7b2fc0;
+.crumb-link {
+  color: #6a1b9a;
+  font-weight: 700;
   text-decoration: none;
 }
 
-.breadcrumb-box a:hover {
-  text-decoration: underline;
+.crumb-link:hover {
+  color: #5a1484;
+}
+
+.crumb-link-static {
+  cursor: default;
+}
+
+.crumb-sep {
+  color: #b0a3c0;
+}
+
+.crumb-current {
+  color: #7b7287;
+  font-weight: 600;
+}
+
+.back-row {
+  margin-bottom: 18px;
+}
+
+.back-btn {
+  border: 1px solid #dfd3ec;
+  background: #fff;
+  color: #5c5368;
+  border-radius: 12px;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #faf6fe;
+  border-color: #ccb5e7;
 }
 
 .detail-card {

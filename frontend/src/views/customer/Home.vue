@@ -5,7 +5,7 @@
       <div
         class="hero-slide"
         :style="{
-          backgroundImage: `linear-gradient(90deg, rgba(34, 16, 58, 0.88) 0%, rgba(58, 30, 92, 0.62) 42%, rgba(18, 12, 28, 0.16) 100%), url('${heroSlides[currentSlide].image}')`
+          backgroundImage: `linear-gradient(90deg, rgba(34, 16, 58, 0.84) 0%, rgba(58, 30, 92, 0.54) 42%, rgba(18, 12, 28, 0.12) 100%), url('${heroSlides[currentSlide].image}')`
         }"
       >
         <div class="hero-overlay"></div>
@@ -15,7 +15,7 @@
             <div class="col-xl-7 col-lg-8 col-md-10">
               <div class="hero-content text-left" :key="currentSlide">
                 <span class="hero-label mb-3 d-inline-flex align-items-center">
-                  <i class="fas fa-shield-heart mr-2"></i>
+                  <i class="fas fa-paw mr-2"></i>
                   {{ heroSlides[currentSlide].label }}
                 </span>
 
@@ -30,19 +30,15 @@
                 <div class="hero-benefits mb-4">
                   <div class="hero-benefit-chip">
                     <i class="fas fa-check-circle mr-2"></i>
-                    Nguồn gốc rõ ràng
+                    Dễ theo dõi
                   </div>
                   <div class="hero-benefit-chip">
-                    <i class="fas fa-heartbeat mr-2"></i>
-                    Sức khỏe minh bạch
-                  </div>
-                  <div class="hero-benefit-chip">
-                    <i class="fas fa-headset mr-2"></i>
-                    Hỗ trợ thuận tiện
+                    <i class="fas fa-shield-heart mr-2"></i>
+                    Minh bạch hơn
                   </div>
                 </div>
 
-                <div class="hero-action-group mb-4 justify-content-start">
+                <div class="hero-action-group justify-content-start">
                   <router-link
                     :to="heroSlides[currentSlide].primaryLink"
                     class="hero-main-btn shadow-lg"
@@ -50,17 +46,9 @@
                     {{ heroSlides[currentSlide].primaryText }}
                     <i class="fas fa-arrow-right ml-2" style="font-size: 0.9em;"></i>
                   </router-link>
-
-                  <router-link
-                    v-if="heroSlides[currentSlide].secondaryText"
-                    :to="heroSlides[currentSlide].secondaryLink"
-                    class="hero-sub-btn"
-                  >
-                    {{ heroSlides[currentSlide].secondaryText }}
-                  </router-link>
                 </div>
 
-                <div class="hero-tabs justify-content-start">
+                <div class="hero-tabs justify-content-start mt-4">
                   <router-link
                     to="/dogs/breeds"
                     class="hero-tab-btn glass-effect"
@@ -130,7 +118,7 @@
             </div>
             <div>
               <h4>Dễ lựa chọn</h4>
-              <p>Tìm bé theo giống, nguồn cung và trạng thái mở bán trên cùng hệ thống.</p>
+              <p>Tìm bé theo giống và trạng thái mở bán trên cùng hệ thống.</p>
             </div>
           </div>
 
@@ -151,8 +139,9 @@
     <section class="intro-section">
       <div class="container custom-container">
         <div class="section-heading text-center mb-5">
-          <span class="section-kicker">Về PetShop</span>
-          <h2 class="section-title">Nơi mua chó cảnh, phụ kiện và dịch vụ chăm sóc</h2>
+          <h2 class="section-title intro-main-title">
+            Nơi mua chó cảnh, phụ kiện và dịch vụ chăm sóc
+          </h2>
           <p class="section-desc">
             Trải nghiệm minh bạch, đáng tin cậy và thuận tiện hơn cho người nuôi thú cưng.
           </p>
@@ -169,8 +158,8 @@
                 </h3>
 
                 <p class="intro-text">
-                  PetShop giúp khách hàng lựa chọn chó cảnh với <strong>nguồn cung rõ ràng</strong>,
-                  thông tin minh bạch và trải nghiệm theo dõi thuận tiện hơn trước khi đặt giữ bé.
+                  PetShop giúp khách hàng lựa chọn chó cảnh với <strong>thông tin rõ ràng</strong>,
+                  minh bạch hơn và thuận tiện hơn trước khi đặt giữ bé.
                 </p>
 
                 <p class="intro-text">
@@ -217,7 +206,6 @@
     <section class="breed-section">
       <div class="container custom-container">
         <div class="section-heading text-center mb-5">
-          <span class="section-kicker">Khám phá giống chó</span>
           <h2 class="section-title">Các giống chó nổi bật</h2>
           <p class="section-desc">
             Bắt đầu từ giống chó yêu thích để tìm bé phù hợp hơn.
@@ -275,7 +263,6 @@
     <section class="featured-dog-section">
       <div class="container custom-container">
         <div class="section-heading text-center mb-5">
-          <span class="section-kicker featured-kicker">Bé cún nổi bật</span>
           <h2 class="section-title featured-title">Các bé cún sẵn sàng về nhà mới</h2>
           <p class="section-desc featured-desc">
             Những bé đang được mở bán công khai trên hệ thống.
@@ -290,29 +277,39 @@
           >
             <router-link
               :to="dogDetailLink(dog)"
-              class="featured-dog-card simple-dog-card d-block text-decoration-none"
+              class="home-unified-card d-block text-decoration-none"
             >
-              <div class="featured-dog-image-wrap simple-dog-image-wrap">
+              <div class="home-unified-image-wrap">
                 <img
                   v-if="dog.image"
                   :src="toImageUrl(dog.image)"
                   :alt="dog.name"
-                  class="featured-dog-image"
+                  class="home-unified-image"
                 />
 
-                <div v-else class="featured-dog-no-image">
+                <div v-else class="home-unified-no-image">
                   <i class="fas fa-dog mb-2"></i>
                   <span>Chưa có ảnh</span>
                 </div>
+
+                <span
+                  class="home-top-badge home-top-badge-left"
+                  :class="getDogBadgeClass(dog)"
+                >
+                  {{ getDogBadgeText(dog) }}
+                </span>
               </div>
 
-              <div class="featured-dog-body simple-dog-body">
-                <h4 class="featured-dog-name simple-dog-name mb-2">{{ dog.name }}</h4>
+<div class="home-unified-body">
+  <h4 class="home-unified-name mb-2">{{ dog.name }}</h4>
 
-                <p class="featured-dog-price simple-dog-price mb-0">
-                  {{ formatCurrency(dog.price) }}
-                </p>
-              </div>
+  <div
+    v-if="dog.finalPrice || dog.price"
+    class="home-unified-price"
+  >
+    {{ formatCurrency(dog.finalPrice || dog.price) }}
+  </div>
+</div>
             </router-link>
           </div>
         </div>
@@ -404,7 +401,6 @@
     <section class="accessory-section">
       <div class="container custom-container">
         <div class="section-heading text-center mb-5">
-          <span class="section-kicker">Phụ kiện cần thiết</span>
           <h2 class="section-title">Phụ kiện nổi bật cho bé</h2>
           <p class="section-desc">
             Chuẩn bị những vật dụng cần thiết cho môi trường mới của bé.
@@ -417,11 +413,8 @@
             v-for="item in accessoryList"
             :key="item._id || item.id"
           >
-            <router-link
-              :to="`/accessories/${item._id || item.id}`"
-              class="accessory-card d-block text-decoration-none"
-            >
-              <div class="accessory-image-wrap">
+            <div class="accessory-card">
+              <div class="accessory-image-wrap" @click="goToAccessoryDetail(item)">
                 <img
                   v-if="item.image"
                   :src="toImageUrl(item.image)"
@@ -433,28 +426,103 @@
                   <span>Chưa có ảnh</span>
                 </div>
 
+                <span
+                  class="mini-stock-badge"
+                  :class="getAccessoryStockBadgeClass(item)"
+                >
+                  {{ getAccessoryStockBadgeText(item) }}
+                </span>
+
                 <span v-if="item.hasPromotion" class="mini-discount-badge">
                   {{ item.discountLabel }}
                 </span>
               </div>
 
-              <div class="accessory-body">
-                <h4 class="accessory-name mb-2">{{ item.name }}</h4>
+              <div class="card-body-custom">
+                <h4 class="accessory-name" @click="goToAccessoryDetail(item)">
+                  {{ item.name }}
+                </h4>
 
-                <div v-if="item.hasPromotion" class="home-price-block mb-0">
-                  <div class="home-old-price">
+                <div class="price-block">
+                  <div v-if="item.hasPromotion" class="old-price">
                     {{ formatCurrency(item.originalPrice || item.price) }}
                   </div>
+
                   <div class="accessory-price">
                     {{ formatCurrency(item.finalPrice || item.price) }}
                   </div>
                 </div>
 
-                <p v-else class="accessory-price mb-0">
-                  {{ formatCurrency(item.price) }}
-                </p>
+                <div
+                  class="stock-note"
+                  :class="getAccessoryStockTextClass(item)"
+                >
+                  {{ getAccessoryStockText(item) }}
+                </div>
+
+                <div class="qty-box">
+                  <span class="qty-title">Số lượng</span>
+
+                  <div class="qty-actions">
+                    <button
+                      type="button"
+                      class="qty-btn"
+                      @click="decreaseQty(item)"
+                      :disabled="!canBuyAccessory(item)"
+                    >
+                      -
+                    </button>
+
+                    <span class="qty-value">{{ getQty(item) }}</span>
+
+                    <button
+                      type="button"
+                      class="qty-btn"
+                      @click="increaseQty(item)"
+                      :disabled="!canIncreaseAccessory(item)"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div class="card-actions">
+                  <button
+                    class="cart-btn"
+                    type="button"
+                    title="Thêm vào giỏ hàng"
+                    @click="addAccessoryToCart(item)"
+                    :disabled="!canBuyAccessory(item) || isAddingAccessory(item)"
+                  >
+                    <i
+                      class="fas"
+                      :class="isAddingAccessory(item) ? 'fa-spinner fa-spin' : 'fa-shopping-cart'"
+                    ></i>
+                  </button>
+
+                  <button
+                    class="buy-btn"
+                    type="button"
+                    @click="buyAccessoryNow(item)"
+                    :disabled="!canBuyAccessory(item) || isAddingAccessory(item)"
+                  >
+                    {{ isAddingAccessory(item) ? "Đang xử lý..." : "Mua ngay" }}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  class="detail-link-btn"
+                  @click="goToAccessoryDetail(item)"
+                >
+                  Xem chi tiết
+                </button>
+
+                <div v-if="!canBuyAccessory(item)" class="sold-out-note">
+                  Hết hàng hoặc tạm ngừng bán
+                </div>
               </div>
-            </router-link>
+            </div>
           </div>
         </div>
 
@@ -481,6 +549,7 @@
 import BreedService from "@/services/breed.service";
 import DogService from "@/services/dog.service";
 import AccessoryService from "@/services/accessory.service";
+import CartService from "@/services/cart.service";
 import banner1 from "@/assets/images/banner1.jpg";
 import banner2 from "@/assets/images/banner2.jpg";
 import banner3 from "@/assets/images/banner3.jpg";
@@ -498,39 +567,35 @@ export default {
       featuredDogs: [],
       accessoryList: [],
       promotionAccessories: [],
+      quantities: {},
+      isAddingMap: {},
       apiBase: "http://localhost:3000",
       heroSlides: [
         {
-          label: "Nguồn gốc minh bạch",
+          label: "Thông tin minh bạch",
           title: "Chọn bé cún phù hợp cho gia đình bạn",
-          desc: "Xem hồ sơ, trạng thái mở bán và thông tin cần thiết trước khi đặt giữ bé.",
+          desc: "Xem thông tin, trạng thái mở bán và lựa chọn bé cún phù hợp trước khi đặt giữ.",
           image: banner1,
           primaryText: "Xem chó cảnh",
           primaryLink: "/dogs/breeds",
-          secondaryText: "Xem nguồn cung",
-          secondaryLink: "/dogs/farms",
           activeTab: "dogs",
         },
         {
-          label: "Chuẩn bị đầy đủ",
-          title: "Mua sắm phụ kiện cần thiết cho bé",
-          desc: "Lựa chọn những vật dụng phù hợp để bé thích nghi tốt hơn trong những ngày đầu.",
+          label: "Phụ kiện cần thiết",
+          title: "Chuẩn bị đầy đủ cho bé ngay từ những ngày đầu",
+          desc: "Lựa chọn phụ kiện phù hợp để chăm sóc thú cưng thuận tiện và đầy đủ hơn.",
           image: banner2,
           primaryText: "Xem phụ kiện",
           primaryLink: "/accessories",
-          secondaryText: "Xem chó cảnh",
-          secondaryLink: "/dogs/breeds",
           activeTab: "accessories",
         },
         {
           label: "Chăm sóc thuận tiện",
-          title: "Đặt lịch dịch vụ nhanh chóng hơn",
-          desc: "Theo dõi quá trình chăm sóc thú cưng dễ dàng trên cùng một hệ thống.",
+          title: "Đặt lịch dịch vụ nhanh chóng và dễ theo dõi",
+          desc: "Theo dõi quá trình chăm sóc thú cưng dễ dàng hơn trên cùng một hệ thống.",
           image: banner3,
           primaryText: "Xem dịch vụ",
           primaryLink: "/services",
-          secondaryText: "Lịch sử đơn của tôi",
-          secondaryLink: "/tra-cuu-don",
           activeTab: "services",
         },
       ],
@@ -554,7 +619,6 @@ export default {
     async fetchBreeds() {
       try {
         const response = await BreedService.getAll();
-
         this.breedList = (response || [])
           .filter((item) => item.status === "active" || !item.status)
           .sort((a, b) => (a.maGiong || "").localeCompare(b.maGiong || ""))
@@ -609,6 +673,201 @@ export default {
     formatCurrency(value) {
       if (value === null || value === undefined || value === "") return "Liên hệ";
       return Number(value).toLocaleString("vi-VN") + " VND";
+    },
+
+    getAccessoryId(item) {
+      return item._id || item.id;
+    },
+
+    canBuyAccessory(item) {
+      return item && item.status === "Đang bán" && Number(item.quantity || 0) > 0;
+    },
+
+    canIncreaseAccessory(item) {
+      if (!this.canBuyAccessory(item)) return false;
+      return this.getQty(item) < Number(item.quantity || 0);
+    },
+
+    getQty(item) {
+      const id = this.getAccessoryId(item);
+      return this.quantities[id] || 1;
+    },
+
+    isAddingAccessory(item) {
+      const id = this.getAccessoryId(item);
+      return !!this.isAddingMap[id];
+    },
+
+    increaseQty(item) {
+      if (!this.canIncreaseAccessory(item)) return;
+
+      const id = this.getAccessoryId(item);
+      const current = this.quantities[id] || 1;
+      const stock = Number(item.quantity || 0);
+      const next = current + 1 > stock ? stock : current + 1;
+
+      this.quantities = { ...this.quantities, [id]: next };
+    },
+
+    decreaseQty(item) {
+      const id = this.getAccessoryId(item);
+      const current = this.quantities[id] || 1;
+      const next = current > 1 ? current - 1 : 1;
+
+      this.quantities = { ...this.quantities, [id]: next };
+    },
+
+    getAccessoryStockText(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "Tạm ngừng bán";
+      if (stock <= 0) return "Hết hàng";
+      if (stock <= 5) return `Sắp hết hàng • Còn ${stock} sản phẩm`;
+      return `Còn ${stock} sản phẩm`;
+    },
+
+    getAccessoryStockTextClass(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "stock-off";
+      if (stock <= 0) return "stock-out";
+      if (stock <= 5) return "stock-low";
+      return "stock-available";
+    },
+
+    getAccessoryStockBadgeText(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "Ngừng bán";
+      if (stock <= 0) return "Hết hàng";
+      if (stock <= 5) return "Sắp hết";
+      return "Còn hàng";
+    },
+
+    getAccessoryStockBadgeClass(item) {
+      const stock = Number(item?.quantity || 0);
+
+      if (item?.status !== "Đang bán") return "badge-off";
+      if (stock <= 0) return "badge-out";
+      if (stock <= 5) return "badge-low";
+      return "badge-available";
+    },
+
+    async addAccessoryToCart(item) {
+      if (!item) return;
+
+      const accessoryId = this.getAccessoryId(item);
+      if (!accessoryId) {
+        alert("Phụ kiện này chưa có ID hợp lệ.");
+        return;
+      }
+
+      if (!this.canBuyAccessory(item)) {
+        alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+        return;
+      }
+
+      const qty = this.getQty(item);
+      if (!qty || qty < 1) {
+        alert("Số lượng không hợp lệ.");
+        return;
+      }
+
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        alert("Vui lòng đăng nhập để thêm phụ kiện vào giỏ hàng.");
+        this.$router.push("/login");
+        return;
+      }
+
+      this.isAddingMap = { ...this.isAddingMap, [accessoryId]: true };
+
+      try {
+        await CartService.addToCart(accessoryId, Number(qty));
+        window.dispatchEvent(new Event("cart-updated"));
+        alert("Đã thêm phụ kiện vào giỏ hàng.");
+      } catch (error) {
+        alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
+      } finally {
+        this.isAddingMap = { ...this.isAddingMap, [accessoryId]: false };
+      }
+    },
+
+    buyAccessoryNow(item) {
+      if (!item) return;
+
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        alert("Vui lòng đăng nhập để mua phụ kiện.");
+        this.$router.push("/login");
+        return;
+      }
+
+      if (!this.canBuyAccessory(item)) {
+        alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+        return;
+      }
+
+      const qty = this.getQty(item);
+      const stock = Number(item.quantity || 0);
+
+      if (!qty || qty < 1) {
+        alert("Số lượng không hợp lệ.");
+        return;
+      }
+
+      if (qty > stock) {
+        alert(`Số lượng vượt quá tồn kho. Chỉ còn ${stock} sản phẩm.`);
+        return;
+      }
+
+      const buyNowItem = {
+        id: `buy-now-${this.getAccessoryId(item)}`,
+        accessoryId: this.getAccessoryId(item),
+        name: item.name || "",
+        price: Number(item.finalPrice || item.price || 0),
+        originalPriceAtDisplay: Number(item.price || 0),
+        isPromotionApplied:
+          Number(item.finalPrice || item.price || 0) < Number(item.price || 0),
+        image: item.image || "",
+        stock: Number(item.quantity || 0),
+        status: item.status || "",
+        quantity: Number(qty || 1),
+      };
+
+      sessionStorage.setItem("buy_now_checkout", JSON.stringify([buyNowItem]));
+      this.$router.push({ path: "/accessory-checkout", query: { mode: "buy-now" } });
+    },
+
+    goToAccessoryDetail(item) {
+      const id = this.getAccessoryId(item);
+      if (!id) {
+        alert("Phụ kiện này chưa có ID hợp lệ.");
+        return;
+      }
+      this.$router.push(`/accessories/${id}`);
+    },
+
+    getDogBadgeText(dog) {
+      const status = dog?.saleStatus || "";
+
+      if (status === "Sẵn sàng bán") return "Sẵn sàng bán";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "Đã có người đặt";
+      }
+      if (status === "Đã bán") return "Đã bán";
+      if (status === "Ngừng bán") return "Ngừng bán";
+      return "Sẵn sàng bán";
+    },
+
+    getDogBadgeClass(dog) {
+      const status = dog?.saleStatus || "";
+
+      if (status === "Đã bán") return "home-danger-badge";
+      if (["Chờ thanh toán", "Đã đặt cọc", "Đang giao"].includes(status)) {
+        return "home-warning-badge";
+      }
+      return "home-success-badge";
     },
 
     startSlide() {
@@ -681,25 +940,27 @@ export default {
 
 .hero-slide {
   position: relative;
-  min-height: 620px;
+  min-height: 560px;
   overflow: hidden;
   background-size: cover;
   background-position: center 35%;
   transition: background-image 0.8s ease-in-out;
+  border-radius: 0 0 34px 34px;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 30%, rgba(255, 210, 112, 0.12), transparent 26%),
-    radial-gradient(circle at 78% 20%, rgba(255, 255, 255, 0.08), transparent 24%);
+    radial-gradient(circle at 18% 28%, rgba(255, 210, 112, 0.12), transparent 24%),
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(22, 14, 36, 0.08) 0%, rgba(22, 14, 36, 0.18) 100%);
   z-index: 1;
 }
 
 .hero-content {
   color: white;
-  padding: 52px 0;
+  padding: 42px 0;
   animation: slideInLeft 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
@@ -708,38 +969,38 @@ export default {
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .hero-label {
-  padding: 9px 18px;
+  padding: 8px 16px;
   border-radius: 999px;
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.4px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .hero-heading {
-  font-size: 2.6rem;
-  line-height: 1.24;
+  font-size: 2.45rem;
+  line-height: 1.28;
   color: white;
-  letter-spacing: 0.2px;
-  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.45);
-  max-width: 760px;
+  letter-spacing: 0.15px;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.42);
+  max-width: 720px;
 }
 
 .hero-desc {
-  font-size: 1rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.96);
-  max-width: 620px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  font-size: 0.98rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 590px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
 }
 
 .hero-benefits {
@@ -749,39 +1010,39 @@ export default {
 }
 
 .hero-benefit-chip {
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 13px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .hero-action-group {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
 .hero-main-btn,
 .hero-sub-btn {
-  min-width: 190px;
-  height: 50px;
-  padding: 0 22px;
+  min-width: 176px;
+  height: 46px;
+  padding: 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   transition: all 0.3s ease;
   border-radius: 999px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.15px;
 }
 
 .hero-main-btn {
@@ -792,7 +1053,7 @@ export default {
 
 .hero-main-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(255, 190, 51, 0.38) !important;
+  box-shadow: 0 12px 28px rgba(255, 190, 51, 0.32) !important;
   color: #31114d;
   text-decoration: none;
 }
@@ -811,14 +1072,14 @@ export default {
 
 .hero-tabs {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .hero-tab-btn {
-  min-width: 145px;
-  height: 42px;
-  padding: 0 20px;
+  min-width: 132px;
+  height: 40px;
+  padding: 0 18px;
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.9);
   display: inline-flex;
@@ -826,13 +1087,13 @@ export default {
   justify-content: center;
   text-decoration: none;
   font-weight: 800;
-  font-size: 0.84rem;
-  letter-spacing: 0.35px;
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
   transition: all 0.3s ease;
 }
 
 .hero-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   text-decoration: none;
 }
@@ -841,15 +1102,15 @@ export default {
   background: white;
   color: #4b1f73;
   border-color: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.16);
 }
 
 .hero-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: white;
   z-index: 5;
@@ -857,33 +1118,33 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1rem;
   cursor: pointer;
   border: none;
 }
 
 .hero-nav:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-50%) scale(1.06);
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-50%) scale(1.05);
 }
 
 .hero-nav.prev {
-  left: 30px;
+  left: 24px;
 }
 
 .hero-nav.next {
-  right: 30px;
+  right: 24px;
 }
 
 .hero-dots {
   position: absolute;
   left: 50%;
-  bottom: 26px;
+  bottom: 22px;
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
   z-index: 5;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.16);
   padding: 8px 12px;
   border-radius: 999px;
   backdrop-filter: blur(4px);
@@ -893,14 +1154,14 @@ export default {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.38);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .hero-dot.active {
   background: #ffd972;
-  width: 28px;
+  width: 26px;
   border-radius: 10px;
 }
 
@@ -962,6 +1223,7 @@ export default {
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
 }
 
 .section-kicker {
@@ -992,6 +1254,25 @@ export default {
   font-weight: 900;
   line-height: 1.3;
   margin-bottom: 12px;
+}
+
+.intro-main-title {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  padding-bottom: 16px;
+}
+
+.intro-main-title::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
 }
 
 .featured-title {
@@ -1221,7 +1502,7 @@ export default {
 
 .breed-simple-body {
   padding: 18px 18px 20px;
-  text-align: left;
+  text-align: center;
 }
 
 .breed-simple-name {
@@ -1229,6 +1510,7 @@ export default {
   font-size: 1.18rem;
   font-weight: 800;
   line-height: 1.35;
+  text-align: center;
 }
 
 /* FEATURED DOG */
@@ -1237,37 +1519,111 @@ export default {
   background: linear-gradient(180deg, #f7f1fd 0%, #f2e9fb 100%);
 }
 
-.featured-dog-card {
+.home-unified-card {
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
   border: 1px solid #eadcf6;
-  box-shadow: 0 14px 28px rgba(75, 31, 115, 0.08);
+  box-shadow: 0 14px 28px rgba(75, 31, 115, 0.07);
+  transition: all 0.28s ease;
 }
 
-.featured-dog-card:hover {
-  box-shadow: 0 20px 38px rgba(75, 31, 115, 0.14);
+.home-unified-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 38px rgba(75, 31, 115, 0.12);
 }
 
-.simple-dog-image-wrap {
-  height: 320px;
+.home-unified-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8f2fc 0%, #f3ebfb 100%);
 }
 
-.simple-dog-body {
-  padding: 14px 16px 18px;
-  text-align: left;
+.home-unified-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
 }
 
-.simple-dog-name {
-  color: #5a2d91;
-  font-size: 1.12rem;
+.home-unified-card:hover .home-unified-image {
+  transform: scale(1.05);
+}
+
+.home-unified-no-image {
+  color: #8d77a7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.95rem;
+}
+
+.home-unified-no-image i {
+  font-size: 2rem;
+}
+
+.home-top-badge {
+  position: absolute;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 800;
-  line-height: 1.4;
-  margin-bottom: 8px;
+  z-index: 2;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
 }
 
-.simple-dog-price {
-  color: #6f42a4;
+.home-top-badge-left {
+  left: 12px;
+}
+
+.home-success-badge {
+  background: rgba(22, 163, 74, 0.94);
+  color: #fff;
+}
+
+.home-warning-badge {
+  background: rgba(217, 119, 6, 0.95);
+  color: #fff;
+}
+
+.home-danger-badge {
+  background: rgba(185, 28, 28, 0.95);
+  color: #fff;
+}
+
+.home-unified-body {
+  padding: 18px 18px 20px;
+  text-align: center;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.home-unified-name {
+  color: #432366;
   font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.45;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.home-unified-price {
+  color: #6b4ca1;
+  font-size: 1.04rem;
   font-weight: 900;
-  line-height: 1.4;
+  line-height: 1.35;
+  text-align: center;
 }
 
 /* PROMOTION */
@@ -1355,66 +1711,284 @@ export default {
 }
 
 .accessory-card {
-  border: 1px solid #eee6f6;
-  box-shadow: 0 12px 24px rgba(75, 31, 115, 0.05);
+  background: #ffffff;
+  border: 1px solid #eee2f7;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(106, 27, 154, 0.06);
+  transition: all 0.25s ease;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
 }
 
 .accessory-card:hover {
-  box-shadow: 0 18px 34px rgba(75, 31, 115, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 18px 32px rgba(106, 27, 154, 0.12);
 }
 
 .accessory-image-wrap {
   position: relative;
-  height: 260px;
+  height: 215px;
+  background: #f7f1fd;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .accessory-image {
+  width: 100%;
   height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.accessory-card:hover .accessory-image {
+  transform: scale(1.04);
+}
+
+.mini-stock-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  z-index: 2;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+.badge-available {
+  background: rgba(22, 163, 74, 0.92);
+  color: #fff;
+}
+
+.badge-low {
+  background: rgba(217, 119, 6, 0.95);
+  color: #fff;
+}
+
+.badge-out,
+.badge-off {
+  background: rgba(185, 28, 28, 0.94);
+  color: #fff;
 }
 
 .mini-discount-badge {
   position: absolute;
   top: 12px;
   right: 12px;
-  min-height: 32px;
-  padding: 0 11px;
-  border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  padding: 6px 11px;
+  border-radius: 999px;
   color: #fff;
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   font-weight: 800;
-  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.2);
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.18);
+  z-index: 2;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-.accessory-body {
-  padding: 18px 18px 20px;
-  text-align: left;
+.card-body-custom {
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .accessory-name {
-  color: #5a2d91;
-  font-size: 1.05rem;
+  color: #2f1b44;
+  font-size: 1rem;
   font-weight: 800;
-  line-height: 1.45;
+  line-height: 1.32;
+  margin-bottom: 4px;
+  text-align: center;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 32px;
 }
 
-.home-price-block {
-  min-height: 52px;
+.accessory-name:hover {
+  color: #6a1b9a;
 }
 
-.home-old-price {
+.price-block {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.old-price {
   color: #9b90ad;
-  font-size: 0.86rem;
+  font-size: 0.81rem;
   text-decoration: line-through;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .accessory-price {
-  color: #6b4ca1;
-  font-size: 1.05rem;
+  color: #b42318;
+  font-size: 1.08rem;
   font-weight: 900;
+  line-height: 1.2;
+}
+
+.stock-note {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+
+.stock-available {
+  color: #15803d;
+}
+
+.stock-low {
+  color: #b45309;
+}
+
+.stock-out,
+.stock-off {
+  color: #b42318;
+}
+
+.qty-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #eadcf7;
+  border-radius: 14px;
+  background: #fcf9ff;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.qty-title {
+  color: #7a4db3;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.qty-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2d4ef;
+  background: #fff;
+  color: #6d5d7d;
+  border-radius: 9px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.qty-btn:hover:not(:disabled) {
+  background: #f4ebfb;
+  color: #6a1b9a;
+}
+
+.qty-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.qty-value {
+  min-width: 22px;
+  text-align: center;
+  color: #2f1b44;
+  font-weight: 800;
+  font-size: 0.94rem;
+}
+
+.card-actions {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.cart-btn,
+.buy-btn {
+  height: 42px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.cart-btn {
+  border: 1.5px solid #d7bdea;
+  background: #fff;
+  color: #8e3fd1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-btn:hover:not(:disabled) {
+  background: #f7f1fd;
+  border-color: #b88bdf;
+}
+
+.buy-btn {
+  border: none;
+  background: linear-gradient(135deg, #9a4ddd, #7522b2);
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(117, 34, 178, 0.16);
+}
+
+.buy-btn:hover:not(:disabled) {
+  filter: brightness(0.98);
+}
+
+.cart-btn:disabled,
+.buy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.detail-link-btn {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(123, 47, 192, 0.42);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0 0;
+  width: 100%;
+  align-self: center;
+  transition: all 0.22s ease;
+}
+
+.accessory-card:hover .detail-link-btn {
+  color: rgba(123, 47, 192, 0.96);
+}
+
+.detail-link-btn:hover {
+  color: #5f1796;
+  text-decoration: underline;
+}
+
+.sold-out-note {
+  margin-top: 6px;
+  color: #b42318;
+  font-size: 0.81rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .breed-empty {
@@ -1462,16 +2036,17 @@ export default {
 
 @media (max-width: 992px) {
   .hero-slide {
-    min-height: 560px;
+    min-height: 500px;
+    border-radius: 0 0 24px 24px;
   }
 
   .hero-heading {
-    font-size: 2.1rem;
+    font-size: 2rem;
     max-width: 100%;
   }
 
   .hero-desc {
-    font-size: 0.96rem;
+    font-size: 0.94rem;
     max-width: 100%;
   }
 
@@ -1495,25 +2070,22 @@ export default {
   .breed-simple-image-wrap {
     height: 280px;
   }
-
-  .simple-dog-image-wrap {
-    height: 270px;
-  }
 }
 
 @media (max-width: 768px) {
   .hero-slide {
-    min-height: 500px;
+    min-height: 460px;
+    border-radius: 0 0 18px 18px;
   }
 
   .hero-heading {
-    font-size: 1.65rem;
-    line-height: 1.4;
+    font-size: 1.58rem;
+    line-height: 1.38;
   }
 
   .hero-desc {
-    font-size: 0.92rem;
-    line-height: 1.7;
+    font-size: 0.9rem;
+    line-height: 1.68;
   }
 
   .hero-content {
@@ -1528,20 +2100,20 @@ export default {
 
   .hero-main-btn,
   .hero-sub-btn {
-    min-width: 160px;
-    height: 44px;
-    font-size: 0.88rem;
+    min-width: 154px;
+    height: 42px;
+    font-size: 0.86rem;
   }
 
   .hero-tab-btn {
-    min-width: 128px;
-    height: 40px;
-    font-size: 0.79rem;
+    min-width: 124px;
+    height: 38px;
+    font-size: 0.77rem;
   }
 
   .hero-nav {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 
   .hero-nav.prev {
@@ -1592,7 +2164,7 @@ export default {
   }
 
   .breed-simple-image-wrap,
-  .simple-dog-image-wrap {
+  .home-unified-image-wrap {
     height: 260px;
   }
 

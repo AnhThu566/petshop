@@ -1,20 +1,28 @@
 <template>
   <div class="dog-detail-page">
-    <div class="container custom-container mb-3">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-transparent p-0 m-0 small">
-          <li class="breadcrumb-item">
-            <router-link to="/" class="text-muted text-decoration-none">Trang chủ</router-link>
-          </li>
-          <li class="breadcrumb-item">
-            <router-link to="/dogs/breeds" class="text-muted text-decoration-none">Giống chó</router-link>
-          </li>
-          <li class="breadcrumb-item active font-weight-bold text-dark" aria-current="page" v-if="dog">
-            {{ dog.name }}
-          </li>
-        </ol>
-      </nav>
-    </div>
+<div class="container custom-container mb-3">
+  <div class="breadcrumb-row">
+    <router-link to="/" class="crumb-link">Trang chủ</router-link>
+    <span class="crumb-sep">/</span>
+    <router-link to="/dogs/breeds" class="crumb-link">Giống chó</router-link>
+    <template v-if="dog && breedLinkId">
+      <span class="crumb-sep">/</span>
+      <router-link :to="`/dogs/breeds/${breedLinkId}`" class="crumb-link">
+        {{ breedDisplayName }}
+      </router-link>
+    </template>
+    <template v-if="dog">
+      <span class="crumb-sep">/</span>
+      <span class="crumb-current">{{ dog.name }}</span>
+    </template>
+  </div>
+
+  <div class="back-row">
+    <button class="back-btn" @click="goBackToBreed">
+      <i class="fas fa-arrow-left mr-1"></i> Quay lại
+    </button>
+  </div>
+</div>
 
     <div class="container custom-container" v-if="loading">
       <div class="state-box text-center py-5">
@@ -294,6 +302,26 @@ export default {
   },
 
   computed: {
+    breedDisplayName() {
+    return (
+      this.dog?.breedId?.name ||
+      this.dog?.breedName ||
+      this.dog?.breed?.name ||
+      "Tên giống chó"
+    );
+  },
+
+  breedLinkId() {
+    return (
+      this.dog?.breedId?._id ||
+      this.dog?.breedId?.id ||
+      this.dog?.breedId ||
+      this.dog?.breed?._id ||
+      this.dog?.breed?.id ||
+      ""
+    );
+  },
+    
     galleryImages() {
       if (!this.dog) return [];
 
@@ -548,6 +576,15 @@ export default {
       if (!id) return;
       this.$router.push(`/dog/${id}`);
     },
+
+    goBackToBreed() {
+  if (this.breedLinkId) {
+    this.$router.push(`/dogs/breeds/${this.breedLinkId}`);
+    return;
+  }
+
+  this.$router.push("/dogs/breeds");
+},
   },
 
   watch: {
@@ -561,6 +598,20 @@ export default {
 </script>
 
 <style scoped>
+
+
+@media (max-width: 576px) {
+  .top-toolbar {
+    align-items: flex-start;
+  }
+
+  .back-page-btn {
+    width: 100%;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+}
 .dog-detail-page {
   min-height: 100vh;
   background:
@@ -573,6 +624,55 @@ export default {
   .custom-container {
     max-width: 1320px !important;
   }
+
+  .breadcrumb-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.92rem;
+}
+
+.crumb-link {
+  color: #6a1b9a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.crumb-link:hover {
+  color: #5a1484;
+}
+
+.crumb-sep {
+  color: #b0a3c0;
+}
+
+.crumb-current {
+  color: #7b7287;
+  font-weight: 600;
+}
+
+.back-row {
+  margin-bottom: 18px;
+}
+
+.back-btn {
+  border: 1px solid #dfd3ec;
+  background: #fff;
+  color: #5c5368;
+  border-radius: 12px;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #faf6fe;
+  border-color: #ccb5e7;
+}
 }
 
 .detail-main-card,

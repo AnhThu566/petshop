@@ -2,20 +2,19 @@
   <div class="dog-page">
     <section class="list-section">
       <div class="container-fluid custom-container px-3">
-        <div class="page-toolbar">
-          <div class="breadcrumb-wrap">
-            <router-link to="/">Trang chủ</router-link>
-            <span>/</span>
-            <router-link to="/dogs/breeds">Giống chó</router-link>
-            <span>/</span>
-            <strong>{{ selectedBreed?.name || "Đang tải..." }}</strong>
-          </div>
+<div class="breadcrumb-row">
+  <router-link to="/" class="crumb-link">Trang chủ</router-link>
+  <span class="crumb-sep">/</span>
+  <router-link to="/dogs/breeds" class="crumb-link">Giống chó</router-link>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ selectedBreed?.name || "Đang tải..." }}</span>
+</div>
 
-          <button class="back-btn" @click="goBack">
-            <i class="fas fa-arrow-left mr-2"></i>
-            Quay lại
-          </button>
-        </div>
+<div class="back-row">
+  <button class="back-btn" @click="goBack">
+    <i class="fas fa-arrow-left mr-1"></i> Quay lại
+  </button>
+</div>
 
         <div v-if="loadingBreed" class="empty-box mt-4">
           <i class="fas fa-spinner fa-spin mb-3"></i>
@@ -274,29 +273,53 @@ getStatusClass(status) {
   padding: 8px 0 30px;
 }
 
-.page-toolbar {
+.breadcrumb-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.92rem;
 }
 
-.breadcrumb-wrap {
-  color: #7f7194;
-  font-size: 0.95rem;
-}
-
-.breadcrumb-wrap a {
-  color: #6f42c1;
+.crumb-link {
+  color: #6a1b9a;
   font-weight: 700;
   text-decoration: none;
 }
 
-.breadcrumb-wrap span {
-  margin: 0 8px;
-  color: #a095b3;
+.crumb-link:hover {
+  color: #5a1484;
+}
+
+.crumb-sep {
+  color: #b0a3c0;
+}
+
+.crumb-current {
+  color: #7b7287;
+  font-weight: 600;
+}
+
+.back-row {
+  margin-bottom: 18px;
+}
+
+.back-btn {
+  border: 1px solid #dfd3ec;
+  background: #fff;
+  color: #5c5368;
+  border-radius: 12px;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #faf6fe;
+  border-color: #ccb5e7;
 }
 
 .back-btn {
@@ -361,6 +384,8 @@ getStatusClass(status) {
   font-weight: 900;
   line-height: 1.25;
   margin-bottom: 18px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .breed-info-section + .breed-info-section {
@@ -378,6 +403,9 @@ getStatusClass(status) {
   color: #6b7280;
   line-height: 1.8;
   margin-bottom: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .breed-dog-heading {

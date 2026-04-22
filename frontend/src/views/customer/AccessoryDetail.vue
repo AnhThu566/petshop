@@ -1,13 +1,21 @@
 <template>
   <div class="accessory-detail-page">
     <div class="container accessory-detail-container py-4">
-      <div class="breadcrumb-row">
-        <router-link to="/" class="crumb-link">Trang chủ</router-link>
-        <span class="crumb-sep">/</span>
-        <router-link to="/accessories" class="crumb-link">Phụ kiện</router-link>
-        <span class="crumb-sep">/</span>
-        <span class="crumb-current">{{ accessory?.name || "Chi tiết sản phẩm" }}</span>
-      </div>
+<div class="breadcrumb-row">
+  <router-link to="/" class="crumb-link">Trang chủ</router-link>
+  <span class="crumb-sep">/</span>
+  <router-link to="/accessories" class="crumb-link">Phụ kiện</router-link>
+
+  <template v-if="accessory && accessoryCategoryName">
+    <span class="crumb-sep">/</span>
+    <span class="crumb-link crumb-link-static">
+      {{ accessoryCategoryName }}
+    </span>
+  </template>
+
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ accessory?.name || "Chi tiết sản phẩm" }}</span>
+</div>
 
       <div class="back-row">
         <button class="back-btn" @click="$router.back()">
@@ -272,19 +280,28 @@ export default {
     };
   },
 
-  computed: {
-    safeStock() {
-      return Number(this.accessory?.quantity || 0);
-    },
-
-    canBuy() {
-      return (
-        this.accessory &&
-        this.accessory.status === "Đang bán" &&
-        this.safeStock > 0
-      );
-    },
+computed: {
+  safeStock() {
+    return Number(this.accessory?.quantity || 0);
   },
+
+  canBuy() {
+    return (
+      this.accessory &&
+      this.accessory.status === "Đang bán" &&
+      this.safeStock > 0
+    );
+  },
+
+  accessoryCategoryName() {
+    return (
+      this.accessory?.categoryId?.name ||
+      this.accessory?.categoryName ||
+      this.accessory?.category?.name ||
+      "Loại phụ kiện"
+    );
+  },
+},
 
   methods: {
     async fetchAccessory() {

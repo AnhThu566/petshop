@@ -8,51 +8,20 @@
         </p>
       </div>
 
-      <div v-if="categories.length" class="filter-bar">
-        <button
-          type="button"
-          class="filter-chip"
-          :class="{ active: !selectedCategoryId }"
-          @click="selectCategory('')"
-        >
-          Tất cả
-        </button>
-
-        <button
-          v-for="cat in categories"
-          :key="cat._id || cat.id"
-          type="button"
-          class="filter-chip"
-          :class="{ active: String(selectedCategoryId) === String(cat._id || cat.id) }"
-          @click="selectCategory(cat._id || cat.id)"
-        >
-          {{ cat.name }}
-        </button>
-      </div>
-
       <div v-if="loading" class="empty-panel">
         <i class="fas fa-spinner fa-spin empty-icon"></i>
         <p>Đang tải danh sách phụ kiện...</p>
       </div>
 
-      <div v-else-if="filteredAccessories.length === 0" class="empty-panel">
+      <div v-else-if="accessories.length === 0" class="empty-panel">
         <i class="fas fa-box-open empty-icon"></i>
         <p>Hiện chưa có phụ kiện phù hợp để hiển thị</p>
-
-        <button
-          v-if="selectedCategoryId"
-          type="button"
-          class="reset-filter-btn"
-          @click="selectCategory('')"
-        >
-          Xem tất cả phụ kiện
-        </button>
       </div>
 
       <div v-else class="accessory-grid">
         <div
           class="accessory-col"
-          v-for="item in filteredAccessories"
+          v-for="item in accessories"
           :key="item._id || item.id"
         >
           <div class="accessory-card">
@@ -164,7 +133,6 @@
 
 <script>
 import AccessoryService from "@/services/accessory.service";
-import AccessoryCategoryService from "@/services/accessoryCategory.service";
 import CartService from "@/services/cart.service";
 
 export default {
@@ -173,36 +141,10 @@ export default {
   data() {
     return {
       accessories: [],
-      categories: [],
-      selectedCategoryId: "",
       loading: false,
       quantities: {},
       isAddingMap: {},
     };
-  },
-
-  computed: {
-    filteredAccessories() {
-      return this.accessories.filter((item) => {
-        const itemCategoryId =
-          item.categoryId?._id || item.categoryId?.id || item.categoryId || "";
-
-        const matchCategory =
-          !this.selectedCategoryId ||
-          String(itemCategoryId) === String(this.selectedCategoryId);
-
-        return matchCategory;
-      });
-    },
-  },
-
-  watch: {
-    "$route.query.category": {
-      immediate: true,
-      handler(newValue) {
-        this.selectedCategoryId = newValue || "";
-      },
-    },
   },
 
   methods: {
@@ -216,24 +158,6 @@ export default {
         alert("Không thể tải danh sách phụ kiện.");
       } finally {
         this.loading = false;
-      }
-    },
-
-    async fetchCategories() {
-      try {
-        const data = await AccessoryCategoryService.getAll();
-        this.categories = Array.isArray(data)
-          ? data.filter(
-              (item) =>
-                item &&
-                (item._id || item.id) &&
-                item.name &&
-                (!item.status || item.status === "Hoạt động")
-            )
-          : [];
-      } catch (error) {
-        console.error("Lỗi tải loại phụ kiện:", error);
-        this.categories = [];
       }
     },
 
@@ -332,99 +256,91 @@ export default {
       return "badge-available";
     },
 
-    selectCategory(categoryId = "") {
-      this.selectedCategoryId = categoryId;
-      this.$router.push({
-        path: "/accessories",
-        query: categoryId ? { category: categoryId } : {},
-      });
+    async addToCart(item) {
+      if (!item) return;
+
+      const accessoryId = this.getItemId(item);
+      if (!accessoryId) {
+        alert("Phụ kiện này chưa có ID hợp lệ.");
+        return;
+      }
+
+      if (!this.canBuy(item)) {
+        alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+        return;
+      }
+
+      const qty = this.getQty(item);
+      if (!qty || qty < 1) {
+        alert("Số lượng không hợp lệ.");
+        return;
+      }
+
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        alert("Vui lòng đăng nhập để thêm phụ kiện vào giỏ hàng.");
+        this.$router.push("/login");
+        return;
+      }
+
+      this.isAddingMap = { ...this.isAddingMap, [accessoryId]: true };
+
+      try {
+        await CartService.addToCart(accessoryId, Number(qty));
+        window.dispatchEvent(new Event("cart-updated"));
+        alert("Đã thêm phụ kiện vào giỏ hàng.");
+      } catch (error) {
+        alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
+      } finally {
+        this.isAddingMap = { ...this.isAddingMap, [accessoryId]: false };
+      }
     },
 
-async addToCart(item) {
-  if (!item) return;
+    async buyNow(item) {
+      if (!item) return;
 
-  const accessoryId = this.getItemId(item);
-  if (!accessoryId) {
-    alert("Phụ kiện này chưa có ID hợp lệ.");
-    return;
-  }
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        alert("Vui lòng đăng nhập để mua phụ kiện.");
+        this.$router.push("/login");
+        return;
+      }
 
-  if (!this.canBuy(item)) {
-    alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
-    return;
-  }
+      if (!this.canBuy(item)) {
+        alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
+        return;
+      }
 
-  const qty = this.getQty(item);
-  if (!qty || qty < 1) {
-    alert("Số lượng không hợp lệ.");
-    return;
-  }
+      const qty = this.getQty(item);
+      const stock = Number(item.quantity || 0);
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  if (!user) {
-    alert("Vui lòng đăng nhập để thêm phụ kiện vào giỏ hàng.");
-    this.$router.push("/login");
-    return;
-  }
+      if (!qty || qty < 1) {
+        alert("Số lượng không hợp lệ.");
+        return;
+      }
 
-  this.isAddingMap = { ...this.isAddingMap, [accessoryId]: true };
+      if (qty > stock) {
+        alert(`Số lượng vượt quá tồn kho. Chỉ còn ${stock} sản phẩm.`);
+        return;
+      }
 
-  try {
-    await CartService.addToCart(accessoryId, Number(qty));
-    window.dispatchEvent(new Event("cart-updated"));
-    alert("Đã thêm phụ kiện vào giỏ hàng.");
-  } catch (error) {
-    alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
-  } finally {
-    this.isAddingMap = { ...this.isAddingMap, [accessoryId]: false };
-  }
-},
+      const buyNowItem = {
+        id: `buy-now-${this.getItemId(item)}`,
+        accessoryId: this.getItemId(item),
+        name: item.name || "",
+        price: Number(item.finalPrice || item.price || 0),
+        originalPriceAtDisplay: Number(item.price || 0),
+        isPromotionApplied:
+          Number(item.finalPrice || item.price || 0) < Number(item.price || 0),
+        image: item.image || "",
+        stock: Number(item.quantity || 0),
+        status: item.status || "",
+        quantity: Number(qty || 1),
+      };
 
-async buyNow(item) {
-  if (!item) return;
-
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  if (!user) {
-    alert("Vui lòng đăng nhập để mua phụ kiện.");
-    this.$router.push("/login");
-    return;
-  }
-
-  if (!this.canBuy(item)) {
-    alert("Phụ kiện này hiện không còn bán hoặc đã hết hàng.");
-    return;
-  }
-
-  const qty = this.getQty(item);
-  const stock = Number(item.quantity || 0);
-
-  if (!qty || qty < 1) {
-    alert("Số lượng không hợp lệ.");
-    return;
-  }
-
-  if (qty > stock) {
-    alert(`Số lượng vượt quá tồn kho. Chỉ còn ${stock} sản phẩm.`);
-    return;
-  }
-
-  const buyNowItem = {
-    id: `buy-now-${this.getItemId(item)}`,
-    accessoryId: this.getItemId(item),
-    name: item.name || "",
-    price: Number(item.finalPrice || item.price || 0),
-    originalPriceAtDisplay: Number(item.price || 0),
-    isPromotionApplied:
-      Number(item.finalPrice || item.price || 0) < Number(item.price || 0),
-    image: item.image || "",
-    stock: Number(item.quantity || 0),
-    status: item.status || "",
-    quantity: Number(qty || 1),
-  };
-
-  sessionStorage.setItem("buy_now_checkout", JSON.stringify([buyNowItem]));
-  this.$router.push({ path: "/accessory-checkout", query: { mode: "buy-now" } });
-},
+      sessionStorage.setItem("buy_now_checkout", JSON.stringify([buyNowItem]));
+      this.$router.push({ path: "/accessory-checkout", query: { mode: "buy-now" } });
+    },
 
     goToDetail(item) {
       const id = this.getItemId(item);
@@ -439,7 +355,7 @@ async buyNow(item) {
   },
 
   async mounted() {
-    await Promise.all([this.fetchAccessories(), this.fetchCategories()]);
+    await this.fetchAccessories();
   },
 };
 </script>
@@ -459,11 +375,11 @@ async buyNow(item) {
 }
 
 .page-head {
-  margin-bottom: 18px;
+  margin-bottom: 26px;
 }
 
 .page-title {
-  color: #2f1b44;
+  color: #5a2d91;
   font-size: 2.05rem;
   font-weight: 900;
   margin-bottom: 8px;
@@ -474,37 +390,6 @@ async buyNow(item) {
   font-size: 0.98rem;
   margin-bottom: 0;
   font-weight: 500;
-}
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin: 18px 0 28px;
-}
-
-.filter-chip {
-  border: 1px solid #ddc8f0;
-  background: #ffffff;
-  color: #7b2fc0;
-  border-radius: 999px;
-  padding: 9px 16px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  transition: all 0.2s ease;
-}
-
-.filter-chip:hover {
-  background: #f7f1fd;
-  border-color: #c9a7e7;
-}
-
-.filter-chip.active {
-  background: linear-gradient(135deg, #9a4ddd, #7522b2);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 8px 16px rgba(117, 34, 178, 0.16);
 }
 
 .empty-panel {
@@ -526,16 +411,6 @@ async buyNow(item) {
   font-size: 2.5rem;
   margin-bottom: 12px;
   color: #cfbfdc;
-}
-
-.reset-filter-btn {
-  margin-top: 12px;
-  border: none;
-  background: linear-gradient(135deg, #9a4ddd, #7522b2);
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-weight: 700;
 }
 
 .accessory-grid {
@@ -881,10 +756,6 @@ async buyNow(item) {
 @media (max-width: 575.98px) {
   .accessory-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filter-bar {
-    justify-content: flex-start;
   }
 }
 </style>
