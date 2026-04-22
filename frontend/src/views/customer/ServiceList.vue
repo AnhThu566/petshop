@@ -1,10 +1,32 @@
 <template>
   <div class="service-list-page">
     <div class="container-fluid service-page-container py-4">
+      <div v-if="selectedCategoryId" class="top-meta-block">
+        <div class="breadcrumb-row">
+          <router-link to="/" class="crumb-link">Trang chủ</router-link>
+          <span class="crumb-sep">/</span>
+          <router-link to="/services" class="crumb-link">Dịch vụ</router-link>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">{{ selectedCategoryName }}</span>
+        </div>
+
+        <div class="back-row">
+          <button class="back-btn" @click="goBackToServiceList">
+            <i class="fas fa-arrow-left mr-1"></i> Quay lại
+          </button>
+        </div>
+      </div>
+
       <div class="page-head text-center">
-        <h2 class="page-title">Danh sách dịch vụ</h2>
+        <h2 class="page-title">
+          {{ selectedCategoryId ? selectedCategoryName : "Danh sách dịch vụ" }}
+        </h2>
         <p class="page-subtitle">
-          Lựa chọn dịch vụ phù hợp để chăm sóc chó của bạn
+          {{
+            selectedCategoryId
+              ? `Các dịch vụ thuộc loại ${selectedCategoryName}`
+              : "Lựa chọn dịch vụ phù hợp để chăm sóc chó của bạn"
+          }}
         </p>
       </div>
 
@@ -25,15 +47,21 @@
         <button class="reset-filter-btn" @click="loadServices">Tải lại</button>
       </div>
 
-      <div v-else-if="services.length === 0" class="empty-panel">
+      <div v-else-if="filteredServices.length === 0" class="empty-panel">
         <i class="fas fa-concierge-bell empty-icon"></i>
-        <p>Hiện chưa có dịch vụ để hiển thị</p>
+        <p>
+          {{
+            selectedCategoryId
+              ? "Loại dịch vụ này hiện chưa có dịch vụ để hiển thị"
+              : "Hiện chưa có dịch vụ để hiển thị"
+          }}
+        </p>
       </div>
 
       <div v-else class="service-grid">
         <div
           class="service-col"
-          v-for="service in services"
+          v-for="service in filteredServices"
           :key="service._id || service.id"
         >
           <div class="service-card">
@@ -97,29 +125,66 @@
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script>
 import ServiceService from "@/services/service.service";
+import ServiceCategoryService from "@/services/serviceCategory.service";
 
 export default {
   name: "ServiceList",
   data() {
     return {
       services: [],
+      categories: [],
       loading: false,
       errorMessage: "",
       baseImageUrl: "http://localhost:3000",
       fallbackImage: "https://via.placeholder.com/600x400?text=Service",
+      selectedCategoryId: "",
     };
   },
+
   computed: {
     isCustomer() {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       return user?.role === "customer";
     },
+
+    filteredServices() {
+      return this.services.filter((service) => {
+        const serviceCategoryId =
+          service.categoryId?._id || service.categoryId?.id || service.categoryId || "";
+
+        if (!this.selectedCategoryId) return true;
+
+        return String(serviceCategoryId) === String(this.selectedCategoryId);
+      });
+    },
+
+    selectedCategoryName() {
+      if (!this.selectedCategoryId) return "Dịch vụ";
+
+      const found = this.categories.find(
+        (item) =>
+          String(item._id || item.id) === String(this.selectedCategoryId)
+      );
+
+      return found?.name || "Loại dịch vụ";
+    },
   },
+
+  watch: {
+    "$route.query.category": {
+      immediate: true,
+      handler(newValue) {
+        this.selectedCategoryId = newValue || "";
+      },
+    },
+  },
+
   methods: {
     async loadServices() {
       this.loading = true;
@@ -136,6 +201,28 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    async loadCategories() {
+      try {
+        const data = await ServiceCategoryService.getAll();
+        this.categories = Array.isArray(data)
+          ? data.filter(
+              (item) =>
+                item &&
+                (item._id || item.id) &&
+                item.name &&
+                (!item.status || item.status === "Hoạt động")
+            )
+          : [];
+      } catch (error) {
+        console.error("Lỗi loadCategories:", error);
+        this.categories = [];
+      }
+    },
+
+    goBackToServiceList() {
+      this.$router.push("/services");
     },
 
     goToDetail(service) {
@@ -160,8 +247,9 @@ export default {
       event.target.src = this.fallbackImage;
     },
   },
+
   async mounted() {
-    await this.loadServices();
+    await Promise.all([this.loadServices(), this.loadCategories()]);
   },
 };
 </script>
@@ -178,6 +266,59 @@ export default {
   max-width: 1420px;
   padding-left: 24px;
   padding-right: 24px;
+}
+
+.top-meta-block {
+  margin-bottom: 18px;
+}
+
+.breadcrumb-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.92rem;
+}
+
+.crumb-link {
+  color: #6a1b9a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.crumb-link:hover {
+  color: #5a1484;
+}
+
+.crumb-sep {
+  color: #b0a3c0;
+}
+
+.crumb-current {
+  color: #7b7287;
+  font-weight: 600;
+}
+
+.back-row {
+  margin-bottom: 10px;
+}
+
+.back-btn {
+  border: 1px solid #dfd3ec;
+  background: #fff;
+  color: #5c5368;
+  border-radius: 12px;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #faf6fe;
+  border-color: #ccb5e7;
 }
 
 .page-head {

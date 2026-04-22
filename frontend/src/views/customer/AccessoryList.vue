@@ -1,10 +1,32 @@
 <template>
   <div class="accessory-list-page">
     <div class="container-fluid accessory-page-container py-4">
+      <div v-if="selectedCategoryId" class="top-meta-block">
+        <div class="breadcrumb-row">
+          <router-link to="/" class="crumb-link">Trang chủ</router-link>
+          <span class="crumb-sep">/</span>
+          <router-link to="/accessories" class="crumb-link">Phụ kiện</router-link>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">{{ selectedCategoryName }}</span>
+        </div>
+
+        <div class="back-row">
+          <button class="back-btn" @click="goBackToAccessoryList">
+            <i class="fas fa-arrow-left mr-1"></i> Quay lại
+          </button>
+        </div>
+      </div>
+
       <div class="page-head text-center">
-        <h2 class="page-title">Danh sách phụ kiện</h2>
+        <h2 class="page-title">
+          {{ selectedCategoryId ? selectedCategoryName : "Danh sách phụ kiện" }}
+        </h2>
         <p class="page-subtitle">
-          Lựa chọn phụ kiện phù hợp để chăm sóc và nâng niu thú cưng của bạn mỗi ngày
+          {{
+            selectedCategoryId
+              ? `Các sản phẩm thuộc loại ${selectedCategoryName}`
+              : "Lựa chọn phụ kiện phù hợp để chăm sóc và nâng niu thú cưng của bạn mỗi ngày"
+          }}
         </p>
       </div>
 
@@ -13,15 +35,21 @@
         <p>Đang tải danh sách phụ kiện...</p>
       </div>
 
-      <div v-else-if="accessories.length === 0" class="empty-panel">
+      <div v-else-if="filteredAccessories.length === 0" class="empty-panel">
         <i class="fas fa-box-open empty-icon"></i>
-        <p>Hiện chưa có phụ kiện phù hợp để hiển thị</p>
+        <p>
+          {{
+            selectedCategoryId
+              ? "Loại phụ kiện này hiện chưa có sản phẩm để hiển thị"
+              : "Hiện chưa có phụ kiện phù hợp để hiển thị"
+          }}
+        </p>
       </div>
 
       <div v-else class="accessory-grid">
         <div
           class="accessory-col"
-          v-for="item in accessories"
+          v-for="item in filteredAccessories"
           :key="item._id || item.id"
         >
           <div class="accessory-card">
@@ -133,6 +161,7 @@
 
 <script>
 import AccessoryService from "@/services/accessory.service";
+import AccessoryCategoryService from "@/services/accessoryCategory.service";
 import CartService from "@/services/cart.service";
 
 export default {
@@ -141,10 +170,45 @@ export default {
   data() {
     return {
       accessories: [],
+      categories: [],
       loading: false,
       quantities: {},
       isAddingMap: {},
+      selectedCategoryId: "",
     };
+  },
+
+  computed: {
+    filteredAccessories() {
+      return this.accessories.filter((item) => {
+        const itemCategoryId =
+          item.categoryId?._id || item.categoryId?.id || item.categoryId || "";
+
+        if (!this.selectedCategoryId) return true;
+
+        return String(itemCategoryId) === String(this.selectedCategoryId);
+      });
+    },
+
+    selectedCategoryName() {
+      if (!this.selectedCategoryId) return "Phụ kiện";
+
+      const found = this.categories.find(
+        (item) =>
+          String(item._id || item.id) === String(this.selectedCategoryId)
+      );
+
+      return found?.name || "Loại phụ kiện";
+    },
+  },
+
+  watch: {
+    "$route.query.category": {
+      immediate: true,
+      handler(newValue) {
+        this.selectedCategoryId = newValue || "";
+      },
+    },
   },
 
   methods: {
@@ -159,6 +223,28 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    async fetchCategories() {
+      try {
+        const data = await AccessoryCategoryService.getAll();
+        this.categories = Array.isArray(data)
+          ? data.filter(
+              (item) =>
+                item &&
+                (item._id || item.id) &&
+                item.name &&
+                (!item.status || item.status === "Hoạt động")
+            )
+          : [];
+      } catch (error) {
+        console.error("Lỗi tải loại phụ kiện:", error);
+        this.categories = [];
+      }
+    },
+
+    goBackToAccessoryList() {
+      this.$router.push("/accessories");
     },
 
     getItemId(item) {
@@ -355,7 +441,7 @@ export default {
   },
 
   async mounted() {
-    await this.fetchAccessories();
+    await Promise.all([this.fetchAccessories(), this.fetchCategories()]);
   },
 };
 </script>
@@ -372,6 +458,59 @@ export default {
   max-width: 1420px;
   padding-left: 24px;
   padding-right: 24px;
+}
+
+.top-meta-block {
+  margin-bottom: 18px;
+}
+
+.breadcrumb-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8b7fa0;
+  font-size: 0.92rem;
+}
+
+.crumb-link {
+  color: #6a1b9a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.crumb-link:hover {
+  color: #5a1484;
+}
+
+.crumb-sep {
+  color: #b0a3c0;
+}
+
+.crumb-current {
+  color: #7b7287;
+  font-weight: 600;
+}
+
+.back-row {
+  margin-bottom: 10px;
+}
+
+.back-btn {
+  border: 1px solid #dfd3ec;
+  background: #fff;
+  color: #5c5368;
+  border-radius: 12px;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #faf6fe;
+  border-color: #ccb5e7;
 }
 
 .page-head {

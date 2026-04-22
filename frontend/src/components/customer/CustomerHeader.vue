@@ -5,9 +5,9 @@
         <div class="top-inner">
           <router-link to="/" class="brand-logo text-decoration-none">
             <div class="brand-logo-box">
-<div class="brand-logo-icon">
-  <img src="/logo-ct550.png" alt="Logo" class="brand-logo-image" />
-</div>
+              <div class="brand-logo-icon">
+                <img src="/logo-ct550.png" alt="Logo" class="brand-logo-image" />
+              </div>
               <div class="brand-logo-content">
                 <div class="brand-logo-text">PETSHOP</div>
                 <div class="brand-logo-sub">Chó cảnh • Phụ kiện • Dịch vụ</div>
@@ -280,43 +280,43 @@
               </div>
             </div>
 
-<div
-  class="menu-dropdown service-menu-dropdown"
-  @mouseenter="openServiceMenu"
-  @mouseleave="closeServiceMenu"
->
-  <router-link
-    to="/services"
-    class="bottom-menu-item text-decoration-none dropdown-toggle-link"
-    :class="{ active: isServiceMenuActive }"
-    @click="closeAllDropdowns"
-  >
-    Dịch vụ
-    <i class="fas fa-chevron-down menu-caret ml-2"></i>
-  </router-link>
+            <div
+              class="menu-dropdown service-menu-dropdown"
+              @mouseenter="openServiceMenu"
+              @mouseleave="closeServiceMenu"
+            >
+              <router-link
+                to="/services"
+                class="bottom-menu-item text-decoration-none dropdown-toggle-link"
+                :class="{ active: isServiceMenuActive }"
+                @click="closeAllDropdowns"
+              >
+                Dịch vụ
+                <i class="fas fa-chevron-down menu-caret ml-2"></i>
+              </router-link>
 
-  <div
-    class="menu-dropdown-panel service-dropdown-panel shadow"
-    :class="{ 'show-dropdown': isServiceMenuOpen }"
-  >
-    <router-link
-      v-for="category in serviceCategories"
-      :key="category._id || category.id"
-      :to="`/services?category=${category._id || category.id}`"
-      class="menu-dropdown-item service-dropdown-item text-decoration-none"
-      @click="closeAllDropdowns"
-    >
-      {{ category.name }}
-    </router-link>
+              <div
+                class="menu-dropdown-panel service-dropdown-panel shadow"
+                :class="{ 'show-dropdown': isServiceMenuOpen }"
+              >
+                <router-link
+                  v-for="category in serviceCategories"
+                  :key="category._id || category.id"
+                  :to="`/services?category=${category._id || category.id}`"
+                  class="menu-dropdown-item service-dropdown-item text-decoration-none"
+                  @click="closeAllDropdowns"
+                >
+                  {{ category.name }}
+                </router-link>
 
-    <div
-      v-if="!serviceCategories.length"
-      class="menu-dropdown-item service-dropdown-item empty-dropdown-item"
-    >
-      Chưa có loại dịch vụ
-    </div>
-  </div>
-</div>
+                <div
+                  v-if="!serviceCategories.length"
+                  class="menu-dropdown-item service-dropdown-item empty-dropdown-item"
+                >
+                  Chưa có loại dịch vụ
+                </div>
+              </div>
+            </div>
 
             <router-link to="/tra-cuu-don" class="bottom-menu-item text-decoration-none">
               Đơn hàng của tôi
@@ -355,15 +355,19 @@ export default {
   },
 
   data() {
-return {
-  isUserDropdownOpen: false,
-  isDogMenuOpen: false,
-  isAccessoryMenuOpen: false,
-  isServiceMenuOpen: false,
-  isSearchSuggestOpen: false,
-  accessoryCategories: [],
-  serviceCategories: [],
-  breedMenuList: [],
+    return {
+      isUserDropdownOpen: false,
+      isDogMenuOpen: false,
+      isAccessoryMenuOpen: false,
+      isServiceMenuOpen: false,
+      isSearchSuggestOpen: false,
+      accessoryCategories: [],
+      serviceCategories: [],
+      breedMenuList: [],
+      cartCount: 0,
+      localUser: null,
+      baseImageUrl: "http://localhost:3000",
+      searchKeyword: "",
     };
   },
 
@@ -402,9 +406,9 @@ return {
     },
 
     isServiceMenuActive() {
-  const path = this.$route.path || "";
-  return path.startsWith("/services") || path.startsWith("/service/");
-},
+      const path = this.$route.path || "";
+      return path.startsWith("/services") || path.startsWith("/service/");
+    },
 
     searchSuggestions() {
       const breedItems = this.breedMenuList.map((breed) => ({
@@ -416,14 +420,23 @@ return {
         id: breed._id || breed.id,
       }));
 
-const serviceItems = this.serviceCategories.map((category) => ({
-  key: `service-${category._id || category.id}`,
-  type: "service-category",
-  label: category.name,
-  group: "Loại dịch vụ",
-  icon: "fas fa-concierge-bell",
-  id: category._id || category.id,
-}));
+      const accessoryItems = this.accessoryCategories.map((category) => ({
+        key: `accessory-${category._id || category.id}`,
+        type: "accessory-category",
+        label: category.name,
+        group: "Loại phụ kiện",
+        icon: "fas fa-box",
+        id: category._id || category.id,
+      }));
+
+      const serviceItems = this.serviceCategories.map((category) => ({
+        key: `service-${category._id || category.id}`,
+        type: "service-category",
+        label: category.name,
+        group: "Loại dịch vụ",
+        icon: "fas fa-concierge-bell",
+        id: category._id || category.id,
+      }));
 
       const fixedItems = [
         {
@@ -444,7 +457,7 @@ const serviceItems = this.serviceCategories.map((category) => ({
         },
       ];
 
-return [...breedItems, ...accessoryItems, ...serviceItems, ...fixedItems];
+      return [...breedItems, ...accessoryItems, ...serviceItems, ...fixedItems];
     },
 
     filteredSearchSuggestions() {
@@ -537,18 +550,31 @@ return [...breedItems, ...accessoryItems, ...serviceItems, ...fixedItems];
         return;
       }
 
-const matchedServiceCategory = this.serviceCategories.find((category) =>
-  this.normalizeText(category.name).includes(normalizedKeyword)
-);
+      const matchedAccessoryCategory = this.accessoryCategories.find((category) =>
+        this.normalizeText(category.name).includes(normalizedKeyword)
+      );
 
-if (matchedServiceCategory) {
-  this.isSearchSuggestOpen = false;
-  this.searchKeyword = "";
-  this.$router.push(
-    `/services?category=${matchedServiceCategory._id || matchedServiceCategory.id}`
-  );
-  return;
-}
+      if (matchedAccessoryCategory) {
+        this.isSearchSuggestOpen = false;
+        this.searchKeyword = "";
+        this.$router.push(
+          `/accessories?category=${matchedAccessoryCategory._id || matchedAccessoryCategory.id}`
+        );
+        return;
+      }
+
+      const matchedServiceCategory = this.serviceCategories.find((category) =>
+        this.normalizeText(category.name).includes(normalizedKeyword)
+      );
+
+      if (matchedServiceCategory) {
+        this.isSearchSuggestOpen = false;
+        this.searchKeyword = "";
+        this.$router.push(
+          `/services?category=${matchedServiceCategory._id || matchedServiceCategory.id}`
+        );
+        return;
+      }
 
       this.isSearchSuggestOpen = false;
 
@@ -580,18 +606,16 @@ if (matchedServiceCategory) {
         this.$router.push(`/accessories?category=${item.id}`);
         return;
       }
+
       if (item.type === "service-category") {
-  this.$router.push(`/services?category=${item.id}`);
-  return;
-}
+        this.$router.push(`/services?category=${item.id}`);
+        return;
+      }
 
       if (item.type === "page" && item.path) {
         this.$router.push(item.path);
       }
-
     },
-
-    
 
     async fetchAccessoryCategories() {
       try {
@@ -612,22 +636,22 @@ if (matchedServiceCategory) {
     },
 
     async fetchServiceCategories() {
-  try {
-    const data = await ServiceCategoryService.getAll();
-    this.serviceCategories = Array.isArray(data)
-      ? data.filter(
-          (item) =>
-            item &&
-            (item._id || item.id) &&
-            item.name &&
-            (!item.status || item.status === "Hoạt động")
-        )
-      : [];
-  } catch (error) {
-    console.error("Lỗi tải loại dịch vụ:", error);
-    this.serviceCategories = [];
-  }
-},
+      try {
+        const data = await ServiceCategoryService.getAll();
+        this.serviceCategories = Array.isArray(data)
+          ? data.filter(
+              (item) =>
+                item &&
+                (item._id || item.id) &&
+                item.name &&
+                (!item.status || item.status === "Hoạt động")
+            )
+          : [];
+      } catch (error) {
+        console.error("Lỗi tải loại dịch vụ:", error);
+        this.serviceCategories = [];
+      }
+    },
 
     async fetchBreedMenu() {
       try {
@@ -670,17 +694,18 @@ if (matchedServiceCategory) {
       }
     },
 
-closeAllDropdowns() {
-  this.isUserDropdownOpen = false;
-  this.isDogMenuOpen = false;
-  this.isAccessoryMenuOpen = false;
-  this.isServiceMenuOpen = false;
-  this.isSearchSuggestOpen = false;
-},
+    closeAllDropdowns() {
+      this.isUserDropdownOpen = false;
+      this.isDogMenuOpen = false;
+      this.isAccessoryMenuOpen = false;
+      this.isServiceMenuOpen = false;
+      this.isSearchSuggestOpen = false;
+    },
 
     toggleUserDropdown() {
       this.isDogMenuOpen = false;
       this.isAccessoryMenuOpen = false;
+      this.isServiceMenuOpen = false;
       this.isSearchSuggestOpen = false;
       this.isUserDropdownOpen = !this.isUserDropdownOpen;
     },
@@ -688,6 +713,7 @@ closeAllDropdowns() {
     openDogMenu() {
       this.isDogMenuOpen = true;
       this.isAccessoryMenuOpen = false;
+      this.isServiceMenuOpen = false;
     },
 
     closeDogMenu() {
@@ -697,10 +723,21 @@ closeAllDropdowns() {
     openAccessoryMenu() {
       this.isAccessoryMenuOpen = true;
       this.isDogMenuOpen = false;
+      this.isServiceMenuOpen = false;
     },
 
     closeAccessoryMenu() {
       this.isAccessoryMenuOpen = false;
+    },
+
+    openServiceMenu() {
+      this.isServiceMenuOpen = true;
+      this.isDogMenuOpen = false;
+      this.isAccessoryMenuOpen = false;
+    },
+
+    closeServiceMenu() {
+      this.isServiceMenuOpen = false;
     },
 
     logout() {
@@ -739,26 +776,17 @@ closeAllDropdowns() {
 
       this.closeAllDropdowns();
     },
-    openServiceMenu() {
-  this.isServiceMenuOpen = true;
-  this.isDogMenuOpen = false;
-  this.isAccessoryMenuOpen = false;
-},
-
-closeServiceMenu() {
-  this.isServiceMenuOpen = false;
-},
   },
 
   async mounted() {
     this.syncUserFromStorage();
 
-await Promise.all([
-  this.fetchAccessoryCategories(),
-  this.fetchServiceCategories(),
-  this.fetchBreedMenu(),
-  this.fetchCartCount(),
-]);
+    await Promise.all([
+      this.fetchAccessoryCategories(),
+      this.fetchServiceCategories(),
+      this.fetchBreedMenu(),
+      this.fetchCartCount(),
+    ]);
 
     window.addEventListener("cart-updated", this.fetchCartCount);
     window.addEventListener("auth-changed", this.fetchCartCount);
@@ -1294,6 +1322,12 @@ await Promise.all([
   transition: all 0.2s ease;
 }
 
+.accessory-dropdown-item:hover {
+  background: #f3e8ff;
+  color: #6f42a4;
+  border-color: #d9c2f3;
+}
+
 .service-dropdown-panel {
   min-width: 420px;
   max-width: min(1100px, calc(100vw - 40px));
@@ -1328,12 +1362,6 @@ await Promise.all([
 }
 
 .service-dropdown-item:hover {
-  background: #f3e8ff;
-  color: #6f42a4;
-  border-color: #d9c2f3;
-}
-
-.accessory-dropdown-item:hover {
   background: #f3e8ff;
   color: #6f42a4;
   border-color: #d9c2f3;
@@ -1445,7 +1473,8 @@ await Promise.all([
   }
 
   .breed-dropdown-panel,
-  .accessory-dropdown-panel {
+  .accessory-dropdown-panel,
+  .service-dropdown-panel {
     max-width: min(900px, calc(100vw - 40px));
   }
 }
@@ -1501,23 +1530,23 @@ await Promise.all([
     transform: none;
   }
 
-.breed-dropdown-panel,
-.accessory-dropdown-panel,
-.service-dropdown-panel {
-  min-width: 280px;
-  max-width: calc(100vw - 24px);
-  width: max-content;
-  padding: 12px 14px;
-  gap: 10px;
-}
+  .breed-dropdown-panel,
+  .accessory-dropdown-panel,
+  .service-dropdown-panel {
+    min-width: 280px;
+    max-width: calc(100vw - 24px);
+    width: max-content;
+    padding: 12px 14px;
+    gap: 10px;
+  }
 
-.breed-dropdown-item,
-.accessory-dropdown-item,
-.service-dropdown-item {
-  min-height: 38px;
-  padding: 0 14px;
-  font-size: 0.88rem;
-}
+  .breed-dropdown-item,
+  .accessory-dropdown-item,
+  .service-dropdown-item {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.88rem;
+  }
 
   .bottom-menu-item.router-link-active::after,
   .bottom-menu-item:hover::after,
