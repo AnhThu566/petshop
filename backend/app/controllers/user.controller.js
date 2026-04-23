@@ -38,13 +38,21 @@ exports.updateMe = async (req, res, next) => {
       return next(new ApiError(404, "Không tìm thấy tài khoản"));
     }
 
-    const { fullName, phone, gender, birthday, address } = req.body;
+    const fullName = String(req.body.fullName || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    const gender = String(req.body.gender || "Khác").trim();
+    const birthday = req.body.birthday;
+    const address = String(req.body.address || "").trim();
 
-    if (!fullName || !fullName.trim()) {
+    if (!fullName) {
       return next(new ApiError(400, "Họ và tên không được để trống"));
     }
 
-    if (phone && !/^(0|\+84)[0-9]{9,10}$/.test(String(phone).trim())) {
+    if (fullName.length < 2) {
+      return next(new ApiError(400, "Họ và tên phải có ít nhất 2 ký tự"));
+    }
+
+    if (phone && !/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) {
       return next(new ApiError(400, "Số điện thoại không hợp lệ"));
     }
 
@@ -52,13 +60,27 @@ exports.updateMe = async (req, res, next) => {
       return next(new ApiError(400, "Giới tính không hợp lệ"));
     }
 
+    if (phone) {
+      const existingPhoneUser = await User.findOne({
+        phone,
+        _id: { $ne: userId },
+      });
+
+      if (existingPhoneUser) {
+        return next(new ApiError(400, "Số điện thoại đã được sử dụng"));
+      }
+    }
+
     if (birthday) {
       const birthdayDate = new Date(birthday);
+
       if (Number.isNaN(birthdayDate.getTime())) {
         return next(new ApiError(400, "Ngày sinh không hợp lệ"));
       }
 
       const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
       if (birthdayDate > today) {
         return next(new ApiError(400, "Ngày sinh không được lớn hơn hôm nay"));
       }
@@ -68,12 +90,11 @@ exports.updateMe = async (req, res, next) => {
       user.birthday = null;
     }
 
-    user.fullName = fullName.trim();
-    user.phone = phone ? String(phone).trim() : "";
+    user.fullName = fullName;
+    user.phone = phone;
     user.gender = gender || "Khác";
+    user.address = address;
 
-    // address chưa có trong model User hiện tại
-    // nếu bạn muốn lưu address thật, cần thêm field address vào user.model.js
     if (req.file) {
       user.avatar = `/uploads/${req.file.filename}`;
     }
@@ -85,6 +106,17 @@ exports.updateMe = async (req, res, next) => {
       user,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      let message = "Dữ liệu đã tồn tại";
+
+      if (field === "phone") message = "Số điện thoại đã được sử dụng";
+      if (field === "email") message = "Email đã được sử dụng";
+      if (field === "username") message = "Tên đăng nhập đã tồn tại";
+
+      return next(new ApiError(400, message));
+    }
+
     return next(new ApiError(500, "Lỗi cập nhật hồ sơ: " + error.message));
   }
 };

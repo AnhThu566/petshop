@@ -379,6 +379,12 @@ export default {
         return;
       }
 
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert("Ảnh đại diện không được vượt quá 2MB.");
+        return;
+      }
+
       this.selectedAvatarFile = file;
       this.previewAvatar = URL.createObjectURL(file);
     },
@@ -393,20 +399,26 @@ export default {
     },
 
     validateProfile() {
-      if (!this.user.fullName || !this.user.fullName.trim()) {
+      const fullName = this.user.fullName?.trim() || "";
+      const phone = this.user.phone?.trim() || "";
+      const birthday = this.formattedBirthday || "";
+
+      if (!fullName) {
         alert("Vui lòng nhập họ và tên.");
         return false;
       }
 
-      if (
-        this.user.phone &&
-        !/^(0|\+84)[0-9]{9,10}$/.test(this.user.phone.trim())
-      ) {
+      if (fullName.length < 2) {
+        alert("Họ và tên phải có ít nhất 2 ký tự.");
+        return false;
+      }
+
+      if (phone && !/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) {
         alert("Số điện thoại không hợp lệ.");
         return false;
       }
 
-      if (this.user.birthday && this.user.birthday > this.today) {
+      if (birthday && birthday > this.today) {
         alert("Ngày sinh không được lớn hơn hôm nay.");
         return false;
       }
@@ -420,12 +432,16 @@ export default {
       try {
         this.savingProfile = true;
 
+        const fullName = this.user.fullName?.trim() || "";
+        const phone = this.user.phone?.trim() || "";
+        const address = this.user.address?.trim() || "";
+
         const formData = new FormData();
-        formData.append("fullName", this.user.fullName?.trim() || "");
-        formData.append("phone", this.user.phone?.trim() || "");
+        formData.append("fullName", fullName);
+        formData.append("phone", phone);
         formData.append("gender", this.user.gender || "Khác");
         formData.append("birthday", this.user.birthday || "");
-        formData.append("address", this.user.address?.trim() || "");
+        formData.append("address", address);
 
         if (this.selectedAvatarFile) {
           formData.append("avatar", this.selectedAvatarFile);

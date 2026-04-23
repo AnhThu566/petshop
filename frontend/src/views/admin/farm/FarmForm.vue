@@ -326,7 +326,7 @@ export default {
       formData.append("name", this.farm.name || "");
       formData.append("phone", this.farm.phone || "");
       formData.append("address", this.farm.address || "");
-      formData.append("description", this.farm.description || "");
+      formData.append("farmDescription", this.farm.description || "");
       formData.append("maTrai", this.farm.maTrai || "");
 
       if (this.selectedFile) {

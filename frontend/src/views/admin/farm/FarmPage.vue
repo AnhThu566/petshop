@@ -40,7 +40,6 @@
 import FarmForm from "./FarmForm.vue";
 import FarmList from "./FarmList.vue";
 import FarmService from "@/services/farm.service";
-import createApiClient from "@/services/api.service";
 import AuthService from "@/services/auth.service";
 
 export default {
@@ -74,19 +73,7 @@ export default {
     },
 
     async retrieveUsers() {
-      try {
-        const userApi = createApiClient("/api/auth");
-        this.allUsers = (await userApi.get("/users")).data;
-      } catch (error) {
-        console.log("Chưa có API lấy User, đang dùng dữ liệu tạm để test form...");
-        this.allUsers = [
-          {
-            _id: "65f1a2b3c4d5e6f7a8b9c0d1",
-            username: "ChuTrai_Ao_01",
-            email: "test@gmail.com",
-          },
-        ];
-      }
+      this.allUsers = [];
     },
 
     async openAddForm() {
@@ -142,7 +129,7 @@ export default {
         }
 
         this.closeForm();
-        await Promise.all([this.retrieveFarms(), this.retrieveUsers()]);
+        await this.retrieveFarms();
       } catch (error) {
         const errorMessage = error.response?.data?.message || error.message;
         alert("❌ LỖI: " + errorMessage);

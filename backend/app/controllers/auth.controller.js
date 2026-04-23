@@ -18,10 +18,71 @@ const signToken = (user, farmId = null) => {
   );
 };
 
+const normalizeString = (value) => {
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const emailRegex = /^\S+@\S+\.\S+$/;
+const phoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
+const usernameRegex = /^[a-zA-Z0-9_]+$/;
+
+const validateCommonRegisterFields = ({
+  username,
+  password,
+  email,
+  fullName,
+  phone,
+}) => {
+  if (!username || !password || !email || !fullName || !phone) {
+    return "Vui lòng nhập đầy đủ thông tin bắt buộc";
+  }
+
+  if (username.length < 3 || username.length > 30) {
+    return "Tên đăng nhập phải từ 3 đến 30 ký tự";
+  }
+
+  if (!usernameRegex.test(username)) {
+    return "Tên đăng nhập chỉ được chứa chữ, số và dấu gạch dưới";
+  }
+
+  if (password.length < 6) {
+    return "Mật khẩu phải có ít nhất 6 ký tự";
+  }
+
+  if (!emailRegex.test(email)) {
+    return "Email không hợp lệ";
+  }
+
+  if (!phoneRegex.test(phone)) {
+    return "Số điện thoại không hợp lệ";
+  }
+
+  return null;
+};
+
+const checkDuplicateUserFields = async ({ username, email, phone }) => {
+  const existingUsername = await User.findOne({ username });
+  if (existingUsername) {
+    return "Tên đăng nhập đã tồn tại";
+  }
+
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    return "Email đã được sử dụng";
+  }
+
+  const existingPhone = await User.findOne({ phone });
+  if (existingPhone) {
+    return "Số điện thoại đã được sử dụng";
+  }
+
+  return null;
+};
+
 // 1. ĐĂNG KÝ TRANG TRẠI (Tạo User + Farm)
 exports.registerFarm = async (req, res, next) => {
   try {
-    const {
+    let {
       username,
       password,
       email,
@@ -32,16 +93,39 @@ exports.registerFarm = async (req, res, next) => {
       farmDescription,
     } = req.body;
 
-    if (!username || !password || !email || !fullName || !name) {
-      return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin đăng ký trại"));
+    username = normalizeString(username);
+    password = normalizeString(password);
+    email = normalizeString(email).toLowerCase();
+    fullName = normalizeString(fullName);
+    phone = normalizeString(phone);
+    address = normalizeString(address);
+    name = normalizeString(name);
+    farmDescription = normalizeString(farmDescription);
+
+    if (!name) {
+      return next(new ApiError(400, "Tên trại không được để trống"));
     }
 
-    const userExists = await User.findOne({
-      $or: [{ username }, { email }],
+    const validateError = validateCommonRegisterFields({
+      username,
+      password,
+      email,
+      fullName,
+      phone,
     });
 
-    if (userExists) {
-      return next(new ApiError(400, "Tên đăng nhập hoặc Email đã tồn tại!"));
+    if (validateError) {
+      return next(new ApiError(400, validateError));
+    }
+
+    const duplicateError = await checkDuplicateUserFields({
+      username,
+      email,
+      phone,
+    });
+
+    if (duplicateError) {
+      return next(new ApiError(400, duplicateError));
     }
 
     const newUser = new User({
@@ -49,7 +133,7 @@ exports.registerFarm = async (req, res, next) => {
       password,
       email,
       fullName,
-      phone: phone || "",
+      phone,
       role: "farm",
       status: "active",
     });
@@ -60,15 +144,17 @@ exports.registerFarm = async (req, res, next) => {
     let nextCode = "T001";
 
     if (lastFarm && lastFarm.maTrai) {
-      const lastNumber = parseInt(lastFarm.maTrai.replace("T", ""), 10);
-      nextCode = "T" + (lastNumber + 1).toString().padStart(3, "0");
+      const lastNumber = parseInt(String(lastFarm.maTrai).replace("T", ""), 10);
+      if (!Number.isNaN(lastNumber)) {
+        nextCode = "T" + String(lastNumber + 1).padStart(3, "0");
+      }
     }
 
     const newFarm = new Farm({
       maTrai: nextCode,
       name,
       address: address || "",
-      phone: phone || "",
+      phone,
       farmDescription: farmDescription || "",
       ownerId: savedUser._id,
       image: req.file ? `/uploads/${req.file.filename}` : null,
@@ -81,6 +167,18 @@ exports.registerFarm = async (req, res, next) => {
       maTrai: nextCode,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      let message = "Dữ liệu đã tồn tại";
+
+      if (field === "username") message = "Tên đăng nhập đã tồn tại";
+      if (field === "email") message = "Email đã được sử dụng";
+      if (field === "phone") message = "Số điện thoại đã được sử dụng";
+      if (field === "customerCode") message = "Mã khách hàng bị trùng";
+
+      return next(new ApiError(400, message));
+    }
+
     return next(new ApiError(500, "Lỗi khi đăng ký trại: " + error.message));
   }
 };
@@ -88,7 +186,10 @@ exports.registerFarm = async (req, res, next) => {
 // 2. ĐĂNG NHẬP CHUNG
 exports.login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+
+    username = normalizeString(username);
+    password = normalizeString(password);
 
     if (!username || !password) {
       return next(new ApiError(400, "Vui lòng nhập tên đăng nhập và mật khẩu"));
@@ -100,13 +201,13 @@ exports.login = async (req, res, next) => {
       return next(new ApiError(401, "Tài khoản hoặc mật khẩu không chính xác"));
     }
 
+    if (user.status === "locked") {
+      return next(new ApiError(403, "Tài khoản của bạn đã bị khóa!"));
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return next(new ApiError(401, "Tài khoản hoặc mật khẩu không chính xác"));
-    }
-
-    if (user.status === "locked") {
-      return next(new ApiError(403, "Tài khoản của bạn đã bị khóa!"));
     }
 
     let farmId = null;
@@ -138,24 +239,39 @@ exports.login = async (req, res, next) => {
 // 3. ĐĂNG KÝ KHÁCH HÀNG
 exports.register = async (req, res, next) => {
   try {
-    const { username, password, email, fullName, phone } = req.body;
+    let { username, password, email, fullName, phone } = req.body;
 
-    if (!username || !password || !email || !fullName) {
-      return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin đăng ký"));
-    }
+    username = normalizeString(username);
+    password = normalizeString(password);
+    email = normalizeString(email).toLowerCase();
+    fullName = normalizeString(fullName);
+    phone = normalizeString(phone);
 
-    const userExists = await User.findOne({
-      $or: [{ username }, { email }],
+    const validateError = validateCommonRegisterFields({
+      username,
+      password,
+      email,
+      fullName,
+      phone,
     });
 
-    if (userExists) {
-      return next(new ApiError(400, "Tên đăng nhập hoặc Email đã tồn tại!"));
+    if (validateError) {
+      return next(new ApiError(400, validateError));
     }
 
-    // Tạo mã khách hàng tự động: KH001, KH002...
+    const duplicateError = await checkDuplicateUserFields({
+      username,
+      email,
+      phone,
+    });
+
+    if (duplicateError) {
+      return next(new ApiError(400, duplicateError));
+    }
+
     const lastCustomer = await User.findOne({
       role: "customer",
-      customerCode: { $exists: true, $ne: "" },
+      customerCode: { $exists: true, $ne: null, $ne: "" },
     }).sort({ customerCode: -1 });
 
     let nextCustomerCode = "KH001";
@@ -176,7 +292,7 @@ exports.register = async (req, res, next) => {
       password,
       email,
       fullName,
-      phone: phone || "",
+      phone,
       role: "customer",
       status: "active",
       customerCode: nextCustomerCode,
@@ -190,15 +306,26 @@ exports.register = async (req, res, next) => {
       customerCode: newUser.customerCode,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      let message = "Dữ liệu đã tồn tại";
+
+      if (field === "username") message = "Tên đăng nhập đã tồn tại";
+      if (field === "email") message = "Email đã được sử dụng";
+      if (field === "phone") message = "Số điện thoại đã được sử dụng";
+      if (field === "customerCode") message = "Mã khách hàng bị trùng";
+
+      return next(new ApiError(400, message));
+    }
+
     return next(new ApiError(500, "Lỗi server: " + error.message));
   }
 };
 
-//đổi mật khẩu
+// đổi mật khẩu
 exports.changePassword = async (req, res, next) => {
   try {
     const userId = req.user?._id || req.user?.id;
-
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!userId) {
@@ -209,7 +336,7 @@ exports.changePassword = async (req, res, next) => {
       return next(new ApiError(400, "Vui lòng nhập đầy đủ thông tin mật khẩu"));
     }
 
-    if (newPassword.length < 6) {
+    if (String(newPassword).trim().length < 6) {
       return next(new ApiError(400, "Mật khẩu mới phải có ít nhất 6 ký tự"));
     }
 
@@ -218,7 +345,9 @@ exports.changePassword = async (req, res, next) => {
     }
 
     if (currentPassword === newPassword) {
-      return next(new ApiError(400, "Mật khẩu mới không được trùng mật khẩu hiện tại"));
+      return next(
+        new ApiError(400, "Mật khẩu mới không được trùng mật khẩu hiện tại")
+      );
     }
 
     const user = await User.findById(userId);

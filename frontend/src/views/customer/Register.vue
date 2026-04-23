@@ -94,6 +94,7 @@
                         class="form-control custom-input"
                         v-model.trim="form.phone"
                         placeholder="Nhập số điện thoại..."
+                        required
                       />
                     </div>
                   </div>
@@ -110,6 +111,22 @@
                       class="form-control custom-input"
                       v-model="form.password"
                       placeholder="Nhập mật khẩu..."
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group mb-3">
+                  <label class="form-label">Xác nhận mật khẩu</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">
+                      <i class="fas fa-shield-alt"></i>
+                    </span>
+                    <input
+                      type="password"
+                      class="form-control custom-input"
+                      v-model="form.confirmPassword"
+                      placeholder="Nhập lại mật khẩu..."
                       required
                     />
                   </div>
@@ -156,6 +173,7 @@ export default {
         email: "",
         phone: "",
         password: "",
+        confirmPassword: "",
       },
       loading: false,
       errorMessage: "",
@@ -164,13 +182,75 @@ export default {
   },
 
   methods: {
+    validateForm() {
+      const fullName = this.form.fullName?.trim() || "";
+      const username = this.form.username?.trim() || "";
+      const email = this.form.email?.trim() || "";
+      const phone = this.form.phone?.trim() || "";
+      const password = this.form.password || "";
+      const confirmPassword = this.form.confirmPassword || "";
+
+      if (!fullName || !username || !email || !phone || !password || !confirmPassword) {
+        this.errorMessage = "Vui lòng nhập đầy đủ thông tin.";
+        return false;
+      }
+
+      if (fullName.length < 2) {
+        this.errorMessage = "Họ và tên phải có ít nhất 2 ký tự.";
+        return false;
+      }
+
+      if (username.length < 3 || username.length > 30) {
+        this.errorMessage = "Tên đăng nhập phải từ 3 đến 30 ký tự.";
+        return false;
+      }
+
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        this.errorMessage = "Tên đăng nhập chỉ được chứa chữ, số và dấu gạch dưới.";
+        return false;
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        this.errorMessage = "Email không hợp lệ.";
+        return false;
+      }
+
+      if (!/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) {
+        this.errorMessage = "Số điện thoại không hợp lệ.";
+        return false;
+      }
+
+      if (password.length < 6) {
+        this.errorMessage = "Mật khẩu phải có ít nhất 6 ký tự.";
+        return false;
+      }
+
+      if (password !== confirmPassword) {
+        this.errorMessage = "Xác nhận mật khẩu không khớp.";
+        return false;
+      }
+
+      return true;
+    },
+
     async handleRegister() {
-      this.loading = true;
       this.errorMessage = "";
       this.successMessage = "";
 
+      if (!this.validateForm()) return;
+
+      this.loading = true;
+
       try {
-        const response = await AuthService.create(this.form);
+        const payload = {
+          fullName: this.form.fullName.trim(),
+          username: this.form.username.trim(),
+          email: this.form.email.trim().toLowerCase(),
+          phone: this.form.phone.trim(),
+          password: this.form.password,
+        };
+
+        const response = await AuthService.create(payload);
 
         this.successMessage = response.message || "Đăng ký thành công!";
         alert("✅ Đăng ký thành công! Vui lòng đăng nhập.");
