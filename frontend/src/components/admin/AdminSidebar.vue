@@ -17,7 +17,7 @@
         active-class="menu-item-active"
       >
         <i class="fas fa-chart-line"></i>
-        <span>Bảng điều khiển</span>
+        <span>Dashboard</span>
       </router-link>
 
       <router-link

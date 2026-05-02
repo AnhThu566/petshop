@@ -31,3 +31,10 @@ async function createAdmin() {
 }
 
 createAdmin();
+
+
+#mongoaatlash
+PORT=3000
+MONGODB_URI=mongodb+srv://petshopadmin:Petshop123456@cluster0.zljpdoc.mongodb.net/petshop?retryWrites=true&w=majority&appName=Cluster0
+JWT_SECRET=petshop_secret_123
+CLIENT_URL=http://localhost:3001
